@@ -1,0 +1,115 @@
+# ODM_KÜTÜK_İŞLEMLERİ
+
+Bu proje, eğitim kurumlarının sınav kütükleriyle çalışmak, ilçelere bölmek, okul/şube etiketleri oluşturmak ve çeşitli teslim tutanakları üretmek için hazırlanmış bir masaüstü Python/Tkinter uygulamasıdır. Uygulama PDF çıktıları üretir (FPDF, PyMuPDF) ve Excel kütüklerini (pandas) işler.
+
+-- Özet
+
+- Uygulama: GUI (Tkinter) tabanlı araç
+- Ana işlevler:
+	- Kütük dosyası seçme ve özet bilgi gösterme (ilçe/okul/öğrenci sayıları)
+	- Kütüğü ilçelere bölme ve her ilçe için ayrı Excel dosyası oluşturma
+	- Salon yoklama listeleri oluşturma (PDF)
+	- Okul/Şube etiketleri oluşturma (PDF, A4 ızgara formatı)
+	- İlçe/Okul teslim tutanakları oluşturma (PDF)
+- Desteklenen dosyalar: Excel (.xls, .xlsx)
+
+## Gereksinimler (Dependencies)
+
+- Python >= 3.8 (3.11 önerilir)
+- Gerekli Python paketleri:
+	- pandas
+	- fpdf (fpdf2)
+	- PyMuPDF (fitz)
+	- tk (Tkinter, Python ile birlikte gelir genelde)
+
+Örnek yükleme (venv içinde):
+
+```powershell
+python -m venv .venv; .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Eğer `requirements.txt` yoksa şu paketleri kurun:
+
+```powershell
+pip install pandas fpdf2 PyMuPDF
+```
+
+> Not: Sistemde hem `PyFPDF` hem `fpdf2` yüklü ise `fpdf` modül çakışması yaşayabilirsiniz. `fpdf2` kullanılması tavsiye edilir.
+
+## Dizinde neler var
+
+- `main.py` - Uygulamanın ana kaynağı (GUI + PDF/Excel işlevleri)
+- `DejaVuSans.ttf` - PDF içinde kullanılan font (projede bulunmuyorsa uygulama hata verir)
+- `README.md` - Bu dosya
+
+## Hızlı Başlangıç
+
+1. Proje klasörüne gidin:
+```powershell
+cd c:\Users\Cem\Desktop\optik-kodlama-2025\ODM_KUTUK_ISLEMLERI
+```
+2. Sanal ortam oluşturun ve paketleri kurun (opsiyonel ama önerilir):
+```powershell
+python -m venv .venv; .\.venv\Scripts\Activate.ps1
+pip install pandas fpdf2 PyMuPDF
+```
+3. Uygulamayı çalıştırın:
+```powershell
+& C:\Users\Cem\AppData\Local\Programs\Python\Python311\python.exe main.py
+```
+
+## Kullanım Kılavuzu
+
+1. Ana pencere açıldığında 'Kütük Dosyasını Bul' butonuyla sınav kütüğünüzü seçin (Excel dosyası).
+2. Tablar arasında geçiş yaparak aşağıdaki işlevleri kullanın:
+	 - Kütük Belirleme: Seçilen kütükle ilgili özet gösterimler.
+	 - Kütük Bölme: Kütüğü ilçelere ayırma ve ayrı Excel dosyaları oluşturma.
+	 - Optik Kodlama: (Geliştirme aşamasında)
+	 - Salon Listesi Hazırlama: İlçe/okul bazlı salon yoklama PDF'leri üretme.
+	 - Okul Etiketi Hazırlama: Okul/şube etiketlerini A4 ızgara şeklinde PDF olarak oluşturma.
+	 - İlçe/Okul Teslim Tutanağı Hazırlama: Teslim tutanaklarını PDF'ye dönüştürme.
+
+### Okul/Şube Etiketleri (Tab: Okul Etiketi Hazırlama)
+- "Satır (row)" ve "Sütun (col)" değerlerini ayarlayarak A4 üzerinde kaç etiket olacağını belirtin.
+- "Renk Şeması" ile etiketlerde kullanılacak renk paletini seçin.
+- "Şube Etiketi Oluştur" butonuna tıklayın ve kütük Excel dosyalarını seçin.
+- Alt taraftaki ilerleme çubuğu (İlerleme) PDF oluşturma sürecini gösterir.
+- Oluşan PDF varsayılan olarak: `Documents/Kütük İşlemleri/etiketler/okul_sube_etiketleri.pdf` yoluna kaydedilir.
+
+### Renk Şemaları
+Mevcut şemalar: `Mavi`, `Turuncu`, `Yeşil`. Bu şemalar arka plan, başlık, okul/şube kutuları ve kenarlık renklerini içerir.
+
+## Hata Ayıklama & SSS
+
+- "PDF kaydedilemedi" hatası:
+	- Hedef klasör oluşturulamıyor veya yazma izni yok. `Documents/Kütük İşlemleri/etiketler` klasörünü manuel oluşturup tekrar deneyin.
+- "Hiç etiket verisi bulunamadı" uyarısı:
+	- Seçilen Excel dosyasında beklenen sütunlar (`KURUM ADI`, `KURUM KODU`, `SUBESI` veya `İLÇE ADI`) bulunmuyor.
+- Uygulama açılmıyor / ImportError:
+	- Gerekli paketler eksik. `pip install pandas fpdf2 PyMuPDF` komutunu çalıştırın.
+- Font hatası/eksik font:
+	- `DejaVuSans.ttf` aynı klasörde yoksa PDF yazma sırasında hata alırsınız. Bu fontu projeye ekleyin ya da `main.py` içinde farklı bir font yolu belirtin. Font dosyasını https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf adresinden indirip proje klasörüne koyun.
+
+## Geliştirici Notları
+- Kod tek dosya (`main.py`) halinde, büyük ve karışık fonksiyonlar içeriyor. Daha sürdürülebilir bir yapı için fonksiyonları modüllere bölebilirsiniz (ör. `pdf_utils.py`, `gui.py`, `file_io.py`).
+- Uzun süren PDF işlemleri GUI'yi bloke edebiliyor. Uygulamayı daha akıcı yapmak için `threading`/`concurrent.futures` ile arka plan görevleri eklenebilir. Zaten progress bar için temel destek eklendi.
+- `fpdf2` ve `PyFPDF` çatışmalarına dikkat edin; ortamda sadece `fpdf2` olması tercih edilir.
+
+## İleriye Dönük İyileştirmeler (Öneriler)
+- Kullanıcı tarafından özel renk paletleri eklenebilsin.
+- Etiket şablonları (boyut, yazı tipi, düzen) GUI üzerinden kaydedilebilsin.
+- PDF önizlemesi (Tkinter içinde küçük görsel) eklenebilmesi.
+- Multi-threaded/pdf üretimi ile daha düzgün progress ve cancel butonu.
+
+---
+
+Ölçme Değerlendirme Merkezlerinin merkezden aldıkları listeler üzerinde belirli tasnif
+işlerini yapmalarına olanka sağlayan program. 
+
+program ile il kütüğünü ilçelere ayırabilir.
+ilçe kütüklerinden sınav salon yoklama listeleri oluşturabilirsiniz.
+ilçe kütüklerinden okullar için sınav evrak poşetleri üzerine yapıştırılacak etiketleri hazırlayabilirisniz.
+ilçe kütüklerinden odm ve ilçe okulları için teslim tutatankları hazırlayabilirisiniz.
+
+ayrıca genel bilgilere hem program arayüzünden ulaşabilir hem de yazdırabilirsiniz. 
