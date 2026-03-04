@@ -30,14 +30,18 @@ function Router() {
   );
 }
 
+import { RegistryProvider } from "@/context/RegistryContext";
+
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <RegistryProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </RegistryProvider>
   );
 }
 

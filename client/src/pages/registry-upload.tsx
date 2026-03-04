@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { useRegistry } from "@/context/RegistryContext";
 
 export default function RegistryUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -11,6 +12,7 @@ export default function RegistryUpload() {
   const [analyzed, setAnalyzed] = useState(false);
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
+  const { setRegistryData } = useRegistry();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -26,22 +28,46 @@ export default function RegistryUpload() {
     setAnalyzing(true);
     setProgress(10);
     
-    // Mock simulation
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(interval);
+          
+          // Mock data extraction based on "analysis"
+          const mockDistricts = [
+            { id: "1", name: "Çankaya" },
+            { id: "2", name: "Keçiören" },
+            { id: "3", name: "Yenimahalle" },
+            { id: "4", name: "Mamak" }
+          ];
+          
+          const mockSchools = [
+            { id: "s1", name: "Atatürk Lisesi", districtId: "1", code: "123456" },
+            { id: "s2", name: "Cumhuriyet Fen Lisesi", districtId: "1", code: "654321" },
+            { id: "s3", name: "Keçiören Anadolu Lisesi", districtId: "2", code: "112233" }
+          ];
+
+          const mockStudents = Array.from({ length: 150 }, (_, i) => ({
+            id: `st-${i}`,
+            name: `Öğrenci ${i + 1}`,
+            tc: `123456789${(i % 10)}${i % 10}`,
+            schoolId: i < 50 ? "s1" : i < 100 ? "s2" : "s3",
+            salon: `${100 + Math.floor(i / 20)}`
+          }));
+
+          setRegistryData(mockDistricts, mockSchools, mockStudents);
           setAnalyzing(false);
           setAnalyzed(true);
+          
           toast({
             title: "Kütük Analizi Tamamlandı",
-            description: "Dosya başarıyla okundu ve özet bilgiler çıkarıldı.",
+            description: `${mockDistricts.length} ilçe, ${mockSchools.length} okul ve ${mockStudents.length} öğrenci tespit edildi.`,
           });
           return 100;
         }
         return prev + 15;
       });
-    }, 400);
+    }, 300);
   };
 
   return (
@@ -110,11 +136,11 @@ export default function RegistryUpload() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900">
                     <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">Toplam Öğrenci</p>
-                    <p className="text-2xl font-bold font-mono text-blue-900 dark:text-blue-100">12,450</p>
+                    <p className="text-2xl font-bold font-mono text-blue-900 dark:text-blue-100">150</p>
                   </div>
                   <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900">
                     <p className="text-sm text-green-600 dark:text-green-400 font-medium mb-1">Toplam Okul</p>
-                    <p className="text-2xl font-bold font-mono text-green-900 dark:text-green-100">84</p>
+                    <p className="text-2xl font-bold font-mono text-green-900 dark:text-blue-100">3</p>
                   </div>
                 </div>
 
@@ -125,24 +151,20 @@ export default function RegistryUpload() {
                   </h4>
                   <div className="text-sm space-y-2 text-muted-foreground">
                     <div className="flex justify-between py-2 border-b">
+                      <span>İlçe Sayısı</span>
+                      <span className="text-primary font-medium">4 İlçe</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
                       <span>TC Kimlik No Kontrolü</span>
                       <span className="text-green-600 font-medium">Geçerli</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b">
-                      <span>Okul Kodları</span>
-                      <span className="text-green-600 font-medium">Tam</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b">
-                      <span>Salon Atamaları</span>
-                      <span className="text-yellow-600 font-medium">Eksik (3 okul)</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 bg-yellow-50 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-200 rounded-md text-sm">
-                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 text-blue-800 dark:text-blue-200 rounded-md text-sm border border-blue-100">
+                  <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                   <p>
-                    Kütükte 3 okulda salon ataması yapılmamış görünüyor. Kütük bölme işlemine devam edebilirsiniz ancak salon listeleri eksik çıkabilir.
+                    Kütük verileri başarıyla sisteme aktarıldı. Artık diğer sayfalar bu güncel verileri kullanacaktır.
                   </p>
                 </div>
               </div>

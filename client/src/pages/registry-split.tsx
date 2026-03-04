@@ -3,25 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Scissors, FileSpreadsheet, Download, RefreshCw } from "lucide-react";
+import { Scissors, Download, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-const mockDistricts = [
-  { id: 1, name: "Çankaya", schools: 145, students: 45000, status: "Hazır" },
-  { id: 2, name: "Keçiören", schools: 110, students: 38000, status: "Hazır" },
-  { id: 3, name: "Yenimahalle", schools: 95, students: 32000, status: "Hazır" },
-  { id: 4, name: "Mamak", schools: 88, students: 29000, status: "Hazır" },
-  { id: 5, name: "Altındağ", schools: 72, students: 24000, status: "Bekliyor" },
-];
+import { useRegistry } from "@/context/RegistryContext";
 
 export default function RegistrySplit() {
   const [splitting, setSplitting] = useState(false);
   const [completed, setCompleted] = useState(false);
   const { toast } = useToast();
+  const { districts, schools, students, isLoaded } = useRegistry();
 
   const handleSplit = () => {
     setSplitting(true);
-    
     setTimeout(() => {
       setSplitting(false);
       setCompleted(true);
@@ -31,6 +24,24 @@ export default function RegistrySplit() {
       });
     }, 2000);
   };
+
+  const districtList = isLoaded 
+    ? districts.map(d => ({
+        id: d.id,
+        name: d.name,
+        schools: schools.filter(s => s.districtId === d.id).length,
+        students: students.filter(s => {
+          const school = schools.find(sch => sch.id === s.schoolId);
+          return school?.districtId === d.id;
+        }).length,
+        status: "Hazır"
+      }))
+    : [
+        { id: 1, name: "Çankaya", schools: 145, students: 45000, status: "Hazır" },
+        { id: 2, name: "Keçiören", schools: 110, students: 38000, status: "Hazır" },
+        { id: 3, name: "Yenimahalle", schools: 95, students: 32000, status: "Hazır" },
+        { id: 4, name: "Mamak", schools: 88, students: 29000, status: "Hazır" },
+      ];
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
@@ -44,11 +55,11 @@ export default function RegistrySplit() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>İlçe Listesi</CardTitle>
-              <CardDescription>Ana kütükten tespit edilen ilçeler.</CardDescription>
+              <CardDescription>{isLoaded ? "Kütükten tespit edilen ilçeler." : "Örnek ilçe listesi (Dosya yüklenmedi)."}</CardDescription>
             </div>
             <Button 
               onClick={handleSplit} 
-              disabled={splitting || completed}
+              disabled={splitting || completed || !isLoaded}
               className="w-40"
             >
               {splitting ? (
@@ -82,7 +93,7 @@ export default function RegistrySplit() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockDistricts.map((district) => (
+              {districtList.map((district) => (
                 <TableRow key={district.id}>
                   <TableCell className="font-medium">{district.name}</TableCell>
                   <TableCell>{district.schools}</TableCell>

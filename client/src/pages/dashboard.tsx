@@ -2,17 +2,41 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Users, School, Map, FileSpreadsheet, Tags } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import heroIllustration from "@/assets/hero-illustration.png";
-
-const data = [
-  { name: "Çankaya", students: 12400 },
-  { name: "Keçiören", students: 10200 },
-  { name: "Yenimahalle", students: 8500 },
-  { name: "Mamak", students: 7800 },
-  { name: "Altındağ", students: 6500 },
-  { name: "Etimesgut", students: 5900 },
-];
+import { useRegistry } from "@/context/RegistryContext";
 
 export default function Dashboard() {
+  const { districts, schools, students, isLoaded } = useRegistry();
+
+  // If data is loaded, use real counts, otherwise use initial mock data
+  const stats = isLoaded ? {
+    students: students.length,
+    schools: schools.length,
+    districts: districts.length,
+    files: 1
+  } : {
+    students: 145231,
+    schools: 482,
+    districts: 25,
+    files: 1204
+  };
+
+  const chartData = isLoaded 
+    ? districts.map(d => ({
+        name: d.name,
+        students: students.filter(s => {
+          const school = schools.find(sch => sch.id === s.schoolId);
+          return school?.districtId === d.id;
+        }).length
+      }))
+    : [
+        { name: "Çankaya", students: 12400 },
+        { name: "Keçiören", students: 10200 },
+        { name: "Yenimahalle", students: 8500 },
+        { name: "Mamak", students: 7800 },
+        { name: "Altındağ", students: 6500 },
+        { name: "Etimesgut", students: 5900 },
+      ];
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -21,7 +45,7 @@ export default function Dashboard() {
           <p className="text-muted-foreground mt-1">Sınav kütük sistemi durum özeti ve istatistikler.</p>
         </div>
         <div className="text-sm text-muted-foreground bg-muted/50 px-4 py-2 rounded-full border">
-          Son Güncelleme: 26 Ocak 2026
+          {isLoaded ? "Veriler Güncel" : "Örnek Veriler Gösteriliyor"}
         </div>
       </div>
 
@@ -32,8 +56,8 @@ export default function Dashboard() {
             <Users className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono">145,231</div>
-            <p className="text-xs text-muted-foreground mt-1">+2.1% geçen aya göre</p>
+            <div className="text-2xl font-bold font-mono">{stats.students.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">Sistemdeki kayıtlı öğrenci</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-md transition-shadow">
@@ -42,8 +66,8 @@ export default function Dashboard() {
             <School className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono">482</div>
-            <p className="text-xs text-muted-foreground mt-1">Tüm ilçeler dahil</p>
+            <div className="text-2xl font-bold font-mono">{stats.schools}</div>
+            <p className="text-xs text-muted-foreground mt-1">Tespit edilen okul sayısı</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-md transition-shadow">
@@ -52,8 +76,8 @@ export default function Dashboard() {
             <Map className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono">25</div>
-            <p className="text-xs text-muted-foreground mt-1">Ankara geneli</p>
+            <div className="text-2xl font-bold font-mono">{stats.districts}</div>
+            <p className="text-xs text-muted-foreground mt-1">Bölge dağılımı</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-md transition-shadow">
@@ -62,8 +86,8 @@ export default function Dashboard() {
             <FileSpreadsheet className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono">1,204</div>
-            <p className="text-xs text-muted-foreground mt-1">Son 30 gün içinde</p>
+            <div className="text-2xl font-bold font-mono">{stats.files}</div>
+            <p className="text-xs text-muted-foreground mt-1">Aktif kütük dosyası</p>
           </CardContent>
         </Card>
       </div>
@@ -72,12 +96,12 @@ export default function Dashboard() {
         <Card className="md:col-span-4">
           <CardHeader>
             <CardTitle>İlçelere Göre Öğrenci Dağılımı</CardTitle>
-            <CardDescription>En yoğun 6 ilçenin öğrenci sayıları.</CardDescription>
+            <CardDescription>Bölgelerdeki öğrenci yoğunluğu.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data}>
+                <BarChart data={chartData}>
                   <XAxis 
                     dataKey="name" 
                     stroke="#888888" 
@@ -90,7 +114,6 @@ export default function Dashboard() {
                     fontSize={12} 
                     tickLine={false} 
                     axisLine={false} 
-                    tickFormatter={(value) => `${value}`} 
                   />
                   <Tooltip 
                     cursor={{fill: 'var(--muted)'}}
