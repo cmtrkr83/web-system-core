@@ -6,6 +6,7 @@ export interface Student {
   tc: string;
   schoolId: string;
   salon: string;
+  class: string; // Şube
 }
 
 export interface School {
