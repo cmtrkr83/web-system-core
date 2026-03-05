@@ -3,7 +3,8 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 export interface Student {
   id: string;
   name: string;
-  tc: string;
+  tc: string;            // OPAQ / TC numarası
+  schoolNo?: string;     // Okul numarası (opsiyonel)
   schoolId: string;
   salon: string;
   class: string; // Şube

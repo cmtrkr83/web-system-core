@@ -7,35 +7,26 @@ import { useRegistry } from "@/context/RegistryContext";
 export default function Dashboard() {
   const { districts, schools, students, isLoaded } = useRegistry();
 
-  // If data is loaded, use real counts, otherwise use initial mock data
-  const stats = isLoaded ? {
+  // Calculate unique classes (şube) by combining schoolId (kurum kodu) + class (şube ismi)
+  const subeCount = isLoaded 
+    ? new Set(students.map(s => `${s.schoolId}#${s.class}`).filter(s => s.includes('#') && s.split('#')[1])).size 
+    : 0;
+
+  // If data is loaded, use real counts, otherwise use zeros
+  const stats = {
     students: students.length,
     schools: schools.length,
     districts: districts.length,
-    files: 1
-  } : {
-    students: 145231,
-    schools: 482,
-    districts: 25,
-    files: 1204
+    subes: subeCount
   };
 
-  const chartData = isLoaded 
-    ? districts.map(d => ({
-        name: d.name,
-        students: students.filter(s => {
-          const school = schools.find(sch => sch.id === s.schoolId);
-          return school?.districtId === d.id;
-        }).length
-      }))
-    : [
-        { name: "Çankaya", students: 12400 },
-        { name: "Keçiören", students: 10200 },
-        { name: "Yenimahalle", students: 8500 },
-        { name: "Mamak", students: 7800 },
-        { name: "Altındağ", students: 6500 },
-        { name: "Etimesgut", students: 5900 },
-      ];
+  const chartData = districts.map(d => ({
+    name: d.name,
+    students: students.filter(s => {
+      const school = schools.find(sch => sch.id === s.schoolId);
+      return school?.districtId === d.id;
+    }).length
+  }));
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -45,7 +36,7 @@ export default function Dashboard() {
           <p className="text-muted-foreground mt-1">Sınav kütük sistemi durum özeti ve istatistikler.</p>
         </div>
         <div className="text-sm text-muted-foreground bg-muted/50 px-4 py-2 rounded-full border">
-          {isLoaded ? "Veriler Güncel" : "Örnek Veriler Gösteriliyor"}
+          {isLoaded ? "Veriler Güncel" : "Henüz Excel Dosyası Yüklenmemiş"}
         </div>
       </div>
 
@@ -82,12 +73,12 @@ export default function Dashboard() {
         </Card>
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">İşlenen Dosyalar</CardTitle>
-            <FileSpreadsheet className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm font-medium">Toplam Şube</CardTitle>
+            <Tags className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono">{stats.files}</div>
-            <p className="text-xs text-muted-foreground mt-1">Aktif kütük dosyası</p>
+            <div className="text-2xl font-bold font-mono">{stats.subes}</div>
+            <p className="text-xs text-muted-foreground mt-1">Benzersiz şube sayısı</p>
           </CardContent>
         </Card>
       </div>
@@ -99,7 +90,7 @@ export default function Dashboard() {
             <CardDescription>Bölgelerdeki öğrenci yoğunluğu.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
-            <div className="h-[300px] w-full">
+            <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
                   <XAxis 
@@ -107,7 +98,10 @@ export default function Dashboard() {
                     stroke="#888888" 
                     fontSize={12} 
                     tickLine={false} 
-                    axisLine={false} 
+                    axisLine={false}
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
                   />
                   <YAxis 
                     stroke="#888888" 
@@ -116,12 +110,12 @@ export default function Dashboard() {
                     axisLine={false} 
                   />
                   <Tooltip 
-                    cursor={{fill: 'var(--muted)'}}
+                    cursor={{fill: 'rgba(59, 130, 246, 0.1)'}}
                     contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }}
                   />
                   <Bar 
                     dataKey="students" 
-                    fill="var(--primary)" 
+                    fill="#6881D8" 
                     radius={[4, 4, 0, 0]} 
                   />
                 </BarChart>

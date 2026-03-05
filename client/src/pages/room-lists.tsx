@@ -2,9 +2,10 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { FileText, Printer, Eye } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { useRegistry } from "@/context/RegistryContext";
 
 export default function RoomLists() {
@@ -26,15 +27,193 @@ export default function RoomLists() {
     if (selectedSchool !== "all") {
       filtered = filtered.filter(st => st.schoolId === selectedSchool);
     }
-    return filtered.slice(0, 15);
+    return filtered;
   }, [students, schools, selectedDistrict, selectedSchool]);
+
+  // chunk helper to split into pages of max size
+  const chunk = (arr: any[], size: number) => {
+    const res: any[][] = [];
+    for (let i = 0; i < arr.length; i += size) res.push(arr.slice(i, i + size));
+    return res;
+  };
 
   const previewSchoolName = useMemo(() => {
     if (selectedSchool !== "all") {
       return schools.find(s => s.id === selectedSchool)?.name || "SEÇİLİ OKUL";
     }
-    return isLoaded ? "TÜM OKULLAR" : "ATATÜRK LİSESİ";
-  }, [selectedSchool, schools, isLoaded]);
+    return "TÜM OKULLAR";
+  }, [selectedSchool, schools]);
+
+  const previewFirstPage = useMemo(() => {
+    const visibleSchools = selectedSchool === "all" ? filteredSchools : schools.filter(s => s.id === selectedSchool);
+    for (const school of visibleSchools) {
+      const schoolStudents = previewStudents.filter(st => st.schoolId === school.id);
+      if (schoolStudents.length === 0) continue;
+
+      const groups: Record<string, any[]> = {};
+      schoolStudents.forEach(st => {
+        const key = st.class && String(st.class).trim() ? String(st.class) : "-";
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(st);
+      });
+
+      const classNames = Object.keys(groups);
+      if (classNames.length === 0) continue;
+
+      const firstClassName = classNames[0];
+      const clsStudents = groups[firstClassName];
+      const chunks = chunk(clsStudents, 40);
+      const firstChunk = chunks[0] || [];
+      const firstTotalPages = chunks.length || 1;
+      const firstPageIndex = 0;
+
+      return {
+        school,
+        className: firstClassName,
+        chunk: firstChunk,
+        totalPages: firstTotalPages,
+        pageIndex: firstPageIndex
+      };
+    }
+    return null;
+  }, [selectedSchool, filteredSchools, schools, previewStudents]);
+
+  const handleCreatePdf = async () => {
+    try {
+      // Determine visible schools (same logic as rendering)
+      const visibleSchools = selectedSchool === "all" ? filteredSchools : schools.filter(s => s.id === selectedSchool);
+
+      // Build HTML content for all pages (each chunk will be rendered as part of the big content)
+      let htmlSections: string[] = [];
+
+      for (const school of visibleSchools) {
+        const schoolStudents = previewStudents.filter(st => st.schoolId === school.id);
+        if (schoolStudents.length === 0) continue;
+
+        // group by class
+        const groups: Record<string, any[]> = {};
+        schoolStudents.forEach(st => {
+          const key = st.class && String(st.class).trim() ? String(st.class) : "-";
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(st);
+        });
+
+        for (const className of Object.keys(groups)) {
+          const clsStudents = groups[className];
+          for (let i = 0; i < clsStudents.length; i += 40) {
+            const chunk = clsStudents.slice(i, i + 40);
+            const pageIndex = Math.floor(i / 40) + 1;
+            const totalPages = Math.ceil(clsStudents.length / 40);
+
+            // build table rows
+            const rows = chunk.map((st, idx) => {
+              const serial = (pageIndex - 1) * 40 + idx + 1;
+              return `
+                <tr>
+                  <td style="border:1px solid #000; padding:6px; text-align:center;">${serial}</td>
+                  <td style="border:1px solid #000; padding:6px; text-align:center;">${st.schoolNo || st.tc}</td>
+                  <td style="border:1px solid #000; padding:6px;">${st.name}</td>
+                  <td style="border:1px solid #000; padding:6px; text-align:center;">&nbsp;</td>
+                  <td style="border:1px solid #000; padding:6px;">&nbsp;</td>
+                </tr>`;
+            }).join('');
+
+            const section = `
+              <div style="page-break-after:always; padding:8px; font-family: Arial, sans-serif; font-size:10px; background:white;">
+                <div style="text-align:center; border-bottom:1px solid #000; padding-bottom:4px; margin-bottom:6px;"><strong>SINAV YOKLAMA LİSTESİ</strong></div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; font-size:10px;">
+                  <div>
+                    <div>Okul Adı: ${school.name}</div>
+                    <div>Şube Adı: ${className}</div>
+                  </div>
+                  <div style="text-align:right;">${pageIndex}/${totalPages}</div>
+                </div>
+                <table style="width:100%; border-collapse:collapse;">
+                  <thead>
+                    <tr style="background:#f2f2f2;">
+                      <th style="border:1px solid #000; padding:6px; width:6%;">S.NO</th>
+                      <th style="border:1px solid #000; padding:6px; width:10%;">OKUL NO</th>
+                      <th style="border:1px solid #000; padding:6px;">AD SOYAD</th>
+                      <th style="border:1px solid #000; padding:6px; width:12%;">Kitapçık Türü</th>
+                      <th style="border:1px solid #000; padding:6px; width:18%;">İMZA</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows}
+                  </tbody>
+                </table>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:10px;">
+                  <div style="text-align:center;">
+                    <div>Salon Başkanı</div>
+                    <div style="margin-top:24px; border-top:1px solid #000; width:160px; margin-left:auto; margin-right:auto; height:1px;"></div>
+                  </div>
+                  <div style="text-align:center;">
+                    <div>Gözetmen</div>
+                    <div style="margin-top:24px; border-top:1px solid #000; width:160px; margin-left:auto; margin-right:auto; height:1px;"></div>
+                  </div>
+                </div>
+              </div>`;
+
+            htmlSections.push(section);
+          }
+        }
+      }
+
+      if (htmlSections.length === 0) {
+        alert('Yazdırılacak öğrenci bulunamadı.');
+        return;
+      }
+
+      const htmlContent = `<div>${htmlSections.join('\n')}</div>`;
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+
+      // Render each section separately to avoid vertical overlap
+      for (let si = 0; si < htmlSections.length; si++) {
+        const sectionHtml = htmlSections[si];
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = sectionHtml;
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.width = '800px';
+        document.body.appendChild(tempDiv);
+
+        // render this single page
+        // await html2canvas for this section
+        // reduce scale if memory issues arise
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        const canvas = await html2canvas(tempDiv, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
+
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = pdf.internal.pageSize.getWidth() - 10;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        // For first section, just add image; for subsequent, add a new page first
+        if (si > 0) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 5, 5, imgWidth, imgHeight);
+
+        // cleanup
+        document.body.removeChild(tempDiv);
+      }
+
+      // build filename
+      let filename = 'Salon-Listesi.pdf';
+      if (selectedSchool !== 'all') {
+        const sc = schools.find(s => s.id === selectedSchool);
+        const di = districts.find(d => d.id === sc?.districtId);
+        filename = `${di ? di.name.replace(/\s+/g,'_') : 'ilce'}-${sc?.code || sc?.id || 'okul'}.pdf`;
+      } else if (selectedDistrict !== 'all') {
+        const di = districts.find(d => d.id === selectedDistrict);
+        filename = `${di ? di.name.replace(/\s+/g,'_') : 'ilce'}-tum_okullar.pdf`;
+      }
+
+      pdf.save(filename);
+    } catch (error) {
+      console.error('PDF oluşturulurken hata:', error);
+      alert('PDF oluşturulurken hata oluştu. Konsolu kontrol edin.');
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
@@ -61,7 +240,6 @@ export default function RoomLists() {
                   {districts.map(d => (
                     <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                   ))}
-                  {!isLoaded && <SelectItem value="cankaya">Çankaya (Örnek)</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
@@ -106,7 +284,7 @@ export default function RoomLists() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button className="w-full" size="lg" disabled={!isLoaded && students.length === 0}>
+            <Button className="w-full" size="lg" disabled={!isLoaded || students.length === 0} onClick={handleCreatePdf}>
               <Printer className="mr-2 h-4 w-4" />
               PDF Oluştur
             </Button>
@@ -121,49 +299,71 @@ export default function RoomLists() {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-center min-h-[500px]">
-            <div className="bg-white shadow-xl w-[210mm] min-h-[297mm] p-[20mm] text-[10px] origin-top scale-75 md:scale-90 transition-transform">
-              <div className="text-center border-b-2 border-black pb-4 mb-4">
-                <h2 className="text-xl font-bold">T.C. MİLLİ EĞİTİM BAKANLIĞI</h2>
-                <h3 className="text-lg font-bold">ANKARA / {districts.find(d => d.id === selectedDistrict)?.name.toUpperCase() || "MERKEZ"}</h3>
-                <h4 className="text-base font-medium mt-2">{previewSchoolName.toUpperCase()} - SINAV SALON YOKLAMA LİSTESİ</h4>
-              </div>
+            <div className="bg-white shadow-xl w-[210mm] min-h-[297mm] pt-[5mm] pb-[10mm] px-[10mm] text-[10px] origin-top scale-75 md:scale-90 transition-transform">
+              {/* Per-page headers are rendered inside pages to avoid duplicate titles */}
               
-              <div className="flex justify-between mb-4 font-medium text-xs">
-                <div>SALON NO: {previewStudents[0]?.salon || "101"}</div>
-                <div>TARİH: {new Date().toLocaleDateString('tr-TR')}</div>
-              </div>
+              {previewFirstPage ? (
+                <div className="mb-6">
+                  <div className="text-center border-b border-black pb-1 mb-2">
+                    <h2 className="text-base font-bold">SINAV YOKLAMA LİSTESİ</h2>
+                  </div>
 
-              <table className="w-full border-collapse border border-black">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border border-black p-2 w-10">S.NO</th>
-                    <th className="border border-black p-2">TC KİMLİK</th>
-                    <th className="border border-black p-2">AD SOYAD</th>
-                    <th className="border border-black p-2 w-32">İMZA</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(previewStudents.length > 0 ? previewStudents : [...Array(15)]).map((st, i) => (
-                    <tr key={i}>
-                      <td className="border border-black p-2 text-center">{i + 1}</td>
-                      <td className="border border-black p-2 text-center">{st?.tc || `123456789${i}0`}</td>
-                      <td className="border border-black p-2">{st?.name || `ÖĞRENCİ ADI SOYADI ${i + 1}`}</td>
-                      <td className="border border-black p-2"></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                  <div className="mb-2 text-xs flex justify-between items-start">
+                    <div>
+                      <div>Okul Adı: {previewFirstPage.school.name}</div>
+                      <div>Şube Adı: {previewFirstPage.className}</div>
+                    </div>
+                    <div className="text-right">{`${previewFirstPage.pageIndex + 1}/${previewFirstPage.totalPages}`}</div>
+                  </div>
 
-              <div className="mt-8 flex justify-between text-xs">
-                <div className="text-center">
-                  <p>Salon Başkanı</p>
-                  <div className="mt-8 border-t border-black w-32"></div>
+                  <table className="w-full border-collapse border border-black">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border border-black p-2 w-10">S.NO</th>
+                        <th className="border border-black p-2 w-20">OKUL NO</th>
+                        <th className="border border-black p-2">AD SOYAD</th>
+                        <th className="border border-black p-2 w-24">Kitapçık Türü</th>
+                        <th className="border border-black p-2 w-32">İMZA</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewFirstPage.chunk.map((st, i) => {
+                        const serial = previewFirstPage.pageIndex * 40 + i + 1;
+                        return (
+                          <tr key={i}>
+                            <td className="border border-black p-2 text-center">{serial}</td>
+                            <td className="border border-black p-2 text-center w-20">{st.schoolNo || st.tc}</td>
+                            <td className="border border-black p-2">{st.name}</td>
+                            <td className="border border-black p-2 text-center w-24"></td>
+                            <td className="border border-black p-2"></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
+                  <div className="mt-2 flex justify-between items-center text-xs">
+                    <div className="text-center">
+                      <p>Salon Başkanı</p>
+                      <div className="mt-6 border-t border-black w-32"></div>
+                    </div>
+                    <div className="text-center">
+                      <p>Gözetmen</p>
+                      <div className="mt-6 border-t border-black w-32"></div>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <p>Gözetmen</p>
-                  <div className="mt-8 border-t border-black w-32"></div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Henüz Veri Yüklenmemiş</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    Salon listesi önizlemesi için önce "Kütük Belirleme" sayfasından Excel dosyasını yükleyiniz.
+                  </p>
                 </div>
-              </div>
+              )}
+
+              {/* Footers are rendered per page; remove global footer to avoid duplication */}
             </div>
           </CardContent>
         </Card>
