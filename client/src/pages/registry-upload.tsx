@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { useRegistry, District, School, Student } from "@/context/RegistryContext";
 import * as XLSX from "xlsx";
@@ -46,6 +47,8 @@ export default function RegistryUpload() {
   const [studentCount, setStudentCount] = useState(0);
   const [subeLiCount, setSubeliCount] = useState(0);
   const [rawData, setRawData] = useState<Record<string, any>[]>([]);
+  const [uploadConfirmOpen, setUploadConfirmOpen] = useState(false);
+  const [excludeSpecialStudents, setExcludeSpecialStudents] = useState(false);
   const { toast } = useToast();
   const { setRegistryData } = useRegistry();
 
@@ -61,6 +64,8 @@ export default function RegistryUpload() {
       setSubeliCount(0);
       setExcelColumns([]);
       setRawData([]);
+      setExcludeSpecialStudents(false);
+      setUploadConfirmOpen(false);
     }
   };
 
@@ -191,16 +196,25 @@ export default function RegistryUpload() {
       setProgress(50);
       
       rawData.forEach((row, index) => {
-        const district = row[columnMapping.district] || "";
-        const schoolName = row[columnMapping.schoolName] || "";
-        const schoolCode = row[columnMapping.schoolCode] || `${index}`;
+        const district = String(row[columnMapping.district] || "").trim();
+        const schoolName = String(row[columnMapping.schoolName] || "").trim();
+        const schoolCode = String(row[columnMapping.schoolCode] || `${index}`).trim();
         const studentFirstName = row[columnMapping.studentFirstName] || "";
         const studentLastName = row[columnMapping.studentLastName] || "";
         const studentName = `${studentFirstName} ${studentLastName}`.trim() || `Öğrenci ${index + 1}`;
         const studentId = row[columnMapping.studentNumber] || `${10000000000 + index}`;
         const schoolNo = columnMapping.schoolNumber ? (row[columnMapping.schoolNumber] || "") : "";
-        const classInfo = columnMapping.class ? (row[columnMapping.class] || "") : "";
+        const classInfo = String(columnMapping.class ? (row[columnMapping.class] || "") : "").trim();
         const sinif = columnMapping.grade ? (row[columnMapping.grade] || "") : "";
+
+        const schoolNameLower = schoolName.toLocaleLowerCase("tr-TR");
+        const classInfoLower = classInfo.toLocaleLowerCase("tr-TR");
+        const isKademeSchool = schoolNameLower.includes("kademe");
+        const isExcludedSpecialClass = excludeSpecialStudents && classInfoLower.includes("zihinsel");
+
+        if (isKademeSchool || isExcludedSpecialClass) {
+          return;
+        }
         
         if (district) {
           districtSet.add(district);
@@ -266,7 +280,7 @@ export default function RegistryUpload() {
       
       toast({
         title: "Veri Ayrıştırma Başarılı",
-        description: `${districts.length} ilçe, ${schools.length} okul, ${students.length} öğrenci, ${subeSet.size} şube tespit edildi.`,
+        description: `${districts.length} ilçe, ${schools.length} okul, ${students.length} öğrenci, ${subeSet.size} şube tespit edildi.${excludeSpecialStudents ? " 'Zihinsel' şubeler ve adı 'kademe' geçen okullar dahil edilmedi." : " Adı 'kademe' geçen okullar dahil edilmedi."}`,
       });
     } catch (error) {
       console.error("Veri parse hatası:", error);
@@ -323,11 +337,57 @@ export default function RegistryUpload() {
                 </div>
                 <Button 
                   size="sm" 
-                  onClick={handleLoadExcel} 
+                  onClick={() => setUploadConfirmOpen(true)} 
                   disabled={analyzing || excelColumns.length > 0}
                 >
                   {analyzing ? "Yükleniyor..." : excelColumns.length > 0 ? "Yüklendi" : "Excel'i Yükle"}
                 </Button>
+
+                <Dialog open={uploadConfirmOpen} onOpenChange={setUploadConfirmOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Excel Yükleme Uyarısı</DialogTitle>
+                      <DialogDescription>
+                        Excel yüklenmeden önce filtre seçimi yapabilirsiniz.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-3 py-2">
+                      <div className="flex items-start gap-3 rounded-md border p-3">
+                        <Checkbox
+                          id="exclude-special"
+                          checked={excludeSpecialStudents}
+                          onCheckedChange={(checked) => setExcludeSpecialStudents(checked === true)}
+                        />
+                        <div className="space-y-1">
+                          <Label htmlFor="exclude-special" className="cursor-pointer">
+                            Özel öğrenciler alınmasın
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            İşaretlenirse şube adında "zihinsel" geçen kayıtlar dahil edilmez.
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Not: Okul adında "kademe" geçen okullar ve öğrencileri her durumda listelere dahil edilmez.
+                      </p>
+                    </div>
+
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setUploadConfirmOpen(false)}>
+                        Vazgeç
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setUploadConfirmOpen(false);
+                          handleLoadExcel();
+                        }}
+                      >
+                        Devam Et
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
             )}
             
