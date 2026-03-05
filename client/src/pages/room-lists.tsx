@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Printer, Eye } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FileText, Printer, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useRegistry } from "@/context/RegistryContext";
@@ -44,8 +45,12 @@ export default function RoomLists() {
     return "TÜM OKULLAR";
   }, [selectedSchool, schools]);
 
-  const previewFirstPage = useMemo(() => {
+  
+
+  const previewPages = useMemo(() => {
+    const pages: any[] = [];
     const visibleSchools = selectedSchool === "all" ? filteredSchools : schools.filter(s => s.id === selectedSchool);
+
     for (const school of visibleSchools) {
       const schoolStudents = previewStudents.filter(st => st.schoolId === school.id);
       if (schoolStudents.length === 0) continue;
@@ -57,26 +62,35 @@ export default function RoomLists() {
         groups[key].push(st);
       });
 
-      const classNames = Object.keys(groups);
-      if (classNames.length === 0) continue;
-
-      const firstClassName = classNames[0];
-      const clsStudents = groups[firstClassName];
-      const chunks = chunk(clsStudents, 40);
-      const firstChunk = chunks[0] || [];
-      const firstTotalPages = chunks.length || 1;
-      const firstPageIndex = 0;
-
-      return {
-        school,
-        className: firstClassName,
-        chunk: firstChunk,
-        totalPages: firstTotalPages,
-        pageIndex: firstPageIndex
-      };
+      for (const className of Object.keys(groups)) {
+        const clsStudents = groups[className];
+        const chunks = chunk(clsStudents, 30);
+        for (let i = 0; i < chunks.length; i++) {
+          pages.push({
+            school,
+            className,
+            chunk: chunks[i],
+            pageIndex: i,
+            totalPages: chunks.length,
+          });
+        }
+      }
     }
-    return null;
+
+    return pages;
   }, [selectedSchool, filteredSchools, schools, previewStudents]);
+
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  useEffect(() => {
+    if (previewPages.length === 0) {
+      setPreviewIndex(0);
+    } else if (previewIndex >= previewPages.length) {
+      setPreviewIndex(previewPages.length - 1);
+    }
+  }, [previewPages.length]);
+
+  const currentPreview = previewPages[previewIndex] || null;
 
   const handleCreatePdf = async () => {
     try {
@@ -100,14 +114,14 @@ export default function RoomLists() {
 
         for (const className of Object.keys(groups)) {
           const clsStudents = groups[className];
-          for (let i = 0; i < clsStudents.length; i += 40) {
-            const chunk = clsStudents.slice(i, i + 40);
-            const pageIndex = Math.floor(i / 40) + 1;
-            const totalPages = Math.ceil(clsStudents.length / 40);
+          for (let i = 0; i < clsStudents.length; i += 30) {
+            const chunk = clsStudents.slice(i, i + 30);
+            const pageIndex = Math.floor(i / 30) + 1;
+            const totalPages = Math.ceil(clsStudents.length / 30);
 
             // build table rows
-            const rows = chunk.map((st, idx) => {
-              const serial = (pageIndex - 1) * 40 + idx + 1;
+              const rows = chunk.map((st, idx) => {
+              const serial = (pageIndex - 1) * 30 + idx + 1;
               return `
                 <tr>
                   <td style="border:1px solid #000; padding:6px; text-align:center;">${serial}</td>
@@ -120,7 +134,7 @@ export default function RoomLists() {
 
             const section = `
               <div style="page-break-after:always; padding:8px; font-family: Arial, sans-serif; font-size:10px; background:white;">
-                <div style="text-align:center; border-bottom:1px solid #000; padding-bottom:4px; margin-bottom:6px;"><strong>SINAV YOKLAMA LİSTESİ</strong></div>
+                <div style="text-align:center; border-bottom:1px solid #000; padding-bottom:4px; margin-bottom:6px;"><strong style="font-size:16px;">SINAV YOKLAMA LİSTESİ</strong></div>
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; font-size:10px;">
                   <div>
                     <div>Okul Adı: ${school.name}</div>
@@ -259,29 +273,7 @@ export default function RoomLists() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Sıralama</Label>
-              <Select defaultValue="name">
-                <SelectTrigger>
-                  <SelectValue placeholder="Sıralama" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">İsim Sıralı</SelectItem>
-                  <SelectItem value="number">Numara Sıralı</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox id="photos" />
-                <Label htmlFor="photos">Fotoğraflı Liste</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="imza" defaultChecked />
-                <Label htmlFor="imza">İmza Sütunu Ekle</Label>
-              </div>
-            </div>
+            {/* Sıralama, fotoğraflı liste ve imza sütunu kaldırıldı */}
           </CardContent>
           <CardFooter>
             <Button className="w-full" size="lg" disabled={!isLoaded || students.length === 0} onClick={handleCreatePdf}>
@@ -293,27 +285,47 @@ export default function RoomLists() {
 
         <Card className="lg:col-span-2 bg-muted/30 border-dashed">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Eye className="w-4 h-4" />
-              Önizleme
-            </CardTitle>
+            <div className="w-full flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="w-4 h-4" />
+                Önizleme
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPreviewIndex((p) => Math.max(0, p - 1))}
+                  disabled={previewPages.length === 0 || previewIndex === 0}
+                  className="inline-flex items-center justify-center p-2 rounded border bg-white hover:bg-gray-50 disabled:opacity-40"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewIndex((p) => Math.min(previewPages.length - 1, p + 1))}
+                  disabled={previewPages.length === 0 || previewIndex >= previewPages.length - 1}
+                  className="inline-flex items-center justify-center p-2 rounded border bg-white hover:bg-gray-50 disabled:opacity-40"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="flex items-center justify-center min-h-[500px]">
             <div className="bg-white shadow-xl w-[210mm] min-h-[297mm] pt-[5mm] pb-[10mm] px-[10mm] text-[10px] origin-top scale-75 md:scale-90 transition-transform">
               {/* Per-page headers are rendered inside pages to avoid duplicate titles */}
               
-              {previewFirstPage ? (
+                {previewPages.length > 0 ? (
                 <div className="mb-6">
                   <div className="text-center border-b border-black pb-1 mb-2">
-                    <h2 className="text-base font-bold">SINAV YOKLAMA LİSTESİ</h2>
+                    <h2 style={{ fontSize: '16px' }} className="font-bold">SINAV YOKLAMA LİSTESİ</h2>
                   </div>
 
                   <div className="mb-2 text-xs flex justify-between items-start">
                     <div>
-                      <div>Okul Adı: {previewFirstPage.school.name}</div>
-                      <div>Şube Adı: {previewFirstPage.className}</div>
+                      <div>Okul Adı: {currentPreview.school.name}</div>
+                      <div>Şube Adı: {currentPreview.className}</div>
                     </div>
-                    <div className="text-right">{`${previewFirstPage.pageIndex + 1}/${previewFirstPage.totalPages}`}</div>
+                    <div className="text-right">{`${currentPreview.pageIndex + 1}/${currentPreview.totalPages}`}</div>
                   </div>
 
                   <table className="w-full border-collapse border border-black">
@@ -327,8 +339,8 @@ export default function RoomLists() {
                       </tr>
                     </thead>
                     <tbody>
-                      {previewFirstPage.chunk.map((st, i) => {
-                        const serial = previewFirstPage.pageIndex * 40 + i + 1;
+                        {currentPreview.chunk.map((st, i) => {
+                        const serial = currentPreview.pageIndex * 30 + i + 1;
                         return (
                           <tr key={i}>
                             <td className="border border-black p-2 text-center">{serial}</td>

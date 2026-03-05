@@ -4,3 +4,8 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+# Ignore attached uploaded spreadsheets (archived separately)
+attached_assets/*.XLS
+attached_assets/*.xlsx
+# Ignore local assistant/skill metadata
+.local/

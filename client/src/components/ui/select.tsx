@@ -86,8 +86,9 @@ const SelectContent = React.forwardRef<
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport
         className={cn(
-          "p-1 w-full"
+          "p-1 w-full max-h-60 overflow-y-auto"
         )}
+        onWheel={(e) => e.stopPropagation()}
       >
         {children}
       </SelectPrimitive.Viewport>
