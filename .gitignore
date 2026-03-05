@@ -4,6 +4,10 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+# SQLite database files
+db/*.db
+db/*.db-shm
+db/*.db-wal
 # Ignore attached uploaded spreadsheets (archived separately)
 attached_assets/*.XLS
 attached_assets/*.xlsx
