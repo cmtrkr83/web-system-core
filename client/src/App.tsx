@@ -12,6 +12,7 @@ import RegistryUpload from "@/pages/registry-upload";
 import RegistrySplit from "@/pages/registry-split";
 import RoomLists from "@/pages/room-lists";
 import Labels from "@/pages/labels";
+import BranchLabels from "@/pages/branch-labels";
 import Reports from "@/pages/reports";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
         <Route path="/registry-split" component={RegistrySplit} />
         <Route path="/room-lists" component={RoomLists} />
         <Route path="/labels" component={Labels} />
+        <Route path="/branch-labels" component={BranchLabels} />
         <Route path="/reports" component={Reports} />
         <Route component={NotFound} />
       </Switch>

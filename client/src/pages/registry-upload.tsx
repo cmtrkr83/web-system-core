@@ -210,7 +210,8 @@ export default function RegistryUpload() {
         const schoolNameLower = schoolName.toLocaleLowerCase("tr-TR");
         const classInfoLower = classInfo.toLocaleLowerCase("tr-TR");
         const isKademeSchool = schoolNameLower.includes("kademe");
-        const isExcludedSpecialClass = excludeSpecialStudents && classInfoLower.includes("zihinsel");
+        const specialKeywords = ["zihinsel","Otistik","Özel Eğitim","Özel Eğitim Sınıfı","hafif","ağır","özel gereksinimli","özel gereksinim","özel eğitim ihtiyacı"];
+        const isExcludedSpecialClass = excludeSpecialStudents && specialKeywords.some(keyword => classInfoLower.includes(keyword));
 
         if (isKademeSchool || isExcludedSpecialClass) {
           return;

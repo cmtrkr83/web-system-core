@@ -5,6 +5,7 @@ import {
   Scissors, 
   FileText, 
   Tags, 
+  Package,
   ClipboardCheck,
   Menu,
   X
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/registry-split", label: "Kütük Bölme", icon: Scissors },
   { href: "/room-lists", label: "Salon Listesi", icon: FileText },
   { href: "/labels", label: "Okul Etiketi", icon: Tags },
+  { href: "/branch-labels", label: "Şube Etiketi", icon: Package },
   { href: "/reports", label: "Teslim Tutanağı", icon: ClipboardCheck },
 ];
 
