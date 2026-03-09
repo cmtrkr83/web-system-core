@@ -10,7 +10,7 @@
     "build:server": "tsx script/build-server.ts",
     "build": "npm run build:client && npm run build:server",
     "analyze:unused": "npx depcheck --json && npx ts-prune --print",
-    "start": "cross-env NODE_ENV=production node dist/index.cjs",
+    "start": "node dist/index.cjs",
     "check": "tsc",
     "db:push": "drizzle-kit push"
   },
