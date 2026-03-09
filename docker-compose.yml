@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: web-system-core
     ports:
-      - "${APP_PORT:-7000}:5000"
+      - "${APP_PORT:-5050}:5000"
     environment:
       NODE_ENV: production
       PORT: 5000
