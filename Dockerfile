@@ -23,9 +23,11 @@ ENV PORT=5000
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-# Copy built application and database from builder
+# Copy built application from builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/db ./db
+
+# Ensure SQLite directory exists even when repository has no db folder
+RUN mkdir -p /app/db
 
 EXPOSE 5000
 
