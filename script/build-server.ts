@@ -14,6 +14,9 @@ async function buildServer() {
     target: "node20",
     format: "cjs",
     outfile: path.resolve(rootDir, "dist/index.cjs"),
+    define: {
+      "process.env.NODE_ENV": '"production"',
+    },
     external: ["express", "better-sqlite3"],
     packages: "external",
   });
