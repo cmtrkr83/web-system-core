@@ -202,7 +202,7 @@ export default function BranchLabels() {
 							<div style="display:grid; grid-template-columns:1fr 1fr; gap:${boxPaddingMm}mm; margin-top:${boxPaddingMm}mm;">
 								<div style="background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
 									<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Şube Adı</p>
-									<p style="margin:0; font-size:${baseFontSizeMm}mm; font-weight:700; color:#111827;">${safe(branch.branchName)}</p>
+							<p style="margin:0; font-size:${branchNameFontSizeMm}mm; font-weight:700; color:#111827;">${safe(branch.branchName)}</p>
 								</div>
 								<div style="background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
 									<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Öğrenci Sayısı</p>
@@ -276,6 +276,7 @@ export default function BranchLabels() {
 	const minSmallFont = 1.0;
 	const baseFontSizeMm = Math.max(minBaseFont, Math.min(labelHeight, labelWidth) * 0.11);
 	const smallFontSizeMm = Math.max(minSmallFont, baseFontSizeMm * 0.6);
+	const branchNameFontSizeMm = Math.max(1.0, baseFontSizeMm - 0.7);
 	const boxPaddingMm = Math.max(0.6, Math.min(labelHeight, labelWidth) * 0.04);
 
 	useEffect(() => {
@@ -488,7 +489,7 @@ export default function BranchLabels() {
 												<div className="grid grid-cols-2" style={{ gap: `${boxPaddingMm}mm`, marginTop: `${boxPaddingMm}mm` }}>
 													<div className="bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
 														<p className="text-muted-foreground uppercase" style={{ fontSize: `${smallFontSizeMm}mm`, margin: 0 }}>Şube Adı</p>
-														<p className="font-bold" style={{ fontSize: `${baseFontSizeMm}mm`, margin: 0 }}>{branch.branchName}</p>
+													<p className="font-bold" style={{ fontSize: `${branchNameFontSizeMm}mm`, margin: 0 }}>{branch.branchName}</p>
 													</div>
 													<div className="bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
 														<p className="text-muted-foreground uppercase" style={{ fontSize: `${smallFontSizeMm}mm`, margin: 0 }}>Öğrenci Sayısı</p>

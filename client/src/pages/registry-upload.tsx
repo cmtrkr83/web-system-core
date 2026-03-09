@@ -48,7 +48,7 @@ export default function RegistryUpload() {
   const [subeLiCount, setSubeliCount] = useState(0);
   const [rawData, setRawData] = useState<Record<string, any>[]>([]);
   const [uploadConfirmOpen, setUploadConfirmOpen] = useState(false);
-  const [excludeSpecialStudents, setExcludeSpecialStudents] = useState(false);
+  const [excludeSpecialStudents, setExcludeSpecialStudents] = useState(true);
   const { toast } = useToast();
   const { setRegistryData } = useRegistry();
 
@@ -64,7 +64,7 @@ export default function RegistryUpload() {
       setSubeliCount(0);
       setExcelColumns([]);
       setRawData([]);
-      setExcludeSpecialStudents(false);
+      setExcludeSpecialStudents(true);
       setUploadConfirmOpen(false);
     }
   };
