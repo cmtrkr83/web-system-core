@@ -53,6 +53,14 @@ export default function Labels() {
 			.join(" ");
 	};
 
+	const safe = (value: string) =>
+		String(value ?? "")
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/\"/g, "&quot;")
+			.replace(/'/g, "&#39;");
+
 	const [rows, setRows] = useState(8);
 	const [cols, setCols] = useState(3);
 	const [scheme, setScheme] = useState("blue");
@@ -132,14 +140,6 @@ export default function Labels() {
 			};
 
 			const active = schemeMap[scheme] || schemeMap.blue;
-			const safe = (value: string) =>
-				String(value ?? "")
-					.replace(/&/g, "&amp;")
-					.replace(/</g, "&lt;")
-					.replace(/>/g, "&gt;")
-					.replace(/\"/g, "&quot;")
-					.replace(/'/g, "&#39;");
-
 			for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
 				const pageLabels = Array.from({ length: labelsPerPage }, (_, idx) => pages[pageIdx][idx] || null);
 
@@ -262,6 +262,162 @@ export default function Labels() {
 		}
 	}
 
+	function handleHtmlPrint() {
+		if (!isLoaded) {
+			window.alert("Henüz veri yüklenmemiş. Lütfen 'Kütük Belirleme' sayfasından Excel dosyası yükleyin.");
+			return;
+		}
+
+		if (!pages || pages.length === 0) {
+			window.alert("Yazdırılacak etiket bulunamadı.");
+			return;
+		}
+
+		const printWindow = window.open("", "_blank", "width=1200,height=900");
+		if (!printWindow) {
+			window.alert("Yazdırma penceresi açılamadı. Tarayıcı engelleyicisini kontrol edin.");
+			return;
+		}
+
+		printWindow.document.open();
+		printWindow.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8" /><title>Hazırlanıyor...</title></head><body style="font-family: Arial, sans-serif; padding: 24px;">Yazdırma sayfası hazırlanıyor...</body></html>`);
+		printWindow.document.close();
+
+		const schemeMap: Record<string, { primary: string; border: string; bg: string; text: string; muted: string }> = {
+			blue: { primary: "#2563eb", border: "#2563eb", bg: "#eff6ff", text: "#ffffff", muted: "#475569" },
+			orange: { primary: "#f97316", border: "#f97316", bg: "#fff7ed", text: "#ffffff", muted: "#475569" },
+			green: { primary: "#16a34a", border: "#16a34a", bg: "#f0fdf4", text: "#ffffff", muted: "#475569" },
+			black: { primary: "#000000", border: "#000000", bg: "#171717", text: "#ffffff", muted: "#d4d4d8" },
+			yellow: { primary: "#facc15", border: "#facc15", bg: "#fefce8", text: "#111827", muted: "#475569" },
+			none: { primary: "#ffffff", border: "#d1d5db", bg: "#ffffff", text: "#111827", muted: "#6b7280" },
+		};
+
+		const active = schemeMap[scheme] || schemeMap.blue;
+
+		const sections = pages.map((_, pageIdx) => {
+			const pageLabels = Array.from({ length: labelsPerPage }, (_, idx) => pages[pageIdx][idx] || null);
+
+			const labelsHtml = pageLabels
+				.map((school) => {
+					if (!school) {
+						return `<div style="min-height:${labelHeight}mm; min-width:${labelWidth}mm; border:1px dashed #e5e7eb; border-radius:4mm; background:#ffffff;"></div>`;
+					}
+
+					const districtName = ctxDistricts.find((d) => d.id === school.districtId)?.name || "";
+					const districtWithCode = `${districtName} - ${String(school.code || "")}`;
+					const schoolStudents = ctxStudents.filter((st) => st.schoolId === school.id);
+					const studentCount = schoolStudents.length;
+					const branchCount = new Set(
+						schoolStudents
+							.map((st) => String(st.class ?? "").trim())
+							.filter((v) => v.length > 0)
+					).size;
+					const labelTextColor = scheme === "black" ? "#ffffff" : "#111827";
+
+					return `
+					<div style="
+						min-height:${labelHeight}mm;
+						min-width:${labelWidth}mm;
+						padding:${Math.max(0.5, boxPaddingMm)}mm;
+						border:2px solid ${active.border};
+						border-radius:3mm;
+						background:${active.bg};
+						position:relative;
+						display:flex;
+						flex-direction:column;
+						justify-content:space-between;
+						overflow:hidden;
+						box-sizing:border-box;
+					">
+						<div style="position:absolute; top:0; left:0; width:100%; height:2mm; background:${active.primary};"></div>
+						<div style="text-align:center; margin-top:${boxPaddingMm}mm; display:flex; flex-direction:column; align-items:center; gap:${Math.max(0.5, boxPaddingMm / 2)}mm;">
+							<h3 style="margin:0; font-size:${smallFontSizeMm}mm; font-weight:700; text-transform:uppercase; color:${labelTextColor};">${safe(districtWithCode)}</h3>
+							<h2 style="
+								margin:0;
+								font-size:${baseFontSizeMm}mm;
+								line-height:${Math.max(1, baseFontSizeMm * 1.05)}mm;
+								font-weight:900;
+								padding:${Math.max(0.5, boxPaddingMm)}mm;
+								background:${active.primary};
+								color:${active.text};
+								border-radius:2mm;
+								width:100%;
+								box-sizing:border-box;
+							">${safe(formatSchoolName(school.name))}</h2>
+						</div>
+						<div style="display:grid; grid-template-columns:1fr 1fr; gap:${boxPaddingMm}mm; margin-top:${boxPaddingMm}mm;">
+							<div style="background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
+								<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Şube Sayısı</p>
+								<p style="margin:0; font-size:${baseFontSizeMm}mm; font-weight:700; color:#111827;">${branchCount}</p>
+							</div>
+							<div style="background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
+								<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Öğrenci Sayısı</p>
+								<p style="margin:0; font-size:${baseFontSizeMm}mm; font-weight:700; color:#111827;">${studentCount}</p>
+							</div>
+						</div>
+					</div>`;
+				})
+				.join("");
+
+			return `
+				<div class="print-page" style="
+					width:210mm;
+					height:297mm;
+					background:#ffffff;
+					padding-top:${MARGIN_TOP}mm;
+					padding-bottom:${MARGIN_BOTTOM}mm;
+					padding-left:${MARGIN_LEFT}mm;
+					padding-right:${MARGIN_RIGHT}mm;
+					box-sizing:border-box;
+					overflow:hidden;
+				">
+					<div style="
+						display:grid;
+						grid-template-rows:repeat(${rows}, ${labelHeight}mm);
+						grid-template-columns:repeat(${cols}, ${labelWidth}mm);
+						gap:${GRID_GAP_MM}mm;
+						width:100%;
+						height:100%;
+					">
+						${labelsHtml}
+					</div>
+				</div>
+			`;
+		});
+
+		printWindow.document.open();
+		printWindow.document.write(`<!doctype html>
+			<html lang="tr">
+			<head>
+				<meta charset="utf-8" />
+				<title>Okul Etiketleri</title>
+				<style>
+					@page { size: A4; margin: 0; }
+					body { margin: 0; padding: 0; background: #fff; }
+					.print-page { break-inside: avoid; page-break-inside: avoid; }
+					.print-page:not(:last-child) { break-after: page; page-break-after: always; }
+				</style>
+			</head>
+			<body>${sections.join("")}</body>
+			</html>`);
+		printWindow.document.close();
+		printWindow.onload = () => {
+			setTimeout(() => {
+				printWindow.focus();
+				printWindow.print();
+			}, 150);
+		};
+
+		setTimeout(() => {
+			try {
+				printWindow.focus();
+				printWindow.print();
+			} catch {
+				// no-op fallback
+			}
+		}, 500);
+	}
+
 	const currentScheme = colorSchemes.find(s => s.id === scheme) || colorSchemes[0];
 
 	// Dinamik iç stil: etiket boyutlarına göre yazı ve padding ayarları (mm)
@@ -303,7 +459,7 @@ export default function Labels() {
 		<div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
 			<div>
 				<h1 className="text-3xl font-heading font-bold">Okul Etiketi Hazırlama</h1>
-				<p className="text-muted-foreground mt-1">Sınav evrak poşetleri için okul/şube etiketleri oluşturun.</p>
+				<p className="text-muted-foreground mt-1">Sınav evrak poşetleri için okul etiketleri oluşturun.</p>
 			</div>
 
 			<div className="grid lg:grid-cols-3 gap-8">
@@ -396,10 +552,14 @@ export default function Labels() {
 							</RadioGroup>
 						</div>
 					</CardContent>
-					<CardFooter>
+					<CardFooter className="flex-col gap-2">
 						<Button className="w-full" size="lg" onClick={handlePdfExport}>
 							<Printer className="mr-2 h-4 w-4" />
 							Etiketleri Oluştur (PDF)
+						</Button>
+						<Button className="w-full" size="lg" variant="outline" onClick={handleHtmlPrint}>
+							<Printer className="mr-2 h-4 w-4" />
+							Etiketleri HTML Yazdır
 						</Button>
 					</CardFooter>
 				</Card>

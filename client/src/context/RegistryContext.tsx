@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
 export interface Student {
   id: string;
@@ -22,12 +22,18 @@ export interface District {
   name: string;
 }
 
+export interface RegistryMeta {
+  sourceFileName: string;
+  loadedAt: string;
+}
+
 interface RegistryContextType {
   districts: District[];
   schools: School[];
   students: Student[];
   isLoaded: boolean;
-  setRegistryData: (districts: District[], schools: School[], students: Student[]) => void;
+  meta: RegistryMeta;
+  refreshRegistryData: () => Promise<void>;
   resetRegistry: () => void;
 }
 
@@ -37,24 +43,66 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
   const [districts, setDistricts] = useState<District[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [meta, setMeta] = useState<RegistryMeta>({ sourceFileName: "", loadedAt: "" });
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const setRegistryData = (d: District[], s: School[], st: Student[]) => {
-    setDistricts(d);
-    setSchools(s);
-    setStudents(st);
-    setIsLoaded(true);
+  const refreshRegistryData = async () => {
+    const res = await fetch("/api/registry", {
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      throw new Error("Registry verisi alınamadı");
+    }
+
+    const data = (await res.json()) as {
+      districts: District[];
+      schools: School[];
+      students: Student[];
+      sourceFileName?: string;
+      loadedAt?: string;
+    };
+
+    setDistricts(data.districts || []);
+    setSchools(data.schools || []);
+    setStudents(data.students || []);
+    setMeta({
+      sourceFileName: data.sourceFileName || "",
+      loadedAt: data.loadedAt || "",
+    });
+    setIsLoaded((data.students?.length || 0) > 0 || (data.schools?.length || 0) > 0 || (data.districts?.length || 0) > 0);
   };
 
   const resetRegistry = () => {
     setDistricts([]);
     setSchools([]);
     setStudents([]);
+    setMeta({ sourceFileName: "", loadedAt: "" });
     setIsLoaded(false);
   };
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadRegistryFromDb = async () => {
+      try {
+        if (!isMounted) return;
+
+        await refreshRegistryData();
+      } catch {
+        // If DB is unavailable, keep default in-memory empty state.
+      }
+    };
+
+    void loadRegistryFromDb();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
-    <RegistryContext.Provider value={{ districts, schools, students, isLoaded, setRegistryData, resetRegistry }}>
+    <RegistryContext.Provider value={{ districts, schools, students, meta, isLoaded, refreshRegistryData, resetRegistry }}>
       {children}
     </RegistryContext.Provider>
   );

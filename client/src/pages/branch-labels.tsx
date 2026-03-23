@@ -270,6 +270,136 @@ export default function BranchLabels() {
 		}
 	}
 
+	function handleHtmlPrint() {
+		if (!isLoaded) {
+			window.alert("Henüz veri yüklenmemiş. Lütfen 'Kütük Belirleme' sayfasından Excel dosyası yükleyin.");
+			return;
+		}
+
+		if (!pages || pages.length === 0) {
+			window.alert("Yazdırılacak etiket bulunamadı.");
+			return;
+		}
+
+		const schemeMap: Record<string, { primary: string; border: string; bg: string; text: string; muted: string }> = {
+			blue: { primary: "#2563eb", border: "#2563eb", bg: "#eff6ff", text: "#ffffff", muted: "#475569" },
+			orange: { primary: "#f97316", border: "#f97316", bg: "#fff7ed", text: "#ffffff", muted: "#475569" },
+			green: { primary: "#16a34a", border: "#16a34a", bg: "#f0fdf4", text: "#ffffff", muted: "#475569" },
+			black: { primary: "#000000", border: "#000000", bg: "#171717", text: "#ffffff", muted: "#d4d4d8" },
+			yellow: { primary: "#facc15", border: "#facc15", bg: "#fefce8", text: "#111827", muted: "#475569" },
+			none: { primary: "#ffffff", border: "#d1d5db", bg: "#ffffff", text: "#111827", muted: "#6b7280" },
+		};
+
+		const active = schemeMap[scheme] || schemeMap.blue;
+
+		const sections = pages.map((_, pageIdx) => {
+			const pageLabels = Array.from({ length: labelsPerPage }, (_, idx) => pages[pageIdx][idx] || null);
+
+			const labelsHtml = pageLabels
+				.map((branch) => {
+					if (!branch) {
+						return `<div style="min-height:${labelHeight}mm; min-width:${labelWidth}mm; border:1px dashed #e5e7eb; border-radius:4mm; background:#ffffff;"></div>`;
+					}
+
+					const branchWithCode = `${branch.districtName} - ${branch.schoolCode}`;
+					const labelTextColor = scheme === "black" ? "#ffffff" : "#111827";
+
+					return `
+					<div style="
+						min-height:${labelHeight}mm;
+						min-width:${labelWidth}mm;
+						padding:${Math.max(0.5, boxPaddingMm)}mm;
+						border:2px solid ${active.border};
+						border-radius:3mm;
+						background:${active.bg};
+						position:relative;
+						display:flex;
+						flex-direction:column;
+						justify-content:space-between;
+						overflow:hidden;
+						box-sizing:border-box;
+					">
+						<div style="position:absolute; top:0; left:0; width:100%; height:2mm; background:${active.primary};"></div>
+						<div style="text-align:center; margin-top:${boxPaddingMm}mm; display:flex; flex-direction:column; align-items:center; gap:${Math.max(0.5, boxPaddingMm / 2)}mm;">
+							<h3 style="margin:0; font-size:${smallFontSizeMm}mm; font-weight:700; text-transform:uppercase; color:${labelTextColor};">${safe(branchWithCode)}</h3>
+							<h2 style="
+								margin:0;
+								font-size:${baseFontSizeMm}mm;
+								line-height:${Math.max(1, baseFontSizeMm * 1.05)}mm;
+								font-weight:900;
+								padding:${Math.max(0.5, boxPaddingMm)}mm;
+								background:${active.primary};
+								color:${active.text};
+								border-radius:2mm;
+								width:100%;
+								box-sizing:border-box;
+							">${safe(branch.schoolName)}</h2>
+						</div>
+						<div style="display:grid; grid-template-columns:1fr 1fr; gap:${boxPaddingMm}mm; margin-top:${boxPaddingMm}mm;">
+							<div style="background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
+								<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Şube Adı</p>
+								<p style="margin:0; font-size:${branchNameFontSizeMm}mm; font-weight:700; color:#111827;">${safe(branch.branchName)}</p>
+							</div>
+							<div style="background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
+								<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Öğrenci Sayısı</p>
+								<p style="margin:0; font-size:${baseFontSizeMm}mm; font-weight:700; color:#111827;">${branch.studentCount}</p>
+							</div>
+						</div>
+					</div>`;
+				})
+				.join("");
+
+			return `
+				<div class="print-page" style="
+					width:210mm;
+					height:297mm;
+					background:#ffffff;
+					padding-top:${MARGIN_TOP}mm;
+					padding-bottom:${MARGIN_BOTTOM}mm;
+					padding-left:${MARGIN_LEFT}mm;
+					padding-right:${MARGIN_RIGHT}mm;
+					box-sizing:border-box;
+					overflow:hidden;
+				">
+					<div style="
+						display:grid;
+						grid-template-rows:repeat(${rows}, ${labelHeight}mm);
+						grid-template-columns:repeat(${cols}, ${labelWidth}mm);
+						gap:${GRID_GAP_MM}mm;
+						width:100%;
+						height:100%;
+					">
+						${labelsHtml}
+					</div>
+				</div>
+			`;
+		});
+
+		const printWindow = window.open("", "_blank", "width=1200,height=900");
+		if (!printWindow) {
+			window.alert("Yazdırma penceresi açılamadı. Tarayıcı engelleyicisini kontrol edin.");
+			return;
+		}
+
+		printWindow.document.write(`<!doctype html>
+			<html lang="tr">
+			<head>
+				<meta charset="utf-8" />
+				<title>Şube Etiketleri</title>
+				<style>
+					@page { size: A4; margin: 0; }
+					body { margin: 0; padding: 0; background: #fff; }
+					.print-page { break-inside: avoid; page-break-inside: avoid; }
+					.print-page:not(:last-child) { break-after: page; page-break-after: always; }
+				</style>
+			</head>
+			<body>${sections.join("")}</body>
+			</html>`);
+		printWindow.document.close();
+		printWindow.focus();
+		printWindow.print();
+	}
+
 	const currentScheme = colorSchemes.find(s => s.id === scheme) || colorSchemes[0];
 
 	const minBaseFont = 1.5;
@@ -403,10 +533,14 @@ export default function BranchLabels() {
 							</RadioGroup>
 						</div>
 					</CardContent>
-					<CardFooter>
+					<CardFooter className="flex-col gap-2">
 						<Button className="w-full" size="lg" onClick={handlePdfExport}>
 							<Printer className="mr-2 h-4 w-4" />
 							Etiketleri Oluştur (PDF)
+						</Button>
+						<Button className="w-full" size="lg" variant="outline" onClick={handleHtmlPrint}>
+							<Printer className="mr-2 h-4 w-4" />
+							Etiketleri HTML Yazdır
 						</Button>
 					</CardFooter>
 				</Card>

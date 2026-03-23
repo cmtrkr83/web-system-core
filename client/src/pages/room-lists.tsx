@@ -31,6 +31,23 @@ export default function RoomLists() {
     return filtered;
   }, [students, schools, selectedDistrict, selectedSchool]);
 
+  const schoolBranchCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    schools.forEach((school) => {
+      const branchSet = new Set(
+        students
+          .filter(st => st.schoolId === school.id)
+          .map(st => String(st.class ?? "").trim())
+          .filter(Boolean)
+      );
+
+      counts.set(school.id, branchSet.size);
+    });
+
+    return counts;
+  }, [schools, students]);
+
   // chunk helper to split into pages of max size
   const chunk = (arr: any[], size: number) => {
     const res: any[][] = [];
@@ -267,7 +284,7 @@ export default function RoomLists() {
                 <SelectContent>
                   <SelectItem value="all">Tüm Okullar</SelectItem>
                   {filteredSchools.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>{`${s.name} [ ${schoolBranchCounts.get(s.id) ?? 0} Şube ]`}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

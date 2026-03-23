@@ -8,7 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useRegistry, District, School, Student } from "@/context/RegistryContext";
+import { apiRequest } from "@/lib/queryClient";
 import * as XLSX from "xlsx";
 
 interface ColumnMapping {
@@ -50,7 +62,53 @@ export default function RegistryUpload() {
   const [uploadConfirmOpen, setUploadConfirmOpen] = useState(false);
   const [excludeSpecialStudents, setExcludeSpecialStudents] = useState(true);
   const { toast } = useToast();
-  const { setRegistryData } = useRegistry();
+  const { refreshRegistryData } = useRegistry();
+
+  const resetUploadScreenState = () => {
+    setFile(null);
+    setAnalyzed(false);
+    setMappingComplete(false);
+    setProgress(0);
+    setDistrictCount(0);
+    setSchoolCount(0);
+    setStudentCount(0);
+    setSubeliCount(0);
+    setExcelColumns([]);
+    setRawData([]);
+    setExcludeSpecialStudents(true);
+    setUploadConfirmOpen(false);
+    setMappingOpen(false);
+    setColumnMapping({
+      district: "",
+      schoolName: "",
+      schoolCode: "",
+      studentFirstName: "",
+      studentLastName: "",
+      studentNumber: "",
+      schoolNumber: "",
+      class: "",
+      grade: ""
+    });
+  };
+
+  const handleClearRegistry = async () => {
+    try {
+      await apiRequest("POST", "/api/registry/clear");
+      await refreshRegistryData();
+      resetUploadScreenState();
+      toast({
+        title: "Veriler Temizlendi",
+        description: "Veritabanındaki ve ekrandaki tüm yüklü kayıtlar silindi.",
+      });
+    } catch (error) {
+      console.error("Registry temizleme hatası:", error);
+      toast({
+        title: "Hata",
+        description: "Veriler temizlenirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -165,7 +223,7 @@ export default function RegistryUpload() {
     
     reader.readAsArrayBuffer(file);
   };
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (rawData.length === 0) return;
     
     // Validate mapping
@@ -209,7 +267,7 @@ export default function RegistryUpload() {
 
         const schoolNameLower = schoolName.toLocaleLowerCase("tr-TR");
         const classInfoLower = classInfo.toLocaleLowerCase("tr-TR");
-        const isKademeSchool = schoolNameLower.includes("kademe");
+        const isKademeSchool = excludeSpecialStudents && schoolNameLower.includes("kademe");
         const specialKeywords = ["zihinsel","Otistik","Özel Eğitim","Özel Eğitim Sınıfı","hafif","ağır","özel gereksinimli","özel gereksinim","özel eğitim ihtiyacı"];
         const isExcludedSpecialClass = excludeSpecialStudents && specialKeywords.some(keyword => classInfoLower.includes(keyword));
 
@@ -269,8 +327,15 @@ export default function RegistryUpload() {
       setSchoolCount(schools.length);
       setStudentCount(students.length);
       setSubeliCount(subeSet.size);
+
+      await apiRequest("POST", "/api/registry/replace", {
+        districts,
+        schools,
+        students,
+        sourceFileName: file?.name || "",
+      });
       
-      setRegistryData(districts, schools, students);
+      await refreshRegistryData();
       setAnalyzing(false);
       setAnalyzed(true);
       setMappingComplete(true);
@@ -281,7 +346,7 @@ export default function RegistryUpload() {
       
       toast({
         title: "Veri Ayrıştırma Başarılı",
-        description: `${districts.length} ilçe, ${schools.length} okul, ${students.length} öğrenci, ${subeSet.size} şube tespit edildi.${excludeSpecialStudents ? " 'Zihinsel' şubeler ve adı 'kademe' geçen okullar dahil edilmedi." : " Adı 'kademe' geçen okullar dahil edilmedi."}`,
+        description: `${districts.length} ilçe, ${schools.length} okul, ${students.length} öğrenci, ${subeSet.size} şube tespit edildi.${excludeSpecialStudents ? " 'Zihinsel' şubeler ve adı 'kademe' geçen okullar dahil edilmedi." : " Tüm kayıtlar dahil edildi."}`,
       });
     } catch (error) {
       console.error("Veri parse hatası:", error);
@@ -299,6 +364,34 @@ export default function RegistryUpload() {
       <div>
         <h1 className="text-3xl font-heading font-bold">Kütük Belirleme</h1>
         <p className="text-muted-foreground mt-1">Excel dosyasını yükleyip sütun eşleştirmesi yapın.</p>
+        <div className="mt-4">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                Veritabanı Verilerini Temizle
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Tüm Yüklü Veriler Silinsin mi?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Bu işlem geri alınamaz. Onaylarsanız veritabanındaki tüm kütük kayıtları ve ekrandaki yüklü veriler tamamen silinecektir.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => {
+                    void handleClearRegistry();
+                  }}
+                >
+                  Evet, Tümünü Sil
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -365,7 +458,7 @@ export default function RegistryUpload() {
                             Özel öğrenciler alınmasın
                           </Label>
                           <p className="text-xs text-muted-foreground">
-                            İşaretlenirse şube adında "zihinsel" geçen kayıtlar dahil edilmez.
+                            İşaretlenirse şube adında "zihinsel" geçen kayıtlar ve adı "kademe" geçen okullar dahil edilmez.
                           </p>
                         </div>
                       </div>
@@ -575,7 +668,7 @@ export default function RegistryUpload() {
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setMappingOpen(false)}>İptal</Button>
-                  <Button onClick={() => { handleAnalyze(); }}>Verileri Ayrıştır</Button>
+                  <Button onClick={() => { void handleAnalyze(); }}>Verileri Ayrıştır</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
