@@ -209,7 +209,7 @@ export default function RegistryUpload() {
 
         const schoolNameLower = schoolName.toLocaleLowerCase("tr-TR");
         const classInfoLower = classInfo.toLocaleLowerCase("tr-TR");
-        const isKademeSchool = schoolNameLower.includes("kademe");
+        const isKademeSchool = excludeSpecialStudents && schoolNameLower.includes("kademe");
         const specialKeywords = ["zihinsel","Otistik","Özel Eğitim","Özel Eğitim Sınıfı","hafif","ağır","özel gereksinimli","özel gereksinim","özel eğitim ihtiyacı"];
         const isExcludedSpecialClass = excludeSpecialStudents && specialKeywords.some(keyword => classInfoLower.includes(keyword));
 
@@ -281,7 +281,7 @@ export default function RegistryUpload() {
       
       toast({
         title: "Veri Ayrıştırma Başarılı",
-        description: `${districts.length} ilçe, ${schools.length} okul, ${students.length} öğrenci, ${subeSet.size} şube tespit edildi.${excludeSpecialStudents ? " 'Zihinsel' şubeler ve adı 'kademe' geçen okullar dahil edilmedi." : " Adı 'kademe' geçen okullar dahil edilmedi."}`,
+        description: `${districts.length} ilçe, ${schools.length} okul, ${students.length} öğrenci, ${subeSet.size} şube tespit edildi.${excludeSpecialStudents ? " 'Zihinsel' şubeler ve adı 'kademe' geçen okullar dahil edilmedi." : " Tüm kayıtlar dahil edildi."}`,
       });
     } catch (error) {
       console.error("Veri parse hatası:", error);
@@ -365,7 +365,7 @@ export default function RegistryUpload() {
                             Özel öğrenciler alınmasın
                           </Label>
                           <p className="text-xs text-muted-foreground">
-                            İşaretlenirse şube adında "zihinsel" geçen kayıtlar dahil edilmez.
+                            İşaretlenirse şube adında "zihinsel" geçen kayıtlar ve adı "kademe" geçen okullar dahil edilmez.
                           </p>
                         </div>
                       </div>
