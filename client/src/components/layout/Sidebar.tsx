@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, 
   Upload, 
-  Scissors, 
+  Map, 
   FileText, 
   Tags, 
   Package,
@@ -18,7 +18,7 @@ import { useState } from "react";
 const navItems = [
   { href: "/", label: "Genel Bakış", icon: LayoutDashboard },
   { href: "/registry-upload", label: "Kütük Belirleme", icon: Upload },
-  { href: "/registry-split", label: "Kütük Bölme", icon: Scissors },
+  { href: "/registry-split", label: "İlçe Listesi", icon: Map },
   { href: "/room-lists", label: "Salon Listesi", icon: FileText },
   { href: "/labels", label: "Okul Etiketi", icon: Tags },
   { href: "/branch-labels", label: "Şube Etiketi", icon: Package },

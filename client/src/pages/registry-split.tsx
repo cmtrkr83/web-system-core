@@ -2,15 +2,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Scissors, Download, RefreshCw, AlertCircle, Printer, CheckCircle } from "lucide-react";
+import { Download, AlertCircle, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRegistry } from "@/context/RegistryContext";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
 export default function RegistrySplit() {
-  const [splitting, setSplitting] = useState(false);
-  const [completed, setCompleted] = useState(false);
+  const [bulkSaving, setBulkSaving] = useState(false);
   const { toast } = useToast();
   const { districts, schools, students, isLoaded } = useRegistry();
 
@@ -26,16 +25,29 @@ export default function RegistrySplit() {
     "özel eğitim ihtiyacı",
   ];
 
-  const handleSplit = () => {
-    setSplitting(true);
-    setTimeout(() => {
-      setSplitting(false);
-      setCompleted(true);
+  const handlePrintAllDistricts = async () => {
+    if (!isLoaded || districtList.length === 0) {
       toast({
-        title: "Kütük Bölme Tamamlandı",
-        description: "Tüm ilçeler için ayrı Excel dosyaları oluşturuldu.",
+        title: "Hata",
+        description: "Kaydedilecek ilçe verisi bulunamadı.",
+        variant: "destructive"
       });
-    }, 2000);
+      return;
+    }
+
+    setBulkSaving(true);
+    let successCount = 0;
+
+    for (const district of districtList) {
+      const ok = await handleDownload(district.id, district.name, false);
+      if (ok) successCount += 1;
+    }
+
+    setBulkSaving(false);
+    toast({
+      title: "Toplu Kaydetme Tamamlandı",
+      description: `${successCount}/${districtList.length} ilçe ayrı dosya olarak kaydedildi.`,
+    });
   };
 
   const handlePrintTable = () => {
@@ -158,6 +170,8 @@ export default function RegistrySplit() {
   const buildDistrictHtmlTable = (districtName: string, schoolData: Array<{ sira: number; name: string; code: string; classes: number; students: number }>) => {
     const totalStudents = schoolData.reduce((sum, s) => sum + s.students, 0);
     const totalClasses = schoolData.reduce((sum, s) => sum + s.classes, 0);
+    const headerRowHeight = 21; // ~14px * 1.5
+    const bodyRowHeight = 20;   // ~13px * 1.5
 
     return `
       <div style="font-family: Arial, sans-serif; font-size: 10pt; padding: 1px 10px 1px 10px; background: white;">
@@ -168,11 +182,11 @@ export default function RegistrySplit() {
         <table style="width: 100%; border-collapse: collapse; font-size: 10pt; line-height: 1.2;">
           <thead>
             <tr style="background-color: #f0f0f0; border: 0.5px solid #333;">
-              <th style="border: 0.5px solid #333; padding: 2px 3px 4px 3px; vertical-align: middle; width: 5%;"><div style="display:flex; align-items:center; justify-content:center; min-height:14px;">Sıra</div></th>
-              <th style="border: 0.5px solid #333; padding: 2px 3px 4px 3px; vertical-align: middle; width: 18%;"><div style="display:flex; align-items:center; justify-content:center; min-height:14px;">Kurum Kodu</div></th>
-              <th style="border: 0.5px solid #333; padding: 2px 3px 4px 3px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:flex-start; min-height:14px;">Okul Adı</div></th>
-              <th style="border: 0.5px solid #333; padding: 2px 3px 4px 3px; vertical-align: middle; width: 12%;"><div style="display:flex; align-items:center; justify-content:center; min-height:14px;">Şube Sayısı</div></th>
-              <th style="border: 0.5px solid #333; padding: 2px 3px 4px 3px; vertical-align: middle; width: 15%;"><div style="display:flex; align-items:center; justify-content:center; min-height:14px;">Öğrenci Sayısı</div></th>
+              <th style="border: 0.5px solid #333; padding: 3px 4px 5px 4px; vertical-align: middle; width: 5%;"><div style="display:flex; align-items:center; justify-content:center; min-height:${headerRowHeight}px;">Sıra</div></th>
+              <th style="border: 0.5px solid #333; padding: 3px 4px 5px 4px; vertical-align: middle; width: 18%;"><div style="display:flex; align-items:center; justify-content:center; min-height:${headerRowHeight}px;">Kurum Kodu</div></th>
+              <th style="border: 0.5px solid #333; padding: 3px 4px 5px 4px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:flex-start; min-height:${headerRowHeight}px;">Okul Adı</div></th>
+              <th style="border: 0.5px solid #333; padding: 3px 4px 5px 4px; vertical-align: middle; width: 12%;"><div style="display:flex; align-items:center; justify-content:center; min-height:${headerRowHeight}px;">Şube Sayısı</div></th>
+              <th style="border: 0.5px solid #333; padding: 3px 4px 5px 4px; vertical-align: middle; width: 15%;"><div style="display:flex; align-items:center; justify-content:center; min-height:${headerRowHeight}px;">Öğrenci Sayısı</div></th>
             </tr>
           </thead>
           <tbody>
@@ -180,11 +194,11 @@ export default function RegistrySplit() {
               .map(
                 (school, idx) => `
               <tr style="border: 0.5px solid #ccc; ${idx % 2 === 0 ? 'background-color: #fafafa;' : ''}">
-                <td style="border: 0.5px solid #ccc; padding: 1px 1px 2px 1px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:13px;">${school.sira}</div></td>
-                <td style="border: 0.5px solid #ccc; padding: 1px 1px 2px 1px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:13px;">${school.code}</div></td>
-                <td style="border: 0.5px solid #ccc; padding: 1px 1px 2px 1px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:flex-start; min-height:13px;">${school.name}</div></td>
-                <td style="border: 0.5px solid #ccc; padding: 1px 1px 2px 1px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:13px;">${school.classes}</div></td>
-                <td style="border: 0.5px solid #ccc; padding: 1px 1px 2px 1px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:13px;">${school.students}</div></td>
+                <td style="border: 0.5px solid #ccc; padding: 2px 2px 3px 2px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:${bodyRowHeight}px;">${school.sira}</div></td>
+                <td style="border: 0.5px solid #ccc; padding: 2px 2px 3px 2px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:${bodyRowHeight}px;">${school.code}</div></td>
+                <td style="border: 0.5px solid #ccc; padding: 2px 2px 3px 2px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:flex-start; min-height:${bodyRowHeight}px;">${school.name}</div></td>
+                <td style="border: 0.5px solid #ccc; padding: 2px 2px 3px 2px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:${bodyRowHeight}px;">${school.classes}</div></td>
+                <td style="border: 0.5px solid #ccc; padding: 2px 2px 3px 2px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:${bodyRowHeight}px;">${school.students}</div></td>
               </tr>
             `
               )
@@ -236,7 +250,7 @@ export default function RegistrySplit() {
     printWindow.print();
   };
 
-  const handleDownload = async (districtId: string, districtName: string) => {
+  const handleDownload = async (districtId: string, districtName: string, showToast = true) => {
     try {
       const schoolData = getDistrictSchoolData(districtId);
       const htmlContent = buildDistrictHtmlTable(districtName, schoolData);
@@ -280,17 +294,25 @@ export default function RegistrySplit() {
       // Cleanup
       document.body.removeChild(tempDiv);
 
-      toast({
-        title: "PDF İndirildi",
-        description: `${districtName} ilçesi kütüğü başarıyla indirildi.`,
-      });
+      if (showToast) {
+        toast({
+          title: "PDF İndirildi",
+          description: `${districtName} ilçesi kütüğü başarıyla indirildi.`,
+        });
+      }
+
+      return true;
     } catch (error) {
       console.error("PDF oluşturulurken hata:", error);
-      toast({
-        title: "Hata",
-        description: "PDF oluşturulurken bir hata oluştu.",
-        variant: "destructive"
-      });
+      if (showToast) {
+        toast({
+          title: "Hata",
+          description: "PDF oluşturulurken bir hata oluştu.",
+          variant: "destructive"
+        });
+      }
+
+      return false;
     }
   };
 
@@ -344,30 +366,25 @@ export default function RegistrySplit() {
                 onClick={handlePrintTable}
                 disabled={!isLoaded || districtList.length === 0}
                 variant="destructive"
-                className="w-32"
+                className="w-auto whitespace-nowrap"
               >
                 <Printer className="mr-2 h-4 w-4" />
-                Yazdır
+                İl Raporu Yazdır
               </Button>
               <Button 
-                onClick={handleSplit} 
-                disabled={splitting || completed || !isLoaded}
+                onClick={handlePrintAllDistricts}
+                disabled={bulkSaving || !isLoaded || districtList.length === 0}
                 className="w-40"
               >
-                {splitting ? (
+                {bulkSaving ? (
                   <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    İşleniyor...
-                  </>
-                ) : completed ? (
-                  <>
-                    <CheckCircleIcon className="mr-2 h-4 w-4" />
-                    Tamamlandı
+                    <Download className="mr-2 h-4 w-4" />
+                    Kaydediliyor...
                   </>
                 ) : (
                   <>
-                    <Scissors className="mr-2 h-4 w-4" />
-                    Kütüğü Böl
+                    <Printer className="mr-2 h-4 w-4" />
+                    Tümünü Yazdır
                   </>
                 )}
               </Button>
@@ -429,35 +446,17 @@ export default function RegistrySplit() {
             </Table>
           )}
         </CardContent>
-        {completed && (
-          <CardFooter className="bg-muted/50 border-t p-4 flex justify-end">
-            <Button variant="outline">
-              <Download className="mr-2 h-4 w-4" />
-              Tümünü ZIP Olarak İndir
-            </Button>
-          </CardFooter>
-        )}
+        <CardFooter className="bg-muted/50 border-t p-4 flex justify-end">
+          <Button
+            variant="outline"
+            onClick={handlePrintAllDistricts}
+            disabled={bulkSaving || !isLoaded || districtList.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Tüm İlçeleri PDF Kaydet
+          </Button>
+        </CardFooter>
       </Card>
     </div>
-  );
-}
-
-function CheckCircleIcon({ className }: { className?: string }) {
-  return (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
   );
 }
