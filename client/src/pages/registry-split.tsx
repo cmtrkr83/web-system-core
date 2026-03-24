@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, AlertCircle, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -374,7 +374,7 @@ export default function RegistrySplit() {
               <Button 
                 onClick={handlePrintAllDistricts}
                 disabled={bulkSaving || !isLoaded || districtList.length === 0}
-                className="w-40"
+                className="w-auto whitespace-nowrap"
               >
                 {bulkSaving ? (
                   <>
@@ -384,7 +384,7 @@ export default function RegistrySplit() {
                 ) : (
                   <>
                     <Printer className="mr-2 h-4 w-4" />
-                    Tümünü Yazdır
+                    Tüm İlçeleri PDF Kaydet
                   </>
                 )}
               </Button>
@@ -446,16 +446,6 @@ export default function RegistrySplit() {
             </Table>
           )}
         </CardContent>
-        <CardFooter className="bg-muted/50 border-t p-4 flex justify-end">
-          <Button
-            variant="outline"
-            onClick={handlePrintAllDistricts}
-            disabled={bulkSaving || !isLoaded || districtList.length === 0}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Tüm İlçeleri PDF Kaydet
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );

@@ -234,7 +234,7 @@ export default function Reports() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Bu tutanak, ilçe milli eğitim müdürlüklerinin sınav evraklarını ölçme değerlendirme merkezine teslim ederken kullanacakları belgedir.
+              Bu tutanak, ODM ile ilçe milli eğitim müdürlüklerinin sınav evraklarını teslim ederken ya da teslim alırken kullanacakları belgedir.
             </p>
             <div className="bg-muted p-4 rounded-md text-sm">
               <ul className="list-disc list-inside space-y-1">
@@ -257,11 +257,11 @@ export default function Reports() {
                 <FileCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
              </div>
              <CardTitle>Okul Teslim Tutanağı</CardTitle>
-             <CardDescription>Okullardan ilçeye teslim edilecek evraklar için.</CardDescription>
+             <CardDescription>İlçe Müdürlüklerinden okullara teslim edilecek evraklar için.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Bu tutanak, okul müdürlüklerinin sınav evraklarını ilçe milli eğitim müdürlüklerine teslim ederken kullanacakları belgedir.
+              Bu tutanak, İlçe müdürlüklerinin sınav evraklarını okul müdürlüklerine teslim ederken kullanacakları belgedir.
             </p>
             <div className="space-y-4">
                <div className="space-y-2">
