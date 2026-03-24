@@ -177,19 +177,193 @@ export default function RegistryUpload() {
         setExcelColumns(columns);
         setRawData(jsonData);
         
-        // Auto-detect common column names (only from valid columns)
-        const findColumn = (pattern: RegExp) => columns.find(c => String(c).match(pattern)) || "";
-        
+        // Auto-detect common column names with weighted scoring.
+        // This reduces false positives such as matching "İl Adı" as student name.
+        const normalizeHeader = (value: string) =>
+          String(value ?? "")
+            .toLowerCase()
+            .replace(/ı/g, "i")
+            .replace(/ğ/g, "g")
+            .replace(/ş/g, "s")
+            .replace(/ü/g, "u")
+            .replace(/ö/g, "o")
+            .replace(/ç/g, "c")
+            .replace(/[^a-z0-9]+/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        type WeightedPattern = { pattern: RegExp; weight: number };
+        type MatchRule = {
+          positive: WeightedPattern[];
+          negative?: WeightedPattern[];
+          boost?: (normalized: string) => number;
+        };
+
+        const normalizedColumns = columns.map((col) => ({
+          raw: col,
+          normalized: normalizeHeader(col),
+        }));
+
+        const findBestColumn = (rule: MatchRule) => {
+          let bestColumn = "";
+          let bestScore = Number.NEGATIVE_INFINITY;
+
+          for (const col of normalizedColumns) {
+            let score = 0;
+
+            for (const p of rule.positive) {
+              if (p.pattern.test(col.normalized)) score += p.weight;
+            }
+
+            for (const n of rule.negative || []) {
+              if (n.pattern.test(col.normalized)) score -= n.weight;
+            }
+
+            if (rule.boost) score += rule.boost(col.normalized);
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestColumn = col.raw;
+            }
+          }
+
+          return bestScore > 0 ? bestColumn : "";
+        };
+
+        const districtRule: MatchRule = {
+          positive: [
+            { pattern: /\bilce\b/, weight: 14 },
+            { pattern: /district/, weight: 10 },
+            { pattern: /ilce adi/, weight: 8 },
+          ],
+          negative: [
+            { pattern: /ogrenci|ad soyad|soyad|name|surname/, weight: 10 },
+            { pattern: /okul|kurum|school/, weight: 8 },
+            { pattern: /sinif|sube|class|grade/, weight: 8 },
+            { pattern: /kod|code|numara|no|tc|opaq/, weight: 8 },
+          ],
+        };
+
+        const schoolNameRule: MatchRule = {
+          positive: [
+            { pattern: /kurum adi/, weight: 14 },
+            { pattern: /okul adi/, weight: 14 },
+            { pattern: /school name|school/, weight: 10 },
+          ],
+          negative: [
+            { pattern: /kod|code/, weight: 8 },
+            { pattern: /ilce|district/, weight: 8 },
+            { pattern: /ogrenci|ad soyad|soyad/, weight: 10 },
+          ],
+        };
+
+        const schoolCodeRule: MatchRule = {
+          positive: [
+            { pattern: /kurum kodu/, weight: 16 },
+            { pattern: /okul kodu/, weight: 14 },
+            { pattern: /school code|code/, weight: 10 },
+            { pattern: /\bkod\b/, weight: 8 },
+          ],
+          negative: [
+            { pattern: /ogrenci|ad soyad|soyad|name/, weight: 10 },
+            { pattern: /ilce|district/, weight: 8 },
+          ],
+        };
+
+        const studentFirstNameRule: MatchRule = {
+          positive: [
+            { pattern: /ogrenci adi/, weight: 20 },
+            { pattern: /ogrenci isim/, weight: 18 },
+            { pattern: /ad soyad/, weight: 8 },
+            { pattern: /\bname\b/, weight: 6 },
+            { pattern: /\bad\b/, weight: 5 },
+          ],
+          negative: [
+            { pattern: /\bil\b|ilce|district/, weight: 18 },
+            { pattern: /okul|kurum|school/, weight: 12 },
+            { pattern: /soyad|surname/, weight: 16 },
+            { pattern: /sinif|sube|class|grade/, weight: 10 },
+            { pattern: /kod|code|numara|no|tc|opaq/, weight: 10 },
+          ],
+          boost: (normalized) => {
+            let bonus = 0;
+            if (normalized.includes("ogrenci") && (normalized.includes(" adi") || normalized.endsWith(" ad"))) {
+              bonus += 12;
+            }
+            if (normalized === "ad" || normalized === "adi") {
+              bonus += 4;
+            }
+            return bonus;
+          },
+        };
+
+        const studentLastNameRule: MatchRule = {
+          positive: [
+            { pattern: /ogrenci soyadi/, weight: 22 },
+            { pattern: /\bsoyad\b/, weight: 14 },
+            { pattern: /surname|last name/, weight: 10 },
+          ],
+          negative: [
+            { pattern: /\bil\b|ilce|district/, weight: 12 },
+            { pattern: /okul|kurum|school/, weight: 10 },
+            { pattern: /sinif|sube|class|grade/, weight: 10 },
+            { pattern: /kod|code|numara|no|tc|opaq/, weight: 10 },
+          ],
+        };
+
+        const studentNumberRule: MatchRule = {
+          positive: [
+            { pattern: /opaq/, weight: 20 },
+            { pattern: /\btc\b/, weight: 18 },
+            { pattern: /kimlik/, weight: 14 },
+            { pattern: /ogrenci no|numara|\bno\b/, weight: 10 },
+          ],
+          negative: [
+            { pattern: /okul no|school no/, weight: 8 },
+          ],
+        };
+
+        const schoolNumberRule: MatchRule = {
+          positive: [
+            { pattern: /okul no|okul numara|school no/, weight: 18 },
+            { pattern: /\bokul\b/, weight: 8 },
+            { pattern: /numara|\bno\b/, weight: 6 },
+          ],
+          negative: [
+            { pattern: /ogrenci no|opaq|\btc\b/, weight: 12 },
+          ],
+        };
+
+        const classRule: MatchRule = {
+          positive: [
+            { pattern: /sube|subesi/, weight: 16 },
+            { pattern: /branch/, weight: 10 },
+          ],
+          negative: [
+            { pattern: /sinif|grade|class/, weight: 6 },
+          ],
+        };
+
+        const gradeRule: MatchRule = {
+          positive: [
+            { pattern: /sinif/, weight: 16 },
+            { pattern: /class|grade/, weight: 10 },
+          ],
+          negative: [
+            { pattern: /sube|subesi|branch/, weight: 8 },
+          ],
+        };
+
         const autoMapping: ColumnMapping = {
-          district: findColumn(/İLÇE|ilçe|İlçe|DISTRICT/i),
-          schoolName: findColumn(/KURUM ADI|Okul Adı|okul adı|SCHOOL/i),
-          schoolCode: findColumn(/KURUM KODU|Kurum Kodu|kurum kodu|CODE/i),
-          studentFirstName: findColumn(/ÖĞRENCİ ADI|Öğrenci Adı|AD|NAME/i),
-          studentLastName: findColumn(/ÖĞRENCİ SOYADI|Öğrenci Soyadı|SOYAD|SURNAME/i),
-          studentNumber: findColumn(/OPAQ|opaq|NUMARA|TC/i),
-          schoolNumber: findColumn(/OKUL ?NO|OKULNUMARA|School ?No/i) || "",
-          class: findColumn(/ŞUBE|SUBESI|Şube|ŞUBESİ/i) || "",
-          grade: findColumn(/SINIF|Sınıf|CLASS|GRADE/i) || ""
+          district: findBestColumn(districtRule),
+          schoolName: findBestColumn(schoolNameRule),
+          schoolCode: findBestColumn(schoolCodeRule),
+          studentFirstName: findBestColumn(studentFirstNameRule),
+          studentLastName: findBestColumn(studentLastNameRule),
+          studentNumber: findBestColumn(studentNumberRule),
+          schoolNumber: findBestColumn(schoolNumberRule),
+          class: findBestColumn(classRule),
+          grade: findBestColumn(gradeRule),
         };
 
         toast({

@@ -7,8 +7,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Printer, Eye, Palette, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRegistry } from "@/context/RegistryContext";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 const colorSchemes = [
 	{ id: "blue", name: "Mavi", primary: "bg-blue-600", border: "border-blue-600", bg: "bg-blue-50", text: "text-white" },
@@ -66,6 +64,7 @@ export default function Labels() {
 	const [scheme, setScheme] = useState("blue");
 	const [selectedDistrict, setSelectedDistrict] = useState("");
 	const [selectedSchool, setSelectedSchool] = useState("");
+	const [lessonName, setLessonName] = useState("");
 
 	// Örnek veri, backend'den alınabilir
 	// Use registry context (populated by Excel upload)
@@ -114,153 +113,8 @@ export default function Labels() {
 	const [currentPage, setCurrentPage] = useState(0);
 	const handlePrevPage = () => setCurrentPage((p) => Math.max(0, p - 1));
 	const handleNextPage = () => setCurrentPage((p) => Math.min(totalPages - 1, p + 1));
+	const headerPrefix = lessonName.trim();
 
-	// PDF export fonksiyonu - jsPDF native API ile etiket render
-	async function handlePdfExport() {
-		if (!isLoaded) {
-			window.alert("Henüz veri yüklenmemiş. Lütfen 'Kütük Belirleme' sayfasından Excel dosyası yükleyin.");
-			return;
-		}
-		try {
-			console.log("PDF export started with inline HTML render", { pagesLength: pages.length });
-			if (!pages || pages.length === 0) {
-				window.alert("Dışa aktarılacak etiket bulunamadı.");
-				return;
-			}
-
-			let pdf: jsPDF | null = null;
-
-			const schemeMap: Record<string, { primary: string; border: string; bg: string; text: string; muted: string }> = {
-				blue: { primary: "#2563eb", border: "#2563eb", bg: "#eff6ff", text: "#ffffff", muted: "#475569" },
-				orange: { primary: "#f97316", border: "#f97316", bg: "#fff7ed", text: "#ffffff", muted: "#475569" },
-				green: { primary: "#16a34a", border: "#16a34a", bg: "#f0fdf4", text: "#ffffff", muted: "#475569" },
-				black: { primary: "#000000", border: "#000000", bg: "#171717", text: "#ffffff", muted: "#d4d4d8" },
-				yellow: { primary: "#facc15", border: "#facc15", bg: "#fefce8", text: "#111827", muted: "#475569" },
-				none: { primary: "#ffffff", border: "#d1d5db", bg: "#ffffff", text: "#111827", muted: "#6b7280" },
-			};
-
-			const active = schemeMap[scheme] || schemeMap.blue;
-			for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
-				const pageLabels = Array.from({ length: labelsPerPage }, (_, idx) => pages[pageIdx][idx] || null);
-
-				const labelsHtml = pageLabels
-					.map((school) => {
-						if (!school) {
-							return `<div style="min-height:${labelHeight}mm; min-width:${labelWidth}mm; border:1px dashed #e5e7eb; border-radius:4mm; background:#ffffff;"></div>`;
-						}
-
-						const districtName = ctxDistricts.find((d) => d.id === school.districtId)?.name || "";
-						const districtWithCode = `${districtName} - ${String(school.code || "")}`;
-						const schoolStudents = ctxStudents.filter((st) => st.schoolId === school.id);
-						const studentCount = schoolStudents.length;
-						const branchCount = new Set(
-							schoolStudents
-								.map((st) => String(st.class ?? "").trim())
-								.filter((v) => v.length > 0)
-						).size;
-						const labelTextColor = scheme === "black" ? "#ffffff" : "#111827";
-
-						return `
-						<div style="
-							min-height:${labelHeight}mm;
-							min-width:${labelWidth}mm;
-							padding:${Math.max(0.5, boxPaddingMm)}mm;
-							border:2px solid ${active.border};
-							border-radius:3mm;
-							background:${active.bg};
-							position:relative;
-							display:flex;
-							flex-direction:column;
-							justify-content:space-between;
-							overflow:hidden;
-							box-sizing:border-box;
-						">
-							<div style="position:absolute; top:0; left:0; width:100%; height:2mm; background:${active.primary};"></div>
-							<div style="text-align:center; margin-top:${boxPaddingMm}mm; display:flex; flex-direction:column; align-items:center; gap:${Math.max(0.5, boxPaddingMm / 2)}mm;">
-								<h3 style="margin:0; font-size:${smallFontSizeMm}mm; font-weight:700; text-transform:uppercase; color:${labelTextColor};">${safe(districtWithCode)}</h3>
-								<h2 style="
-									margin:0;
-									font-size:${baseFontSizeMm}mm;
-									line-height:${Math.max(1, baseFontSizeMm * 1.05)}mm;
-									font-weight:900;
-									padding:${Math.max(0.5, boxPaddingMm)}mm;
-									background:${active.primary};
-									color:${active.text};
-									border-radius:2mm;
-									width:100%;
-									box-sizing:border-box;
-								">${safe(formatSchoolName(school.name))}</h2>
-							</div>
-							<div style="display:grid; grid-template-columns:1fr 1fr; gap:${boxPaddingMm}mm; margin-top:${boxPaddingMm}mm;">
-								<div style="background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
-									<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Şube Sayısı</p>
-									<p style="margin:0; font-size:${baseFontSizeMm}mm; font-weight:700; color:#111827;">${branchCount}</p>
-								</div>
-								<div style="background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
-									<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Öğrenci Sayısı</p>
-									<p style="margin:0; font-size:${baseFontSizeMm}mm; font-weight:700; color:#111827;">${studentCount}</p>
-								</div>
-							</div>
-						</div>`;
-					})
-					.join("");
-
-				const sectionHtml = `
-					<div style="
-						width:210mm;
-						min-height:297mm;
-						background:#ffffff;
-						padding-top:${MARGIN_TOP}mm;
-						padding-bottom:${MARGIN_BOTTOM}mm;
-						padding-left:${MARGIN_LEFT}mm;
-						padding-right:${MARGIN_RIGHT}mm;
-						box-sizing:border-box;
-					">
-						<div style="
-							display:grid;
-							grid-template-rows:repeat(${rows}, ${labelHeight}mm);
-							grid-template-columns:repeat(${cols}, ${labelWidth}mm);
-							gap:${GRID_GAP_MM}mm;
-							width:100%;
-							height:100%;
-						">
-							${labelsHtml}
-						</div>
-					</div>
-				`;
-
-				const tempDiv = document.createElement("div");
-				tempDiv.innerHTML = sectionHtml;
-				tempDiv.style.position = "absolute";
-				tempDiv.style.left = "-9999px";
-				tempDiv.style.top = "0";
-				tempDiv.style.background = "#ffffff";
-				document.body.appendChild(tempDiv);
-
-				const canvas = await html2canvas(tempDiv, {
-					scale: 2,
-					useCORS: true,
-					logging: false,
-					backgroundColor: "#ffffff",
-				});
-
-				if (!pdf) pdf = new jsPDF("p", "mm", "a4");
-				else pdf.addPage();
-
-				const imgData = canvas.toDataURL("image/png");
-				pdf.addImage(imgData, "PNG", 0, 0, 210, 297);
-				document.body.removeChild(tempDiv);
-			}
-
-			if (pdf) {
-				pdf.save("etiketler.pdf");
-				window.alert(`${pages.length} sayfa başarıyla PDF olarak kaydedildi!`);
-			}
-		} catch (err) {
-			console.error("handlePdfExport error", err);
-			window.alert("PDF oluşturma sırasında bir hata oluştu: " + (err as any).message);
-		}
-	}
 
 	function handleHtmlPrint() {
 		if (!isLoaded) {
@@ -304,7 +158,12 @@ export default function Labels() {
 					}
 
 					const districtName = ctxDistricts.find((d) => d.id === school.districtId)?.name || "";
-					const districtWithCode = `${districtName} - ${String(school.code || "")}`;
+					const schoolCodeText = String(school.code || "").trim();
+					const schoolNameWithCode = schoolCodeText
+						? `${schoolCodeText} - ${formatSchoolName(school.name)}`
+						: formatSchoolName(school.name);
+					const sideStripWidthMm = 6;
+					const contentLeftPadMm = sideStripWidthMm + 1;
 					const schoolStudents = ctxStudents.filter((st) => st.schoolId === school.id);
 					const studentCount = schoolStudents.length;
 					const branchCount = new Set(
@@ -329,9 +188,12 @@ export default function Labels() {
 						overflow:hidden;
 						box-sizing:border-box;
 					">
-						<div style="position:absolute; top:0; left:0; width:100%; height:2mm; background:${active.primary};"></div>
+						<div style="position:absolute; left:0; top:0; bottom:0; width:${sideStripWidthMm}mm; border-right:1px solid #d1d5db; display:flex; align-items:center; justify-content:center; background:${active.primary};">
+							<span style="writing-mode:vertical-rl; transform:rotate(180deg); text-transform:uppercase; font-weight:700; font-size:${Math.max(2.2, smallFontSizeMm)}mm; color:${scheme === "none" ? "#000000" : "#ffffff"}; line-height:1; letter-spacing:0.2mm;">${safe(districtName)}</span>
+						</div>
+						<div style="padding-left:${contentLeftPadMm}mm; height:100%; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between;">
 						<div style="text-align:center; margin-top:${boxPaddingMm}mm; display:flex; flex-direction:column; align-items:center; gap:${Math.max(0.5, boxPaddingMm / 2)}mm;">
-							<h3 style="margin:0; font-size:${smallFontSizeMm}mm; font-weight:700; text-transform:uppercase; color:${labelTextColor};">${safe(districtWithCode)}</h3>
+							${headerPrefix ? `<h3 style="margin:0; font-size:${smallFontSizeMm}mm; font-weight:700; text-transform:uppercase; color:${labelTextColor};">${safe(headerPrefix)}</h3>` : ""}
 							<h2 style="
 								margin:0;
 								font-size:${baseFontSizeMm}mm;
@@ -343,7 +205,7 @@ export default function Labels() {
 								border-radius:2mm;
 								width:100%;
 								box-sizing:border-box;
-							">${safe(formatSchoolName(school.name))}</h2>
+							">${safe(schoolNameWithCode)}</h2>
 						</div>
 						<div style="display:grid; grid-template-columns:1fr 1fr; gap:${boxPaddingMm}mm; margin-top:${boxPaddingMm}mm;">
 							<div style="background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
@@ -354,6 +216,7 @@ export default function Labels() {
 								<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Öğrenci Sayısı</p>
 								<p style="margin:0; font-size:${baseFontSizeMm}mm; font-weight:700; color:#111827;">${studentCount}</p>
 							</div>
+						</div>
 						</div>
 					</div>`;
 				})
@@ -419,6 +282,16 @@ export default function Labels() {
 	}
 
 	const currentScheme = colorSchemes.find(s => s.id === scheme) || colorSchemes[0];
+	const sideStripBgMap: Record<string, string> = {
+		blue: "#2563eb",
+		orange: "#f97316",
+		green: "#16a34a",
+		black: "#000000",
+		yellow: "#facc15",
+		none: "#ffffff",
+	};
+	const sideStripBgHex = sideStripBgMap[scheme] || sideStripBgMap.blue;
+	const sideStripTextColor = scheme === "none" ? "#000000" : "#ffffff";
 
 	// Dinamik iç stil: etiket boyutlarına göre yazı ve padding ayarları (mm)
 	// Küçülme gerektiğinde yazı boyutlarının otomatik küçülmesi için düşük minimumlar kullanıyoruz
@@ -426,6 +299,7 @@ export default function Labels() {
 	const minSmallFont = 1.0; // mm
 	const baseFontSizeMm = Math.max(minBaseFont, Math.min(labelHeight, labelWidth) * 0.11);
 	const smallFontSizeMm = Math.max(minSmallFont, baseFontSizeMm * 0.6);
+	const sideStripFontSizeMm = Math.max(2.2, smallFontSizeMm);
 	const boxPaddingMm = Math.max(0.6, Math.min(labelHeight, labelWidth) * 0.04);
 
 	// adaptive font-fit: küçülmeyen durumları engellemek için DOM üzerinde kontrol edip gerekirse yazıyı kademeli küçültüyoruz
@@ -526,6 +400,18 @@ export default function Labels() {
 							</div>
 						</div>
 
+							<div className="space-y-2 mt-2">
+								<Label>Ders Adı (Opsiyonel)</Label>
+								<Input
+									placeholder="Örn: Matematik"
+									value={lessonName}
+									onChange={(e) => setLessonName(e.target.value)}
+								/>
+								<p className="text-xs text-muted-foreground">
+									Doldurulursa etiketlerde ders adı görüntülenir.
+								</p>
+							</div>
+
 						<div className="space-y-3">
 							<Label className="flex items-center gap-2">
 								<Palette className="w-4 h-4" />
@@ -553,10 +439,6 @@ export default function Labels() {
 						</div>
 					</CardContent>
 					<CardFooter className="flex-col gap-2">
-						<Button className="w-full" size="lg" onClick={handlePdfExport}>
-							<Printer className="mr-2 h-4 w-4" />
-							Etiketleri Oluştur (PDF)
-						</Button>
 						<Button className="w-full" size="lg" variant="outline" onClick={handleHtmlPrint}>
 							<Printer className="mr-2 h-4 w-4" />
 							Etiketleri HTML Yazdır
@@ -616,6 +498,9 @@ export default function Labels() {
 									}}
 								>
 									{pages[currentPage].map((school) => {
+										const districtName = ctxDistricts.find(d => d.id === school.districtId)?.name || "";
+										const sideStripWidthMm = 6;
+										const contentLeftPadMm = sideStripWidthMm + 1;
 										const schoolStudents = ctxStudents.filter((st) => st.schoolId === school.id);
 										const studentCount = schoolStudents.length;
 										const branchCount = new Set(
@@ -633,13 +518,20 @@ export default function Labels() {
 											)}
 												style={{ minHeight: `${labelHeight}mm`, minWidth: `${labelWidth}mm`, padding: `${Math.max(0.5, boxPaddingMm)}mm` }}
 										>
-											<div className={cn("absolute top-0 left-0 w-full h-2", currentScheme.primary)}></div>
-												<div style={{ textAlign: 'center', marginTop: `${boxPaddingMm}mm`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: `${Math.max(0.5, boxPaddingMm / 2)}mm` }}>
-													<h3 className="font-bold uppercase" style={{ fontSize: `${smallFontSizeMm}mm`, margin: 0, color: scheme === "black" ? "#ffffff" : "#111827" }}>
-														{`${ctxDistricts.find(d => d.id === school.districtId)?.name || ""} - ${school.code || ""}`}
-													</h3>
+													<div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${sideStripWidthMm}mm`, borderRight: '1px solid #d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center', background: sideStripBgHex }}>
+														<span style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', textTransform: 'uppercase', fontWeight: 700, fontSize: `${sideStripFontSizeMm}mm`, color: sideStripTextColor, lineHeight: 1, letterSpacing: '0.2mm' }}>
+															{districtName}
+														</span>
+													</div>
+													<div style={{ paddingLeft: `${contentLeftPadMm}mm`, height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+													<div style={{ textAlign: 'center', marginTop: `${boxPaddingMm}mm`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: `${Math.max(0.5, boxPaddingMm / 2)}mm` }}>
+													{headerPrefix ? (
+														<h3 className="font-bold uppercase" style={{ fontSize: `${smallFontSizeMm}mm`, margin: 0, color: scheme === "black" ? "#ffffff" : "#111827" }}>
+															{headerPrefix}
+														</h3>
+													) : null}
 												<h2 className={cn("font-black rounded etiket-school-name", currentScheme.primary, currentScheme.text)} style={{ fontSize: `${baseFontSizeMm}mm`, padding: `${Math.max(0.5, boxPaddingMm)}mm`, margin: 0, lineHeight: `${Math.max(1, baseFontSizeMm * 1.05)}mm` }}>
-														{formatSchoolName(school.name)}
+													{`${school.code ? `${school.code} - ` : ""}${formatSchoolName(school.name)}`}
 													</h2>
 												</div>
 												<div className="grid grid-cols-2" style={{ gap: `${boxPaddingMm}mm`, marginTop: `${boxPaddingMm}mm` }}>
@@ -652,6 +544,7 @@ export default function Labels() {
 														<p className="font-bold" style={{ fontSize: `${baseFontSizeMm}mm`, margin: 0 }}>{studentCount}</p>
 													</div>
 												</div>
+													</div>
 										</div>
 										);
 									})}
