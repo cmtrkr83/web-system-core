@@ -39,6 +39,29 @@ app.use((req, res, next) => {
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
+  const summarizeApiResponse = (apiPath: string, payload: Record<string, any>) => {
+    if (
+      apiPath === "/api/registry" &&
+      Array.isArray(payload.districts) &&
+      Array.isArray(payload.schools) &&
+      Array.isArray(payload.students)
+    ) {
+      return JSON.stringify({
+        districts: payload.districts.length,
+        schools: payload.schools.length,
+        students: payload.students.length,
+        sourceFileName: payload.sourceFileName || "",
+        loadedAt: payload.loadedAt || "",
+      });
+    }
+
+    const raw = JSON.stringify(payload);
+    const maxLength = 500;
+    if (raw.length <= maxLength) return raw;
+
+    return `${raw.slice(0, maxLength)}... [truncated ${raw.length - maxLength} chars]`;
+  };
+
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
@@ -50,7 +73,7 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        logLine += ` :: ${summarizeApiResponse(path, capturedJsonResponse)}`;
       }
 
       log(logLine);

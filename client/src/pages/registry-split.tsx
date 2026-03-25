@@ -133,7 +133,6 @@ export default function RegistrySplit() {
         description: "İlçe listesi başarıyla yazdırıldı.",
       });
     } catch (error) {
-      console.error("Yazdırma sırasında hata:", error);
       toast({
         title: "Hata",
         description: "Yazdırma sırasında bir hata oluştu.",
@@ -303,7 +302,6 @@ export default function RegistrySplit() {
 
       return true;
     } catch (error) {
-      console.error("PDF oluşturulurken hata:", error);
       if (showToast) {
         toast({
           title: "Hata",

@@ -104,7 +104,6 @@ export default function RegistryUpload() {
         description: "Veritabanındaki ve ekrandaki tüm yüklü kayıtlar silindi.",
       });
     } catch (error) {
-      console.error("Registry temizleme hatası:", error);
       toast({
         title: "Hata",
         description: "Veriler temizlenirken bir hata oluştu.",
@@ -379,7 +378,6 @@ export default function RegistryUpload() {
         setAnalyzing(false);
         
       } catch (error) {
-        console.error("Excel okuma hatası:", error);
         toast({
           title: "Hata",
           description: "Excel dosyası okunurken bir hata oluştu.",
@@ -535,7 +533,6 @@ export default function RegistryUpload() {
         description: `${districts.length} ilçe, ${schools.length} okul, ${students.length} öğrenci, ${subeSet.size} şube tespit edildi.${excludeSpecialStudents ? " 'Zihinsel' şubeler ve adı 'kademe' geçen okullar dahil edilmedi." : " Tüm kayıtlar dahil edildi."}`,
       });
     } catch (error) {
-      console.error("Veri parse hatası:", error);
       toast({
         title: "Hata",
         description: "Veriler işlenirken bir hata oluştu.",

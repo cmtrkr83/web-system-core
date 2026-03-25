@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FileText, Printer, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { useRegistry } from "@/context/RegistryContext";
+import { useRegistry, type Student } from "@/context/RegistryContext";
 
 export default function RoomLists() {
   const { districts, schools, students, isLoaded } = useRegistry();
@@ -241,8 +241,7 @@ export default function RoomLists() {
 
       pdf.save(filename);
     } catch (error) {
-      console.error('PDF oluşturulurken hata:', error);
-      alert('PDF oluşturulurken hata oluştu. Konsolu kontrol edin.');
+      alert('PDF oluşturulurken hata oluştu.');
     }
   };
 
@@ -356,7 +355,7 @@ export default function RoomLists() {
                       </tr>
                     </thead>
                     <tbody>
-                        {currentPreview.chunk.map((st, i) => {
+                        {currentPreview.chunk.map((st: Student, i: number) => {
                         const serial = currentPreview.pageIndex * 30 + i + 1;
                         return (
                           <tr key={i}>
