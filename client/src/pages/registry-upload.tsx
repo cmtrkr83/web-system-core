@@ -89,6 +89,9 @@ export default function RegistryUpload() {
       class: "",
       grade: ""
     });
+
+    // Clear last confirmed excel mapping cache used by Optik Kodlama page.
+    localStorage.removeItem("optic-coding:last-mapping");
   };
 
   const handleClearRegistry = async () => {
@@ -501,6 +504,15 @@ export default function RegistryUpload() {
       setSchoolCount(schools.length);
       setStudentCount(students.length);
       setSubeliCount(subeSet.size);
+
+      localStorage.setItem(
+        "optic-coding:last-mapping",
+        JSON.stringify({
+          sourceFileName: file?.name || "",
+          savedAt: new Date().toISOString(),
+          columnMapping,
+        })
+      );
 
       await apiRequest("POST", "/api/registry/replace", {
         districts,

@@ -7,6 +7,7 @@ import {
   Tags, 
   Package,
   ClipboardCheck,
+  QrCode,
   Menu,
   X
 } from "lucide-react";
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/labels", label: "Okul Etiketi", icon: Tags },
   { href: "/branch-labels", label: "Şube Etiketi", icon: Package },
   { href: "/reports", label: "Teslim Tutanağı", icon: ClipboardCheck },
+  { href: "/optic-coding", label: "Optik Kodlama", icon: QrCode },
 ];
 
 export function Sidebar() {
@@ -55,7 +57,7 @@ export function Sidebar() {
 
       <div className="p-4 border-t border-sidebar-border">
         <div className="bg-sidebar-accent rounded-lg p-3 text-xs text-sidebar-foreground/60">
-          <p className="font-medium text-sidebar-foreground">Versiyon 2.0.2</p>
+          <p className="font-medium text-sidebar-foreground">Versiyon 2.0.3</p>
           <p className="mt-1">Kütük Yönetim Sistemi</p>
         </div>
       </div>

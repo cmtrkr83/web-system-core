@@ -14,6 +14,7 @@ import RoomLists from "@/pages/room-lists";
 import Labels from "@/pages/labels";
 import BranchLabels from "@/pages/branch-labels";
 import Reports from "@/pages/reports";
+import OpticCoding from "./pages/optic-coding-page";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
         <Route path="/labels" component={Labels} />
         <Route path="/branch-labels" component={BranchLabels} />
         <Route path="/reports" component={Reports} />
+        <Route path="/optic-coding" component={OpticCoding} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>
