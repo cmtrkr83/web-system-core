@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runner
     container_name: web-system-core
     ports:
       - "${APP_PORT:-5050}:5050"

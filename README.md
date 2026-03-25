@@ -1,46 +1,54 @@
 # Web System Core
 
-Sınav kütük yönetimi, etiket ve tutanak oluşturma için geliştirilmiş web uygulaması.
+Sınav kütük yönetimi, etiket/tutanak üretimi ve optik kodlama çıktısı için geliştirilmiş web uygulaması.
 
 ## Özellikler
 
-- **Kütük Belirleme**: Excel dosyasından ilçe, okul ve öğrenci verilerini otomatik içe aktarma
-  - Özel öğrenci filtreleme (zihinsel engelli öğrenciler varsayılan olarak hariç tutulur)
-  - "Kademe" geçen okullar otomatik olarak filtrelenir
-- **Kütük Bölme**: Öğrenci kayıtlarını bölme ve düzenleme
-- **Salon Listesi**: Sınav salonları için liste oluşturma
-- **Okul Etiketi**: Okullara gidecek evrak poşetleri için etiket basımı (PDF)
-  - İlçe, kurum kodu, okul adı, şube sayısı, öğrenci sayısı bilgileri
-  - Özelleştirilebilir sayfa düzeni (satır/sütun)
-  - 6 farklı renk şeması
-- **Şube Etiketi**: Şubelere gidecek evrak poşetleri için etiket basımı (PDF)
-  - İlçe, kurum kodu, okul adı, şube adı, öğrenci sayısı bilgileri
-  - Özelleştirilebilir sayfa düzeni
-  - İlçe ve okul bazlı filtreleme
-- **Teslim Tutanağı**: İlçe ve okul bazlı teslim tutanakları oluşturma (PDF)
-  - Otomatik sayfalama (10 okul/sayfa)
-  - Türkçe karakter desteği
+- Kütük Belirleme
+  - Excel dosyasından ilçe, okul ve öğrenci verilerini içe aktarır.
+  - Sütun eşleştirme ile farklı başlıklara uyum sağlar.
+  - İsteğe bağlı özel filtreleme (ör. zihinsel/kademe kayıtları hariç).
+- Kütük Bölme
+  - İlçe/okul/şube bazında öğrenci dağılımını düzenler.
+- Salon Listesi
+  - Sınav salon listeleri oluşturur.
+- Okul Etiketi ve Şube Etiketi
+  - PDF çıktı üretir.
+  - Filtreleme ve sayfa yerleşimi seçenekleri sunar.
+- Teslim Tutanakları
+  - İlçe-okul bazlı teslim dökümleri üretir.
+- Optik Kodlama
+  - Excel eşleşmelerinden alanları otomatik getirir.
+  - Alan bazlı TXT/OMR yazdırma ve sürükle-bırak yerleşim desteği sağlar.
+
+## Teknoloji
+
+- Node.js + Express (API)
+- React + Vite (UI)
+- SQLite (better-sqlite3) + Drizzle ORM
 
 ## Gereksinimler
 
 - Node.js 20+
 - npm
 
-## Kurulum
+## Yerel Kurulum
+
+1. Bağımlılıkları yükleyin:
 
 ```bash
 npm install
 ```
 
-## Geliştirme Ortamı
+2. Geliştirme sunucusunu başlatın:
 
 ```bash
 npm run dev
 ```
 
-Uygulama varsayılan olarak `http://localhost:5000` üzerinde çalışır.
+Uygulama varsayılan olarak http://localhost:5050 adresinde çalışır.
 
-## Production Build
+## Build ve Çalıştırma
 
 ```bash
 npm run build
@@ -49,9 +57,7 @@ npm start
 
 ## Veritabanı
 
-Proje SQLite kullanır.
-
-- Dosya yolu: `./db/local.db`
+- SQLite dosyası: ./db/local.db
 - Şema güncelleme:
 
 ```bash
@@ -60,22 +66,35 @@ npm run db:push
 
 ## Docker ile Çalıştırma
 
-### Build + Run
+### 1) Build ve ayağa kaldırma
 
 ```bash
 docker compose up --build -d
 ```
 
-### Logları İzleme
+### 2) Logları takip etme
 
 ```bash
 docker compose logs -f
 ```
 
-### Durdurma
+### 3) Durdurma
 
 ```bash
 docker compose down
 ```
 
-Uygulama konteyner içinde `5000` portunda çalışır ve hostta `http://localhost:5000` üzerinden erişilir.
+Konteyner içinde uygulama 5050 portunda çalışır. Host erişimi varsayılan olarak http://localhost:5050 şeklindedir.
+
+## Docker Yapılandırması
+
+- Dockerfile çok aşamalı (builder + runner) yapı kullanır.
+- docker-compose üretim modunda runner hedefini kullanır.
+- PORT ortam değişkeni 5050 olarak ayarlıdır.
+- APP_PORT ile host portu değiştirilebilir:
+
+```bash
+APP_PORT=8080 docker compose up --build -d
+```
+
+- db klasörü volume olarak bağlanır; veriler konteyner yeniden başlasa da korunur.

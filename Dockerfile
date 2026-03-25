@@ -17,7 +17,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=5000
+ENV PORT=5050
 
 # Install production dependencies only
 COPY package*.json ./
@@ -29,6 +29,6 @@ COPY --from=builder /app/dist ./dist
 # Ensure SQLite directory exists even when repository has no db folder
 RUN mkdir -p /app/db
 
-EXPOSE 5000
+EXPOSE 5050
 
 CMD ["npm", "start"]
