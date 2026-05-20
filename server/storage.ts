@@ -407,4 +407,4 @@ export class DrizzleStorage implements IStorage {
   }
 }
 
-export const storage = new DrizzleStorage("./db/local.db");
+export const storage = new DrizzleStorage(process.env.DATABASE_URL ?? "./db/local.db");

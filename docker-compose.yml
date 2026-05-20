@@ -12,7 +12,10 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5050
-      DATABASE_URL: ./db/local.db
+      DATABASE_URL: /app/db/local.db
     volumes:
-      - ./db:/app/db
+      - web-system-db:/app/db
     restart: unless-stopped
+
+volumes:
+  web-system-db:
