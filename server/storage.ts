@@ -313,14 +313,14 @@ export class DrizzleStorage implements IStorage {
       tx.delete(registryMeta).where(eq(registryMeta.examId, examId)).run();
 
       if (payload.districts.length > 0) {
-        tx.insert(registryDistricts).values(payload.districts.map((district) => ({ ...district, examId }))).run();
+        tx.insert(registryDistricts).values(payload.districts.map((district) => ({ ...district, examId }))).onConflictDoReplace().run();
       }
       if (payload.schools.length > 0) {
-        tx.insert(registrySchools).values(payload.schools.map((school) => ({ ...school, examId }))).run();
+        tx.insert(registrySchools).values(payload.schools.map((school) => ({ ...school, examId }))).onConflictDoReplace().run();
       }
       if (payload.students.length > 0) {
         for (const studentChunk of chunkArray(payload.students, chunkSize)) {
-          tx.insert(registryStudents).values(studentChunk.map((student) => ({ ...student, examId }))).run();
+          tx.insert(registryStudents).values(studentChunk.map((student) => ({ ...student, examId }))).onConflictDoReplace().run();
         }
       }
 
