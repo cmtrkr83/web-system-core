@@ -45,83 +45,67 @@ const requiredMappingFields: Array<keyof Pick<ColumnMapping, "district" | "schoo
   "studentNumber",
 ];
 
-const normalizeHeader = (value: string) =>
-  String(value ?? "")
-    .toLowerCase()
-    .replace(/ı/g, "i")
-    .replace(/ğ/g, "g")
-    .replace(/ş/g, "s")
-    .replace(/ü/g, "u")
-    .replace(/ö/g, "o")
-    .replace(/ç/g, "c")
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+const normalizeHeader = (value: string): string => {
+  const charMap: Record<string, string> = {
+    "\u015E": "s", "\u015F": "s", // S, s
+    "\u011E": "g", "\u011F": "g", // G, g
+    "\u0130": "i",                 // I (buyuk i noktal)
+    "\u0131": "i",                 // i (kucuk i noktasiz)
+    "I": "i",
+    "\u00DC": "u", "\u00FC": "u", // U, u
+    "\u00D6": "o", "\u00F6": "o", // O, o
+    "\u00C7": "c", "\u00E7": "c", // C, c
+  };
+  return String(value ?? "")
+    .trim()
+    .split("")
+    .map((c) => charMap[c] ?? c.toLowerCase())
+    .join("")
+    .replace(/\s+/g, " ");
+};
+
+const RAW_LOOKUP: Record<string, keyof ColumnMapping> = {
+  "ilce adi": "district",
+  "ilce": "district",
+  "district": "district",
+  "kurum adi": "schoolName",
+  "okul adi": "schoolName",
+  "kurum kodu": "schoolCode",
+  "okul kodu": "schoolCode",
+  "ogrenci adi": "studentFirstName",
+  "ogrenci soyadi": "studentLastName",
+  "soyadi": "studentLastName",
+  "soyad": "studentLastName",
+  "ogrenci no": "studentNumber",
+  "ogrenci numarasi": "studentNumber",
+  "tc kimlik no": "studentNumber",
+  "tc no": "studentNumber",
+  "tc": "studentNumber",
+  "kimlik no": "studentNumber",
+  "opaq": "schoolNumber",
+  "subesi": "class",
+  "sube": "class",
+  "sube adi": "class",
+  "sinif": "grade",
+  "sinif seviyesi": "grade",
+};
+
+const COLUMN_LOOKUP: Record<string, keyof ColumnMapping> = Object.fromEntries(
+  Object.entries(RAW_LOOKUP).map(([k, v]) => [normalizeHeader(k), v])
+);
 
 const detectColumnMapping = (columns: string[]): ColumnMapping => {
-  const findColumn = (positive: RegExp[], negative: RegExp[] = []) => {
-    let bestColumn = "";
-    let bestScore = Number.NEGATIVE_INFINITY;
+  const result: ColumnMapping = { ...initialColumnMapping };
 
-    for (const column of columns) {
-      const normalized = normalizeHeader(column);
-      let score = 0;
-
-      for (const pattern of positive) {
-        if (pattern.test(normalized)) score += 2;
-      }
-
-      for (const pattern of negative) {
-        if (pattern.test(normalized)) score -= 2;
-      }
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestColumn = column;
-      }
+  for (const column of columns) {
+    const normalized = normalizeHeader(column);
+    const field = COLUMN_LOOKUP[normalized];
+    if (field && !result[field]) {
+      result[field] = column;
     }
+  }
 
-    return bestScore > 0 ? bestColumn : "";
-  };
-
-  return {
-    district: findColumn(
-      [/\bilce adi\b/, /\bilce ad\b/, /\bilce\b/, /district/],
-      [/ogrenci|ad soyad|soyad|name|surname/, /okul|kurum|school/, /sinif|sube|class|grade/, /kod|code|numara|no|tc|opaq/, /\bil adi\b/]
-    ),
-    schoolName: findColumn(
-      [/kurum adi/, /okul adi/, /okul ad/, /school name/, /\bokul\b/],
-      [/kod|code/, /ilce|district/, /ogrenci|ad soyad|soyad/]
-    ),
-    schoolCode: findColumn(
-      [/kurum kodu/, /okul kodu/, /school code/, /\bkurum kod\b/, /\bokul kod\b/, /\bkod\b/],
-      [/ogrenci|ad soyad|soyad|name/, /ilce|district/]
-    ),
-    studentFirstName: findColumn(
-      [/ogrenci adi/, /ogrenci isim/, /ad soyad/, /\badi\b/, /\bad\b/, /\bname\b/],
-      [/\bilce\b|district/, /okul|kurum|school/, /soyad|surname/, /sinif|sube|class|grade/, /kod|code|numara|no|tc|opaq/]
-    ),
-    studentLastName: findColumn(
-      [/ogrenci soyadi/, /\bsoyadi\b/, /\bsoyad\b/, /surname/, /last name/],
-      [/\bilce\b|district/, /okul|kurum|school/, /sinif|sube|class|grade/, /kod|code|numara|no|tc|opaq/]
-    ),
-    studentNumber: findColumn(
-      [/\bogrenci no\b/, /\bogrenci numara\b/, /opaq/, /\btc kimlik\b/, /\btc no\b/, /\btc\b/, /kimlik no/, /\bkimlik\b/],
-      [/okul no|okul numara|school no/]
-    ),
-    schoolNumber: findColumn(
-      [/\bokul no\b/, /\bokul numara\b/, /\bschool no\b/],
-      [/ogrenci|opaq|\btc\b|kimlik/]
-    ),
-    class: findColumn(
-      [/\bsubesi\b/, /\bsube adi\b/, /\bsube\b/, /branch/],
-      [/sinif|grade|class/]
-    ),
-    grade: findColumn(
-      [/\bsinif\b/, /sinif seviye/, /\bclass\b/, /\bgrade\b/],
-      [/sube|branch/]
-    ),
-  };
+  return result;
 };
 
 export default function ExamSelection() {
@@ -185,7 +169,7 @@ export default function ExamSelection() {
     setRawData([]);
     setStats({ districts: 0, schools: 0, students: 0 });
     setPreparedRegistryData(null);
-    setExcludeSpecialNeeds(false);
+    setExcludeSpecialNeeds(true);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -524,7 +508,7 @@ export default function ExamSelection() {
     { key: "studentFirstName", label: "Öğrenci Adı", required: true },
     { key: "studentLastName", label: "Öğrenci Soyadı", required: true },
     { key: "studentNumber", label: "Öğrenci Numarası / TC", required: true },
-    { key: "schoolNumber", label: "Okul Numarası" },
+    { key: "schoolNumber", label: "OPAQ Numarası" },
     { key: "class", label: "Şube" },
     { key: "grade", label: "Sınıf Seviyesi" },
   ];
