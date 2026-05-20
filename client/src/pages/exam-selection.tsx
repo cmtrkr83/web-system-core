@@ -138,6 +138,7 @@ export default function ExamSelection() {
     schools: School[];
     students: Student[];
   } | null>(null);
+  const [excludeSpecialNeeds, setExcludeSpecialNeeds] = useState(true);
 
   const resetWizard = () => {
     setExamData({
@@ -157,6 +158,7 @@ export default function ExamSelection() {
     setRawData([]);
     setStats({ districts: 0, schools: 0, students: 0 });
     setPreparedRegistryData(null);
+    setExcludeSpecialNeeds(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -300,6 +302,19 @@ export default function ExamSelection() {
     setColumnMapping((prev) => ({ ...prev, [key]: value }));
   };
 
+  const EXCLUDED_SCHOOL_KEYWORDS = ["uygulama", "kademe"];
+  const EXCLUDED_BRANCH_KEYWORDS = ["hafif", "ağır", "zihinsel", "işitme"];
+
+  const isExcludedSchool = (schoolName: string) => {
+    const normalized = schoolName.toLowerCase();
+    return EXCLUDED_SCHOOL_KEYWORDS.some((kw) => normalized.includes(kw));
+  };
+
+  const isExcludedBranch = (branchName: string) => {
+    const normalized = branchName.toLowerCase();
+    return EXCLUDED_BRANCH_KEYWORDS.some((kw) => normalized.includes(kw));
+  };
+
   const handlePrepareRegistryUpload = () => {
     const missingFields = requiredMappingFields.filter((field) => !columnMapping[field]);
 
@@ -312,6 +327,11 @@ export default function ExamSelection() {
       return;
     }
 
+    setMappingComplete(true);
+    setCurrentStep(4);
+  };
+
+  const handleApplyFiltersAndProceed = () => {
     const districtSet = new Set<string>();
     const schoolMap = new Map<string, { name: string; district: string }>();
     const students: Student[] = [];
@@ -328,13 +348,11 @@ export default function ExamSelection() {
       const classInfo = columnMapping.class ? String(row[columnMapping.class] || "").trim() : "";
       const gradeInfo = columnMapping.grade ? String(row[columnMapping.grade] || "").trim() : "";
 
-      if (district) {
-        districtSet.add(district);
-      }
+      if (excludeSpecialNeeds && isExcludedSchool(schoolName)) return;
+      if (excludeSpecialNeeds && isExcludedBranch(classInfo)) return;
 
-      if (schoolName && schoolCode) {
-        schoolMap.set(schoolCode, { name: schoolName, district });
-      }
+      if (district) districtSet.add(district);
+      if (schoolName && schoolCode) schoolMap.set(schoolCode, { name: schoolName, district });
 
       if (studentName && studentId) {
         students.push({
@@ -356,19 +374,12 @@ export default function ExamSelection() {
 
     const schools: School[] = Array.from(schoolMap.entries()).map(([code, info]) => {
       const district = districts.find((item) => item.name === info.district);
-
-      return {
-        id: code,
-        name: info.name,
-        districtId: district?.id || "d1",
-        code,
-      };
+      return { id: code, name: info.name, districtId: district?.id || "d1", code };
     });
 
     setStats({ districts: districts.length, schools: schools.length, students: students.length });
     setPreparedRegistryData({ districts, schools, students });
-    setMappingComplete(true);
-    setCurrentStep(4);
+    setCurrentStep(5);
   };
 
   const handleFinalizeRegistryUpload = async () => {
@@ -471,7 +482,8 @@ export default function ExamSelection() {
     { step: 1, label: "Sınav Bilgileri" },
     { step: 2, label: "Excel Dosyası" },
     { step: 3, label: "Sütun Eşleştirme" },
-    { step: 4, label: "Onay ve Yükleme" },
+    { step: 4, label: "Filtreleme" },
+    { step: 5, label: "Onay ve Yükleme" },
   ];
 
   const mappingFields: Array<{
@@ -648,7 +660,7 @@ export default function ExamSelection() {
                 Geri
               </Button>
               <Button onClick={handlePrepareRegistryUpload} disabled={loading || analyzing}>
-                Önizlemeye Geç
+                Filtrelemeye Geç
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -656,6 +668,48 @@ export default function ExamSelection() {
         )}
 
         {currentStep === 4 && (
+          <div className="space-y-6">
+            <div className="rounded-xl border bg-muted/20 p-5 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Özel Gereksinimli Öğrencileri Dahil Etme</p>
+                  <p className="text-xs text-muted-foreground">
+                    Okul adında <span className="font-medium">uygulama</span> veya <span className="font-medium">kademe</span> geçen okullar ile şube adında{" "}
+                    <span className="font-medium">hafif, ağır, zihinsel, işitme</span> geçen şubeler kapsam dışı bırakılır.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={excludeSpecialNeeds}
+                  onClick={() => setExcludeSpecialNeeds((prev) => !prev)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                    excludeSpecialNeeds ? "bg-primary" : "bg-muted"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                      excludeSpecialNeeds ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-between gap-3 pt-2">
+              <Button variant="outline" onClick={() => setCurrentStep(3)} disabled={loading || analyzing}>
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Geri
+              </Button>
+              <Button onClick={handleApplyFiltersAndProceed} disabled={loading || analyzing}>
+                Önizlemeye Geç
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 5 && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="rounded-xl border bg-background p-4">
@@ -673,7 +727,7 @@ export default function ExamSelection() {
             </div>
 
             <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
-              {createdExamId ? (
+              {currentStep === 5 && createdExamId ? (
                 <p>
                   {mappingComplete ? "Sütun eşleştirmesi tamamlandı. " : ""}
                   Bu kütük verileri seçili sınava bağlanacak ve ardından genel bakış ekranına yönlendirileceksiniz.
@@ -712,7 +766,7 @@ export default function ExamSelection() {
             )}
 
             <div className="flex justify-between gap-3 pt-2">
-              <Button variant="outline" onClick={() => setCurrentStep(3)} disabled={loading || analyzing}>
+              <Button variant="outline" onClick={() => setCurrentStep(4)} disabled={loading || analyzing}>
                 <ChevronLeft className="mr-2 h-4 w-4" />
                 Geri
               </Button>
@@ -775,14 +829,16 @@ export default function ExamSelection() {
               <CardHeader className="pb-3 pt-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <CardTitle className="text-lg text-foreground group-hover:text-primary transition-colors">
+                    <CardTitle className="text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2">
                       {exam.name}
                     </CardTitle>
-                    {exam.isActive === "1" && (
-                      <span className="mt-2 inline-block px-3 py-1 text-xs font-semibold text-white bg-primary rounded-full">
-                        Aktif
-                      </span>
-                    )}
+                    <span className={`mt-2 inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+                      exam.isActive === "1"
+                        ? "text-white bg-primary"
+                        : "text-muted-foreground bg-muted"
+                    }`}>
+                      {exam.isActive === "1" ? "Aktif" : "İnaktif"}
+                    </span>
                   </div>
 
                   <Button
