@@ -348,7 +348,7 @@ export default function RegistrySplit() {
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
       <div>
-        <h1 className="text-3xl font-heading font-bold">Kütük Bölme</h1>
+        <h1 className="text-3xl font-heading font-bold">İl Genel Durum Bilgisi</h1>
         <p className="text-muted-foreground mt-1">Ana kütük dosyasını ilçe bazlı alt dosyalara ayırın.</p>
       </div>
 
