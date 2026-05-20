@@ -85,15 +85,42 @@ const detectColumnMapping = (columns: string[]): ColumnMapping => {
   };
 
   return {
-    district: findColumn([/\bilce\b/, /district/, /ilce adi/], [/ogrenci|ad soyad|soyad|name|surname/, /okul|kurum|school/, /sinif|sube|class|grade/, /kod|code|numara|no|tc|opaq/]),
-    schoolName: findColumn([/kurum adi/, /okul adi/, /school name|school/], [/kod|code/, /ilce|district/, /ogrenci|ad soyad|soyad/]),
-    schoolCode: findColumn([/kurum kodu/, /okul kodu/, /school code|code/, /\bkod\b/], [/ogrenci|ad soyad|soyad|name/, /ilce|district/]),
-    studentFirstName: findColumn([/ogrenci adi/, /ogrenci isim/, /ad soyad/, /\bname\b/, /\bad\b/], [/\bil\b|ilce|district/, /okul|kurum|school/, /soyad|surname/, /sinif|sube|class|grade/, /kod|code|numara|no|tc|opaq/]),
-    studentLastName: findColumn([/ogrenci soyadi/, /\bsoyad\b/, /surname|last name/], [/\bil\b|ilce|district/, /okul|kurum|school/, /sinif|sube|class|grade/, /kod|code|numara|no|tc|opaq/]),
-    studentNumber: findColumn([/opaq/, /\btc\b/, /kimlik/, /ogrenci no|numara|\bno\b/], [/okul no|school no/]),
-    schoolNumber: findColumn([/okul no|okul numara|school no/, /\bokul\b/, /numara|\bno\b/], [/ogrenci no|opaq|\btc\b/]),
-    class: findColumn([/sube|subesi/, /branch/], [/sinif|grade|class/]),
-    grade: findColumn([/sinif/, /class|grade/], [/sube|subesi|branch/]),
+    district: findColumn(
+      [/\bilce adi\b/, /\bilce ad\b/, /\bilce\b/, /district/],
+      [/ogrenci|ad soyad|soyad|name|surname/, /okul|kurum|school/, /sinif|sube|class|grade/, /kod|code|numara|no|tc|opaq/, /\bil adi\b/]
+    ),
+    schoolName: findColumn(
+      [/kurum adi/, /okul adi/, /okul ad/, /school name/, /\bokul\b/],
+      [/kod|code/, /ilce|district/, /ogrenci|ad soyad|soyad/]
+    ),
+    schoolCode: findColumn(
+      [/kurum kodu/, /okul kodu/, /school code/, /\bkurum kod\b/, /\bokul kod\b/, /\bkod\b/],
+      [/ogrenci|ad soyad|soyad|name/, /ilce|district/]
+    ),
+    studentFirstName: findColumn(
+      [/ogrenci adi/, /ogrenci isim/, /ad soyad/, /\badi\b/, /\bad\b/, /\bname\b/],
+      [/\bilce\b|district/, /okul|kurum|school/, /soyad|surname/, /sinif|sube|class|grade/, /kod|code|numara|no|tc|opaq/]
+    ),
+    studentLastName: findColumn(
+      [/ogrenci soyadi/, /\bsoyadi\b/, /\bsoyad\b/, /surname/, /last name/],
+      [/\bilce\b|district/, /okul|kurum|school/, /sinif|sube|class|grade/, /kod|code|numara|no|tc|opaq/]
+    ),
+    studentNumber: findColumn(
+      [/\bogrenci no\b/, /\bogrenci numara\b/, /opaq/, /\btc kimlik\b/, /\btc no\b/, /\btc\b/, /kimlik no/, /\bkimlik\b/],
+      [/okul no|okul numara|school no/]
+    ),
+    schoolNumber: findColumn(
+      [/\bokul no\b/, /\bokul numara\b/, /\bschool no\b/],
+      [/ogrenci|opaq|\btc\b|kimlik/]
+    ),
+    class: findColumn(
+      [/\bsubesi\b/, /\bsube adi\b/, /\bsube\b/, /branch/],
+      [/sinif|grade|class/]
+    ),
+    grade: findColumn(
+      [/\bsinif\b/, /sinif seviye/, /\bclass\b/, /\bgrade\b/],
+      [/sube|branch/]
+    ),
   };
 };
 
