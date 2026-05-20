@@ -386,7 +386,7 @@ export default function RoomLists() {
                   <FileText className="h-16 w-16 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">Henüz Veri Yüklenmemiş</h3>
                   <p className="text-muted-foreground max-w-md">
-                    Salon listesi önizlemesi için önce "Kütük Belirleme" sayfasından Excel dosyasını yükleyiniz.
+                    Salon listesi önizlemesi için önce Başlangıç sayfasından Excel dosyasını yükleyiniz.
                   </p>
                 </div>
               )}

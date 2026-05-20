@@ -395,7 +395,7 @@ export default function RegistrySplit() {
               <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">Henüz Veri Yüklenmemiş</h3>
               <p className="text-muted-foreground max-w-md">
-                Kütük bölme işlemine başlamadan önce Excel dosyasını "Kütük Belirleme" sayfasından yükleyiniz.
+                Kütük bölme işlemine başlamadan önce Excel dosyasını Başlangıç sayfasından yükleyiniz.
               </p>
             </div>
           ) : districtList.length === 0 ? (

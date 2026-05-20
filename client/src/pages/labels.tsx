@@ -118,7 +118,7 @@ export default function Labels() {
 
 	function handleHtmlPrint() {
 		if (!isLoaded) {
-			window.alert("Henüz veri yüklenmemiş. Lütfen 'Kütük Belirleme' sayfasından Excel dosyası yükleyin.");
+			window.alert("Henüz veri yüklenmemiş. Lütfen Başlangıç sayfasından Excel dosyası yükleyin.");
 			return;
 		}
 
@@ -476,7 +476,7 @@ export default function Labels() {
 							{!isLoaded ? (
 								<div className="text-center text-muted-foreground">
 									<p className="font-semibold mb-2">Henüz veri yüklenmemiş</p>
-									<p className="text-sm">Lütfen 'Kütük Belirleme' sayfasından Excel dosyası yükleyin.</p>
+									<p className="text-sm">Lütfen Başlangıç sayfasından Excel dosyası yükleyin.</p>
 								</div>
 							) : (
 								<div

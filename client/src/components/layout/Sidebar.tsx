@@ -1,7 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, 
-  Upload, 
   Map, 
   FileText, 
   Tags, 
@@ -9,7 +8,8 @@ import {
   ClipboardCheck,
   QrCode,
   Menu,
-  X
+  X,
+  BookOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 
 const navItems = [
-  { href: "/", label: "Genel Bakış", icon: LayoutDashboard },
-  { href: "/registry-upload", label: "Kütük Belirleme", icon: Upload },
+  { href: "/", label: "Başlangıç", icon: BookOpen },
+  { href: "/dashboard", label: "Genel Bakış", icon: LayoutDashboard },
   { href: "/registry-split", label: "İlçe Listesi", icon: Map },
   { href: "/room-lists", label: "Salon Listesi", icon: FileText },
   { href: "/labels", label: "Okul Etiketi", icon: Tags },

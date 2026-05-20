@@ -1,13 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, School, Map, FileText, Tags, Package, ClipboardCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, School, Map, FileText, Tags, Package, ClipboardCheck, BookOpen } from "lucide-react";
 import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import heroIllustration from "@/assets/hero-illustration.png";
 import { useRegistry } from "@/context/RegistryContext";
 import { useLocation } from "wouter";
 
 export default function Dashboard() {
-  const { districts, schools, students, isLoaded, meta } = useRegistry();
+  const { districts, schools, students, isLoaded, meta, exams, selectedExamId } = useRegistry();
   const [, setLocation] = useLocation();
+
+  const selectedExam = exams.find((e) => e.id === selectedExamId);
 
   const districtColors = [
     "#6881D8",
@@ -51,18 +54,32 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-heading font-bold text-foreground">Genel Bakış</h1>
           <p className="text-muted-foreground mt-1">Sınav kütük sistemi durum özeti ve istatistikler.</p>
-        </div>
-        <div className="text-sm text-muted-foreground bg-red-50 px-4 py-2 rounded-xl border border-red-200">
-          {isLoaded ? (
-            <div className="space-y-0.5">
-              <div className="font-medium text-foreground">Veriler Güncel</div>
-              <div>Son Dosya: {sourceFileText}</div>
-              <div>DB Yüklenme: {loadedAtText}</div>
+          {selectedExam && (
+            <div className="mt-3 flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">
+                Aktif Sınav: <span className="text-primary">{selectedExam.name}</span>
+              </span>
             </div>
-          ) : "Henüz Excel Dosyası Yüklenmemiş"}
+          )}
+        </div>
+        <div className="flex flex-col gap-3">
+          <Button variant="outline" size="sm" onClick={() => setLocation("/")}>
+            <BookOpen className="mr-2 h-4 w-4" />
+            Başlangıça Dön
+          </Button>
+          <div className="text-sm text-muted-foreground bg-red-50 px-4 py-2 rounded-xl border border-red-200">
+            {isLoaded ? (
+              <div className="space-y-0.5">
+                <div className="font-medium text-foreground">Veriler Güncel</div>
+                <div>Son Dosya: {sourceFileText}</div>
+                <div>DB Yüklenme: {loadedAtText}</div>
+              </div>
+            ) : "Henüz Excel Dosyası Yüklenmemiş"}
+          </div>
         </div>
       </div>
 

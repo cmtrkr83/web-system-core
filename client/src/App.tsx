@@ -8,20 +8,20 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
 // Pages
 import Dashboard from "@/pages/dashboard";
-import RegistryUpload from "@/pages/registry-upload";
 import RegistrySplit from "@/pages/registry-split";
 import RoomLists from "@/pages/room-lists";
 import Labels from "@/pages/labels";
 import BranchLabels from "@/pages/branch-labels";
 import Reports from "@/pages/reports";
 import OpticCoding from "./pages/optic-coding-page";
+import ExamSelection from "@/pages/exam-selection";
 
 function Router() {
   return (
     <DashboardLayout>
       <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/registry-upload" component={RegistryUpload} />
+        <Route path="/" component={ExamSelection} />
+        <Route path="/dashboard" component={Dashboard} />
         <Route path="/registry-split" component={RegistrySplit} />
         <Route path="/room-lists" component={RoomLists} />
         <Route path="/labels" component={Labels} />
