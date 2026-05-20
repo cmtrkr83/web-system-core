@@ -3,9 +3,6 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install build dependencies for native modules (better-sqlite3)
-RUN apk add --no-cache python3 make g++
-
 # Install dependencies
 COPY package*.json ./
 RUN npm ci
@@ -21,9 +18,6 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=5050
-
-# Install build dependencies for native modules (better-sqlite3)
-RUN apk add --no-cache python3 make g++
 
 # Install production dependencies only
 COPY package*.json ./

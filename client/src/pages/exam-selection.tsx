@@ -367,7 +367,7 @@ export default function ExamSelection() {
 
       if (studentName && studentId) {
         students.push({
-          id: `st-${studentId}`,
+          id: `st-${studentId}-${index}`,
           name: studentName,
           tc: studentId,
           schoolId: schoolCode,

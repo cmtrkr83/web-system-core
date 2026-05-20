@@ -15,7 +15,7 @@ import {
 import { randomUUID } from "crypto";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import Database from "better-sqlite3";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { existsSync, mkdirSync } from "fs";
 import { dirname } from "path";
 
@@ -313,14 +313,14 @@ export class DrizzleStorage implements IStorage {
       tx.delete(registryMeta).where(eq(registryMeta.examId, examId)).run();
 
       if (payload.districts.length > 0) {
-        tx.insert(registryDistricts).values(payload.districts.map((d) => ({ ...d, examId }))).onConflictDoUpdate({ target: [registryDistricts.id, registryDistricts.examId], set: { name: sql`excluded.name` } }).run();
+        tx.insert(registryDistricts).values(payload.districts.map((d) => ({ ...d, examId }))).run();
       }
       if (payload.schools.length > 0) {
-        tx.insert(registrySchools).values(payload.schools.map((s) => ({ ...s, examId }))).onConflictDoUpdate({ target: [registrySchools.id, registrySchools.examId], set: { name: sql`excluded.name`, districtId: sql`excluded.district_id`, code: sql`excluded.code` } }).run();
+        tx.insert(registrySchools).values(payload.schools.map((s) => ({ ...s, examId }))).run();
       }
       if (payload.students.length > 0) {
         for (const studentChunk of chunkArray(payload.students, chunkSize)) {
-          tx.insert(registryStudents).values(studentChunk.map((st) => ({ ...st, examId }))).onConflictDoUpdate({ target: [registryStudents.id, registryStudents.examId], set: { name: sql`excluded.name`, tc: sql`excluded.tc`, schoolId: sql`excluded.school_id`, salon: sql`excluded.salon`, class: sql`excluded.class`, schoolNo: sql`excluded.school_no` } }).run();
+          tx.insert(registryStudents).values(studentChunk.map((st) => ({ ...st, examId }))).run();
         }
       }
 
