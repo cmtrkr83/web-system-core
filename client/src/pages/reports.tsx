@@ -26,7 +26,11 @@ const sanitizeFileName = (text: string): string =>
     .replace(/\s+/g, "_");
 
 export default function Reports() {
-  const { districts, schools, students, isLoaded } = useRegistry();
+  const { districts, schools, students, isLoaded, exams, selectedExamId } = useRegistry();
+  const selectedExam = exams.find((e) => e.id === selectedExamId);
+
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
   const [generated, setGenerated] = useState(false);
   const [selectedDistrictForSchool, setSelectedDistrictForSchool] = useState<string>("all");
   const [isBlankTemplate, setIsBlankTemplate] = useState(false);
@@ -107,12 +111,16 @@ export default function Reports() {
     fixedTwoLineRows = false,
     pageNumber = 1,
     totalPages = 1,
+    examName = ".............................................................................................................",
+    examDate = "........................................................................................................................",
+    districtName = "",
   ) => `
     <div style="font-family: Arial, sans-serif; color:#111; padding: 20px; width: 1083px; box-sizing: border-box;">
+      ${districtName ? `<div style="text-align:center; font-size: 15px; font-weight: 600; margin-bottom: 6px;">${districtName} İLÇESİ</div>` : ""}
       <div style="text-align:center; font-size: 20px; font-weight: 700; margin-bottom: 12px;">SINAV EVRAKLARI TESLİM TUTANAĞI</div>
       <div style="text-align:right; font-size: 12px; margin-bottom: 4px;">${pageNumber}/${totalPages}</div>
-      <div style="font-size: 14px; margin-bottom: 8px;">Sınav Adı : .............................................................................................................</div>
-      <div style="font-size: 14px; margin-bottom: 14px;">Sınav Tarihi : ..........................................................................................................................</div>
+      <div style="font-size: 14px; margin-bottom: 8px;">Sınav Adı : ${examName}</div>
+      <div style="font-size: 14px; margin-bottom: 14px;">Sınav Tarihi : ${examDate}</div>
       <table style="width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px;">
         <thead>
           <tr>
@@ -159,7 +167,16 @@ export default function Reports() {
         ""
       ];
     });
-    const html = buildReportHtml("İlçe / Okul Adı", tableData, false, 1, 1);
+    const html = buildReportHtml(
+      "İlçe / Okul Adı",
+      tableData,
+      false,
+      1,
+      1,
+      selectedExam?.name,
+      selectedExam ? formatDate(selectedExam.date) : undefined,
+      "",
+    );
     // PDF'i kaydet
     const today = new Date().toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
     await saveHtmlAsPdf(html, `Ilce_Teslim_Tutanagi_${today.replace(/\./g, "-")}.pdf`);
@@ -202,9 +219,22 @@ export default function Reports() {
         })();
     const rowChunks = chunkRows(tableData, 10);
     const totalPages = rowChunks.length;
-    const htmlPages = rowChunks.map((rows, index) =>
-      buildReportHtml("İlçe / Okul Adı", rows, true, index + 1, totalPages),
-    );
+    const htmlPages = rowChunks.map((rows, index) => {
+      const districtLabel =
+        !isBlankTemplate && selectedDistrictForSchool !== "all"
+          ? (districts.find((d) => d.id === selectedDistrictForSchool)?.name ?? "")
+          : "";
+      return buildReportHtml(
+        "İlçe / Okul Adı",
+        rows,
+        true,
+        index + 1,
+        totalPages,
+        selectedExam?.name,
+        selectedExam ? formatDate(selectedExam.date) : undefined,
+        districtLabel,
+      );
+    });
     // PDF'i kaydet
     const today = new Date().toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
     const districtName = !isBlankTemplate && selectedDistrictForSchool !== "all" 

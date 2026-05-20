@@ -51,8 +51,8 @@ export default function BranchLabels() {
 	const A4_HEIGHT = 297;
 	const MARGIN_TOP = 8;
 	const MARGIN_BOTTOM = 8;
-	const MARGIN_LEFT = 0;
-	const MARGIN_RIGHT = 0;
+	const MARGIN_LEFT = 1;
+	const MARGIN_RIGHT = 1;
 	const GRID_GAP_MM = 2;
 	const horizontalGapTotal = Math.max(0, cols - 1) * GRID_GAP_MM;
 	const verticalGapTotal = Math.max(0, rows - 1) * GRID_GAP_MM;
@@ -199,8 +199,9 @@ export default function BranchLabels() {
 								line-height:${Math.max(1, baseFontSizeMm * 1.05)}mm;
 								font-weight:900;
 								padding:${Math.max(0.5, boxPaddingMm)}mm;
-								background:${active.primary};
-								color:${active.text};
+								background:#ffffff;
+								color:#111827;
+								border:1px solid #d1d5db;
 								border-radius:2mm;
 								width:100%;
 								box-sizing:border-box;
@@ -514,7 +515,7 @@ export default function BranchLabels() {
 															{headerPrefix}
 														</h3>
 													) : null}
-													<h2 className={cn("font-black rounded etiket-branch-name", currentScheme.primary, currentScheme.text)} style={{ fontSize: `${baseFontSizeMm}mm`, padding: `${Math.max(0.5, boxPaddingMm)}mm`, margin: 0, lineHeight: `${Math.max(1, baseFontSizeMm * 1.05)}mm` }}>
+													<h2 className="font-black rounded etiket-branch-name" style={{ fontSize: `${baseFontSizeMm}mm`, padding: `${Math.max(0.5, boxPaddingMm)}mm`, margin: 0, lineHeight: `${Math.max(1, baseFontSizeMm * 1.05)}mm`, background: '#ffffff', color: '#111827', border: '1px solid #d1d5db' }}>
 														{`${branch.schoolCode ? `${branch.schoolCode} - ` : ""}${branch.schoolName}`}
 													</h2>
 												</div>
