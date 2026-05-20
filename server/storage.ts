@@ -122,6 +122,48 @@ export class DrizzleStorage implements IStorage {
 
     const sqlite = new Database(dbPath);
 
+    // Create tables first
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS exams (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        date TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        is_active TEXT NOT NULL DEFAULT '0'
+      );
+      CREATE TABLE IF NOT EXISTS registry_districts (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS registry_schools (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        district_id TEXT NOT NULL,
+        code TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS registry_students (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        tc TEXT NOT NULL,
+        school_no TEXT NOT NULL DEFAULT '',
+        school_id TEXT NOT NULL,
+        salon TEXT NOT NULL,
+        class TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS registry_meta (
+        id TEXT PRIMARY KEY,
+        exam_id TEXT NOT NULL,
+        source_file_name TEXT NOT NULL DEFAULT '',
+        loaded_at TEXT NOT NULL DEFAULT ''
+      );
+    `);
+
     const ensureColumn = (tableName: string, columnName: string, columnSql: string) => {
       const columns = sqlite.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
       const hasColumn = columns.some((column) => column.name === columnName);
@@ -224,47 +266,6 @@ export class DrizzleStorage implements IStorage {
         );`,
         "id, exam_id, name, tc, school_no, school_id, salon, class",
       );
-
-    sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        username TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS exams (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        date TEXT NOT NULL,
-        description TEXT NOT NULL DEFAULT '',
-        created_at TEXT NOT NULL,
-        is_active TEXT NOT NULL DEFAULT '0'
-      );
-      CREATE TABLE IF NOT EXISTS registry_districts (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS registry_schools (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        district_id TEXT NOT NULL,
-        code TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS registry_students (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        tc TEXT NOT NULL,
-        school_no TEXT NOT NULL DEFAULT '',
-        school_id TEXT NOT NULL,
-        salon TEXT NOT NULL,
-        class TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS registry_meta (
-        id TEXT PRIMARY KEY,
-        exam_id TEXT NOT NULL,
-        source_file_name TEXT NOT NULL DEFAULT '',
-        loaded_at TEXT NOT NULL DEFAULT ''
-      );
-    `);
 
     this.db = drizzle(sqlite);
   }
