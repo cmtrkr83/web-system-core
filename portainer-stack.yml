@@ -2,11 +2,8 @@ version: "3.9"
 
 services:
   web-system-core:
+    # Prefer pulling a named image for Portainer stacks. Build if you push an image to a registry.
     image: cmtrkr83/web-system-core:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: runner
     container_name: web-system-core
     ports:
       - "${APP_PORT:-5050}:5050"

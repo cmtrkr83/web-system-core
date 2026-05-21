@@ -98,3 +98,16 @@ APP_PORT=8080 docker compose up --build -d
 ```
 
 - db klasörü volume olarak bağlanır; veriler konteyner yeniden başlasa da korunur.
+
+## Portainer ile Deploy
+
+- **Git üzerinden deploy (önerilen):** Portainer > Stacks > Add stack > "Repository" ile GitHub repo URL'sini girin ve `portainer-stack.yml` dosya yolunu seçin. Bu durumda Portainer varsayılan olarak `image` alanını çekmeye çalışır; eğer `build` isterseniz compose dosyasını doğrudan kullanabilirsiniz.
+- **Image ile deploy:** Önce Docker Hub/registry'e `cmtrkr83/web-system-core:latest` etiketli bir image push edin. Ardından Portainer'da `portainer-stack.yml` dosyasını kullanarak stack oluşturun.
+- **Doğrudan compose build:** Portainer'da repository'den compose dosyasını kullanırken build gerektiren bir yapı varsa Portainer'ın build yetkilerini ve Docker daemon yapılandırmasını kontrol edin.
+
+Örnek: GitHub'dan direkt deploy yapmak için `portainer-stack.yml` yolunu belirtin.
+
+Dosyalar:
+- [docker-compose.yml](docker-compose.yml)
+- [portainer-stack.yml](portainer-stack.yml)
+
