@@ -25,6 +25,7 @@ const navItems = [
   { href: "/branch-labels", label: "Şube Etiketi", icon: Package },
   { href: "/reports", label: "Teslim Tutanağı", icon: ClipboardCheck },
   { href: "/optic-coding", label: "Optik Kodlama", icon: QrCode },
+  { href: "/optic-reading", label: "Optik Okuma", icon: QrCode },
 ];
 
 export function Sidebar() {

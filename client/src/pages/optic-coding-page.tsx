@@ -9,10 +9,12 @@ import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, Printer, Upload } from "lucide-react";
 
 type PaperSize = "A4" | "A5";
-type OmrNormalizeMode = "exact" | "right" | "left";
 
 type SourceKey =
   | "name"
+  | "studentName"
+  | "studentFirstName"
+  | "studentLastName"
   | "tc"
   | "schoolNo"
   | "schoolName"
@@ -25,6 +27,7 @@ type MappingKey =
   | "district"
   | "schoolName"
   | "schoolCode"
+  | "studentName"
   | "studentFirstName"
   | "studentLastName"
   | "studentNumber"
@@ -37,16 +40,6 @@ interface Placement {
   yMm: number;
 }
 
-interface OmrConfig {
-  digits: number;
-  rows: number;
-  startDigit: number;
-  cellGapXmm: number;
-  cellGapYmm: number;
-  bubbleRadiusMm: number;
-  normalizeMode: OmrNormalizeMode;
-}
-
 interface FieldItem {
   id: string;
   mappingKey: MappingKey;
@@ -56,15 +49,7 @@ interface FieldItem {
 
 interface FieldState {
   txtEnabled: boolean;
-  omrEnabled: boolean;
   textPlacement: Placement;
-  omrPlacement: Placement;
-  omr: OmrConfig;
-}
-
-interface OmrParseResult {
-  rowIndexes: number[];
-  error?: string;
 }
 
 interface StoredMapping {
@@ -82,6 +67,7 @@ const MAPPING_ORDER: MappingKey[] = [
   "district",
   "schoolName",
   "schoolCode",
+  "studentName",
   "studentFirstName",
   "studentLastName",
   "studentNumber",
@@ -89,6 +75,19 @@ const MAPPING_ORDER: MappingKey[] = [
   "class",
   "grade",
 ];
+
+const DEFAULT_COLUMN_NAMES: Record<MappingKey, string> = {
+  district: "Ilce",
+  schoolName: "Okul Adi",
+  schoolCode: "Kurum Kodu",
+  studentName: "Ogrenci Adi",
+  studentFirstName: "Ogrenci Adi",
+  studentLastName: "Ogrenci Soyadi",
+  studentNumber: "Ogrenci No",
+  schoolNumber: "Okul No",
+  class: "Sube",
+  grade: "Sinif Seviyesi",
+};
 
 const mapToSourceKey = (key: MappingKey): SourceKey => {
   switch (key) {
@@ -98,10 +97,12 @@ const mapToSourceKey = (key: MappingKey): SourceKey => {
       return "schoolName";
     case "schoolCode":
       return "schoolCode";
+    case "studentName":
+      return "name";
     case "studentFirstName":
-      return "name";
+      return "studentFirstName";
     case "studentLastName":
-      return "name";
+      return "studentLastName";
     case "studentNumber":
       return "tc";
     case "schoolNumber":
@@ -115,13 +116,6 @@ const mapToSourceKey = (key: MappingKey): SourceKey => {
   }
 };
 
-const defaultDigitsBySource = (source: SourceKey) => {
-  if (source === "tc") return 8;
-  if (source === "schoolNo") return 5;
-  if (source === "salon") return 4;
-  return 6;
-};
-
 const buildFieldsFromStorage = (): FieldItem[] => {
   try {
     const raw = localStorage.getItem("optic-coding:last-mapping");
@@ -130,10 +124,9 @@ const buildFieldsFromStorage = (): FieldItem[] => {
     const parsed = JSON.parse(raw) as StoredMapping;
     const mapping = parsed.columnMapping || {};
 
-    const fields = MAPPING_ORDER
+    return MAPPING_ORDER
       .map((key) => {
-        const columnName = String(mapping[key] || "").trim();
-        if (!columnName) return null;
+        const columnName = String(mapping[key] || DEFAULT_COLUMN_NAMES[key]).trim();
 
         return {
           id: key,
@@ -143,21 +136,22 @@ const buildFieldsFromStorage = (): FieldItem[] => {
         } as FieldItem;
       })
       .filter(Boolean) as FieldItem[];
-
-    return fields;
   } catch {
     return [];
   }
 };
 
 const fallbackFields: FieldItem[] = [
-  { id: "district", mappingKey: "district", columnName: "Ilce", sourceKey: "districtName" },
-  { id: "schoolName", mappingKey: "schoolName", columnName: "Okul Adi", sourceKey: "schoolName" },
-  { id: "schoolCode", mappingKey: "schoolCode", columnName: "Kurum Kodu", sourceKey: "schoolCode" },
-  { id: "studentNumber", mappingKey: "studentNumber", columnName: "OPAQ", sourceKey: "tc" },
-  { id: "schoolNumber", mappingKey: "schoolNumber", columnName: "Okul No", sourceKey: "schoolNo" },
-  { id: "class", mappingKey: "class", columnName: "Sube", sourceKey: "class" },
-  { id: "grade", mappingKey: "grade", columnName: "Sinif Seviyesi", sourceKey: "salon" },
+  { id: "district", mappingKey: "district", columnName: DEFAULT_COLUMN_NAMES.district, sourceKey: "districtName" },
+  { id: "schoolName", mappingKey: "schoolName", columnName: DEFAULT_COLUMN_NAMES.schoolName, sourceKey: "schoolName" },
+  { id: "schoolCode", mappingKey: "schoolCode", columnName: DEFAULT_COLUMN_NAMES.schoolCode, sourceKey: "schoolCode" },
+  { id: "studentName", mappingKey: "studentName", columnName: DEFAULT_COLUMN_NAMES.studentName, sourceKey: "name" },
+  { id: "studentFirstName", mappingKey: "studentFirstName", columnName: DEFAULT_COLUMN_NAMES.studentFirstName, sourceKey: "studentFirstName" },
+  { id: "studentLastName", mappingKey: "studentLastName", columnName: DEFAULT_COLUMN_NAMES.studentLastName, sourceKey: "studentLastName" },
+  { id: "studentNumber", mappingKey: "studentNumber", columnName: DEFAULT_COLUMN_NAMES.studentNumber, sourceKey: "tc" },
+  { id: "schoolNumber", mappingKey: "schoolNumber", columnName: DEFAULT_COLUMN_NAMES.schoolNumber, sourceKey: "schoolNo" },
+  { id: "class", mappingKey: "class", columnName: DEFAULT_COLUMN_NAMES.class, sourceKey: "class" },
+  { id: "grade", mappingKey: "grade", columnName: DEFAULT_COLUMN_NAMES.grade, sourceKey: "salon" },
 ];
 
 const buildInitialState = (fields: FieldItem[]): Record<string, FieldState> => {
@@ -165,19 +159,8 @@ const buildInitialState = (fields: FieldItem[]): Record<string, FieldState> => {
 
   fields.forEach((field, idx) => {
     state[field.id] = {
-      txtEnabled: idx < 3,
-      omrEnabled: false,
+      txtEnabled: true,
       textPlacement: { xMm: 16, yMm: 24 + idx * 9 },
-      omrPlacement: { xMm: 100, yMm: 24 + idx * 9 },
-      omr: {
-        digits: defaultDigitsBySource(field.sourceKey),
-        rows: 10,
-        startDigit: 0,
-        cellGapXmm: 6.2,
-        cellGapYmm: 6.2,
-        bubbleRadiusMm: 2.4,
-        normalizeMode: "right",
-      },
     };
   });
 
@@ -204,14 +187,11 @@ export default function OpticCoding() {
   const [className, setClassName] = useState<string>("all");
   const [fontSizeMm, setFontSizeMm] = useState<number>(4);
   const [templateDataUrl, setTemplateDataUrl] = useState<string>("");
-  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+  const [draggingFieldId, setDraggingFieldId] = useState<string | null>(null);
   const [fieldStateMap, setFieldStateMap] = useState<Record<string, FieldState>>(() => buildInitialState(mappedFields));
-  const [validationIssues, setValidationIssues] = useState<string[]>([]);
 
   const paper = PAPER_DIMENSIONS[paperSize];
-  const previewWidthPx = 460;
-  const previewScale = previewWidthPx / paper.widthMm;
-  const previewHeightPx = paper.heightMm * previewScale;
+  // preview is rendered in mm units so positioning is consistent with print output
 
   const visibleSchools = useMemo(() => {
     if (districtId === "all") return schools;
@@ -238,8 +218,6 @@ export default function OpticCoding() {
     return scopedStudents.filter((s) => s.class === className);
   }, [scopedStudents, className]);
 
-  const sampleStudent = filteredStudents[0] || null;
-
   const resolveValue = (student: Student, sourceKey: SourceKey) => {
     const school = schools.find((s) => s.id === student.schoolId);
     const district = districts.find((d) => d.id === school?.districtId);
@@ -247,6 +225,16 @@ export default function OpticCoding() {
     switch (sourceKey) {
       case "name":
         return student.name || "";
+      case "studentName":
+        return student.name || "";
+      case "studentFirstName": {
+        const parts = (student.name || "").trim().split(/\s+/).filter(Boolean);
+        return parts[0] || student.name || "";
+      }
+      case "studentLastName": {
+        const parts = (student.name || "").trim().split(/\s+/).filter(Boolean);
+        return parts.length > 1 ? parts.slice(1).join(" ") : "";
+      }
       case "tc":
         return student.tc || "";
       case "schoolNo":
@@ -266,88 +254,57 @@ export default function OpticCoding() {
     }
   };
 
-  const parseOmr = (rawValue: string, config: OmrConfig): OmrParseResult => {
-    const onlyDigits = String(rawValue).replace(/\D/g, "");
-    if (!onlyDigits) return { rowIndexes: [], error: "Sayisal deger yok" };
-
-    let normalized = onlyDigits;
-
-    if (config.normalizeMode === "exact" && normalized.length !== config.digits) {
-      return { rowIndexes: [], error: `${config.digits} hane bekleniyor` };
-    }
-
-    if (config.normalizeMode === "right") {
-      if (normalized.length < config.digits) return { rowIndexes: [], error: `${config.digits} haneden kisa` };
-      normalized = normalized.slice(-config.digits);
-    }
-
-    if (config.normalizeMode === "left") {
-      if (normalized.length < config.digits) return { rowIndexes: [], error: `${config.digits} haneden kisa` };
-      normalized = normalized.slice(0, config.digits);
-    }
-
-    if (normalized.length !== config.digits) {
-      return { rowIndexes: [], error: `${config.digits} hane bekleniyor` };
-    }
-
-    const rowIndexes: number[] = [];
-    for (const ch of normalized) {
-      const num = Number(ch);
-      if (Number.isNaN(num)) return { rowIndexes: [], error: "Sayisal olmayan karakter var" };
-
-      const rowIndex = num - config.startDigit;
-      if (rowIndex < 0 || rowIndex >= config.rows) {
-        return { rowIndexes: [], error: `Rakam araligi ${config.startDigit}-${config.startDigit + config.rows - 1}` };
-      }
-      rowIndexes.push(rowIndex);
-    }
-
-    return { rowIndexes };
-  };
-
-  const toggleRenderMode = (fieldId: string, mode: "txt" | "omr", checked: boolean) => {
+  const toggleTextMode = (fieldId: string, checked: boolean) => {
     setFieldStateMap((prev) => ({
       ...prev,
       [fieldId]: {
         ...prev[fieldId],
-        txtEnabled: mode === "txt" ? checked : prev[fieldId].txtEnabled,
-        omrEnabled: mode === "omr" ? checked : prev[fieldId].omrEnabled,
+        txtEnabled: checked,
       },
     }));
   };
 
-  const updateOmr = (fieldId: string, patch: Partial<OmrConfig>) => {
-    setFieldStateMap((prev) => ({
-      ...prev,
-      [fieldId]: {
-        ...prev[fieldId],
-        omr: {
-          ...prev[fieldId].omr,
-          ...patch,
+  const docMoveRef = useRef<((e: MouseEvent) => void) | null>(null);
+  const docUpRef = useRef<((e: MouseEvent) => void) | null>(null);
+
+  const startDragging = (fieldId: string) => {
+    setDraggingFieldId(fieldId);
+
+    const moveHandler = (e: MouseEvent) => {
+      if (!previewRef.current) return;
+      const rect = previewRef.current.getBoundingClientRect();
+      const xPx = e.clientX - rect.left;
+      const yPx = e.clientY - rect.top;
+      const pxPerMm = rect.width / paper.widthMm; // px per mm
+      const xMm = Math.max(0, Math.min(paper.widthMm - 0.1, xPx / pxPerMm));
+      const yMm = Math.max(0, Math.min(paper.heightMm - 0.1, yPx / pxPerMm));
+
+      setFieldStateMap((prev) => ({
+        ...prev,
+        [fieldId]: {
+          ...prev[fieldId],
+          textPlacement: { xMm: Math.round(xMm * 100) / 100, yMm: Math.round(yMm * 100) / 100 },
         },
-      },
-    }));
+      }));
+    };
+
+    const upHandler = () => {
+      setDraggingFieldId(null);
+      if (docMoveRef.current) document.removeEventListener("mousemove", docMoveRef.current);
+      if (docUpRef.current) document.removeEventListener("mouseup", docUpRef.current);
+      docMoveRef.current = null;
+      docUpRef.current = null;
+    };
+
+    docMoveRef.current = moveHandler;
+    docUpRef.current = upHandler;
+    document.addEventListener("mousemove", moveHandler);
+    document.addEventListener("mouseup", upHandler);
   };
 
-  const startDragging = (itemId: string) => setDraggingItemId(itemId);
-  const stopDragging = () => setDraggingItemId(null);
-
-  const handlePreviewMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!draggingItemId || !previewRef.current) return;
-
-    const [fieldId, mode] = draggingItemId.split(":") as [string, "txt" | "omr"];
-    const rect = previewRef.current.getBoundingClientRect();
-    const xMm = Math.max(0, Math.min(paper.widthMm - 5, (event.clientX - rect.left) / previewScale));
-    const yMm = Math.max(0, Math.min(paper.heightMm - 5, (event.clientY - rect.top) / previewScale));
-
-    setFieldStateMap((prev) => ({
-      ...prev,
-      [fieldId]: {
-        ...prev[fieldId],
-        textPlacement: mode === "txt" ? { xMm, yMm } : prev[fieldId].textPlacement,
-        omrPlacement: mode === "omr" ? { xMm, yMm } : prev[fieldId].omrPlacement,
-      },
-    }));
+  const stopDragging = () => {
+    // trigger removal if user calls stopDragging from UI
+    if (docUpRef.current) docUpRef.current();
   };
 
   const handleTemplateUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -358,48 +315,16 @@ export default function OpticCoding() {
     reader.readAsDataURL(file);
   };
 
-  const buildIssues = () => {
-    const issues: string[] = [];
-
-    for (const student of filteredStudents) {
-      for (const field of mappedFields) {
-        const state = fieldStateMap[field.id];
-        if (!state?.omrEnabled) continue;
-
-        const value = resolveValue(student, field.sourceKey);
-        if (!value) continue;
-
-        const parsed = parseOmr(value, state.omr);
-        if (parsed.error) {
-          issues.push(`${student.name} - ${field.columnName}: ${parsed.error}`);
-        }
-      }
-    }
-
-    return issues;
-  };
-
   const handlePrintAll = () => {
     if (!isLoaded || filteredStudents.length === 0) {
       toast({ title: "Hata", description: "Yazdirilacak ogrenci bulunamadi.", variant: "destructive" });
       return;
     }
 
-    const hasActiveField = mappedFields.some((f) => {
-      const state = fieldStateMap[f.id];
-      return Boolean(state?.txtEnabled || state?.omrEnabled);
-    });
-
+    const hasActiveField = mappedFields.some((field) => Boolean(fieldStateMap[field.id]?.txtEnabled));
     if (!hasActiveField) {
       toast({ title: "Hata", description: "En az bir alan secmelisiniz.", variant: "destructive" });
       return;
-    }
-
-    const issues = buildIssues();
-    setValidationIssues(issues.slice(0, 60));
-
-    if (issues.length > 0) {
-      toast({ title: "Uyari", description: `${issues.length} kayitta OMR uyumsuzlugu var. Uygunsuz alanlar bos gecilecek.` });
     }
 
     const pagesHtml = filteredStudents
@@ -407,31 +332,10 @@ export default function OpticCoding() {
         const blocks = mappedFields
           .map((field) => {
             const state = fieldStateMap[field.id];
-            if (!state) return "";
+            if (!state?.txtEnabled) return "";
 
             const value = resolveValue(student, field.sourceKey);
-            const parts: string[] = [];
-
-            if (state.txtEnabled) {
-              parts.push(`<div style="position:absolute;left:${state.textPlacement.xMm}mm;top:${state.textPlacement.yMm}mm;font-size:${fontSizeMm}mm;line-height:1;color:#000;white-space:nowrap;">${escapeHtml(String(value || ""))}</div>`);
-            }
-
-            if (state.omrEnabled && value) {
-              const parsed = parseOmr(value, state.omr);
-              if (!parsed.error) {
-                const omrDots = parsed.rowIndexes
-                  .map((rowIndex, colIndex) => {
-                    const left = state.omrPlacement.xMm + colIndex * state.omr.cellGapXmm;
-                    const top = state.omrPlacement.yMm + rowIndex * state.omr.cellGapYmm;
-                    const diameter = state.omr.bubbleRadiusMm * 2;
-                    return `<div style="position:absolute;left:${left}mm;top:${top}mm;width:${diameter}mm;height:${diameter}mm;border-radius:50%;background:#000;"></div>`;
-                  })
-                  .join("");
-                parts.push(omrDots);
-              }
-            }
-
-            return parts.join("");
+            return `<div style="position:absolute;left:${state.textPlacement.xMm}mm;top:${state.textPlacement.yMm}mm;font-size:${fontSizeMm}mm;line-height:1;color:#000;white-space:nowrap;">${escapeHtml(String(value || ""))}</div>`;
           })
           .join("");
 
@@ -456,8 +360,8 @@ export default function OpticCoding() {
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
       <div>
-        <h1 className="text-3xl font-heading font-bold">Optik Kodlama</h1>
-        <p className="text-muted-foreground mt-1">Alanlar Excel eslesmesinden otomatik gelir. Her alani TXT, OMR veya ikisi birden secebilirsiniz.</p>
+        <h1 className="text-3xl font-heading font-bold">Optik Hazırlama</h1>
+        <p className="text-muted-foreground mt-1">Alanlar Excel eslesmesinden otomatik gelir. Secili alanlari fare ile istediginiz yere surukleyebilirsiniz.</p>
       </div>
 
       {!isLoaded ? (
@@ -473,7 +377,7 @@ export default function OpticCoding() {
           <Card className="lg:col-span-1 h-fit">
             <CardHeader>
               <CardTitle>Alan Secimi</CardTitle>
-              <CardDescription>Eslesen Excel sutunlari otomatik listelenir. Kodlama profili kullanilmadan tum kontrol bu paneldedir.</CardDescription>
+              <CardDescription>Eslesen Excel sutunlari otomatik listelenir. Tum alanlar kartlar halinde gorunur ve sadece metin olarak suruklenir.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -520,45 +424,19 @@ export default function OpticCoding() {
 
               <div className="space-y-2">
                 <Label>Eslesen Alanlar</Label>
-                <div className="space-y-3 rounded-md border p-3 max-h-[360px] overflow-auto">
+                <div className="grid gap-3 grid-cols-2 max-h-[420px] overflow-auto pr-1">
                   {mappedFields.map((field) => {
                     const state = fieldStateMap[field.id];
                     if (!state) return null;
 
                     return (
-                      <div key={field.id} className="rounded border border-border/70 p-2 space-y-2">
-                        <div className="text-sm font-medium">{field.columnName}</div>
-                        <div className="flex items-center gap-6 text-sm">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox checked={state.txtEnabled} onCheckedChange={(v) => toggleRenderMode(field.id, "txt", v === true)} />
-                            <span>TXT</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox checked={state.omrEnabled} onCheckedChange={(v) => toggleRenderMode(field.id, "omr", v === true)} />
-                            <span>OMR</span>
-                          </label>
-                        </div>
-
-                        {state.omrEnabled && (
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="space-y-1">
-                              <Label className="text-xs">Hane</Label>
-                              <Input type="number" min={1} max={20} value={state.omr.digits} onChange={(e) => updateOmr(field.id, { digits: Math.max(1, Number(e.target.value) || 1) })} />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Yaricap (mm)</Label>
-                              <Input type="number" min={0.5} max={3.5} step={0.1} value={state.omr.bubbleRadiusMm} onChange={(e) => updateOmr(field.id, { bubbleRadiusMm: Math.max(0.5, Number(e.target.value) || 0.5) })} />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Sutun Araligi</Label>
-                              <Input type="number" min={1} max={12} step={0.1} value={state.omr.cellGapXmm} onChange={(e) => updateOmr(field.id, { cellGapXmm: Math.max(1, Number(e.target.value) || 1) })} />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Satir Araligi</Label>
-                              <Input type="number" min={1} max={12} step={0.1} value={state.omr.cellGapYmm} onChange={(e) => updateOmr(field.id, { cellGapYmm: Math.max(1, Number(e.target.value) || 1) })} />
-                            </div>
+                      <div key={field.id} className="rounded-lg border border-border/70 bg-background p-3 shadow-sm transition-colors hover:border-primary/50">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1 min-w-0">
+                            <div className="text-sm font-medium leading-none truncate">{field.columnName}</div>
                           </div>
-                        )}
+                          <Checkbox checked={state.txtEnabled} onCheckedChange={(v) => toggleTextMode(field.id, v === true)} />
+                        </div>
                       </div>
                     );
                   })}
@@ -569,7 +447,7 @@ export default function OpticCoding() {
 
               <Button className="w-full" onClick={handlePrintAll}>
                 <Printer className="mr-2 h-4 w-4" />
-                Secili Alanlarla Yazdir
+                Secili Alanlari Yazdir
               </Button>
             </CardContent>
           </Card>
@@ -577,11 +455,11 @@ export default function OpticCoding() {
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Yerlesim Onizleme</CardTitle>
-              <CardDescription>TXT ve OMR katmanlarini ayri ayri surukleyebilirsiniz. Sadece secili olanlar yazdirilir.</CardDescription>
+              <CardDescription>Alanlari fare ile surukleyip birakabilirsiniz. Sadece metin yerlesimi kullanilir.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="overflow-auto rounded-lg border bg-muted/30 p-3">
-                <div ref={previewRef} className="relative mx-auto bg-white shadow-md select-none" style={{ width: `${previewWidthPx}px`, height: `${previewHeightPx}px` }} onMouseMove={handlePreviewMouseMove} onMouseUp={stopDragging} onMouseLeave={stopDragging}>
+                <div ref={previewRef} className="relative mx-auto bg-white shadow-md select-none" style={{ width: `${paper.widthMm}mm`, height: `${paper.heightMm}mm` }} onMouseUp={stopDragging}>
                   {templateDataUrl ? (
                     <img src={templateDataUrl} alt="Optik sablon" className="absolute inset-0 h-full w-full object-fill pointer-events-none" />
                   ) : (
@@ -595,63 +473,27 @@ export default function OpticCoding() {
 
                   {mappedFields.map((field) => {
                     const state = fieldStateMap[field.id];
-                    if (!state) return null;
+                    if (!state?.txtEnabled) return null;
 
-                    const previewValue = sampleStudent ? resolveValue(sampleStudent, field.sourceKey) : "";
-                    const parsed = previewValue ? parseOmr(previewValue, state.omr) : null;
-
-                    const omrWidth = (state.omr.digits - 1) * state.omr.cellGapXmm * previewScale + state.omr.bubbleRadiusMm * 2 * previewScale;
-                    const omrHeight = (state.omr.rows - 1) * state.omr.cellGapYmm * previewScale + state.omr.bubbleRadiusMm * 2 * previewScale;
+                    const previewValue = filteredStudents[0] ? resolveValue(filteredStudents[0], field.sourceKey) : "";
 
                     return (
-                      <div key={field.id}>
-                        {state.txtEnabled && (
-                          <div className="absolute px-2 py-0.5 text-[11px] rounded border border-blue-300 bg-blue-100/90 text-blue-900 font-medium cursor-move" style={{ left: `${state.textPlacement.xMm * previewScale}px`, top: `${state.textPlacement.yMm * previewScale}px` }} onMouseDown={() => startDragging(`${field.id}:txt`)}>
-                            {field.columnName}
-                          </div>
-                        )}
-
-                        {state.omrEnabled && (
-                          <div className="absolute cursor-move" style={{ left: `${state.omrPlacement.xMm * previewScale}px`, top: `${state.omrPlacement.yMm * previewScale}px` }} onMouseDown={() => startDragging(`${field.id}:omr`)}>
-                            <div className="relative border border-emerald-400/80 bg-transparent" style={{ width: `${omrWidth}px`, height: `${omrHeight}px` }}>
-                              {parsed && !parsed.error
-                                ? parsed.rowIndexes.map((rowIndex, colIndex) => {
-                                    const r = state.omr.bubbleRadiusMm * previewScale;
-                                    const left = colIndex * state.omr.cellGapXmm * previewScale;
-                                    const top = rowIndex * state.omr.cellGapYmm * previewScale;
-                                    return (
-                                      <div
-                                        key={`${field.id}-${colIndex}-${rowIndex}`}
-                                        className="bg-black"
-                                        style={{
-                                          position: "absolute",
-                                          left: `${left}px`,
-                                          top: `${top}px`,
-                                          width: `${r * 2}px`,
-                                          height: `${r * 2}px`,
-                                          borderRadius: "999px",
-                                        }}
-                                      />
-                                    );
-                                  })
-                                : null}
-                            </div>
-                          </div>
-                        )}
+                      <div
+                        key={field.id}
+                        className="absolute cursor-move whitespace-nowrap text-[12px] font-medium text-blue-900 select-none"
+                        style={{
+                          left: `${state.textPlacement.xMm}mm`,
+                          top: `${state.textPlacement.yMm}mm`,
+                          fontSize: `${fontSizeMm}mm`,
+                        }}
+                        onMouseDown={() => startDragging(field.id)}
+                      >
+                        {previewValue || ""}
                       </div>
                     );
                   })}
                 </div>
               </div>
-
-              {validationIssues.length > 0 && (
-                <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
-                  <div className="font-medium mb-1">Yazdirma Uyari Listesi (ilk 60)</div>
-                  <ul className="list-disc list-inside space-y-1 text-amber-900">
-                    {validationIssues.map((issue, idx) => <li key={`${issue}-${idx}`}>{issue}</li>)}
-                  </ul>
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>

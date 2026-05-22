@@ -97,5 +97,104 @@ export async function registerRoutes(
     return res.status(200).json({ message: "Registry verisi temizlendi" });
   });
 
+  // Optics config endpoints (file-backed simple storage)
+  const fs = await import("fs/promises");
+  const path = await import("path");
+  const dbDir = path.resolve(process.cwd(), "db");
+  const configsFile = path.join(dbDir, "optic-configs.json");
+  const resultsFile = path.join(dbDir, "optic-results.json");
+  const resultsCsvFile = path.join(dbDir, "optic-results.csv");
+
+  app.get("/api/optics/configs", async (_req, res) => {
+    try {
+      const data = await fs.readFile(configsFile, "utf-8");
+      return res.status(200).json(JSON.parse(data));
+    } catch (err) {
+      return res.status(200).json([]);
+    }
+  });
+
+  app.post("/api/optics/configs", async (req, res) => {
+    try {
+      const body = req.body;
+      const existing = await (async () => {
+        try {
+          const d = await fs.readFile(configsFile, "utf-8");
+          return JSON.parse(d) as any[];
+        } catch {
+          return [] as any[];
+        }
+      })();
+
+      existing.push({ id: Date.now().toString(), createdAt: new Date().toISOString(), ...body });
+      await fs.writeFile(configsFile, JSON.stringify(existing, null, 2), "utf-8");
+      return res.status(201).json({ message: "Kaydedildi" });
+    } catch (err) {
+      return res.status(500).json({ message: "Kaydetme hatası" });
+    }
+  });
+
+  app.get("/api/optics/results", async (_req, res) => {
+    try {
+      const data = await fs.readFile(resultsFile, "utf-8");
+      return res.status(200).json(JSON.parse(data));
+    } catch (err) {
+      return res.status(200).json([]);
+    }
+  });
+
+  app.post("/api/optics/results", async (req, res) => {
+    try {
+      const body = req.body;
+      const existing = await (async () => {
+        try {
+          const d = await fs.readFile(resultsFile, "utf-8");
+          return JSON.parse(d) as any[];
+        } catch {
+          return [] as any[];
+        }
+      })();
+
+      existing.push({ id: Date.now().toString(), createdAt: new Date().toISOString(), ...body });
+      await fs.writeFile(resultsFile, JSON.stringify(existing, null, 2), "utf-8");
+      // Also append CSV rows: for each result (area) and each row -> subject, areaId, rowNumber, answer
+      try {
+        const csvLines: string[] = [];
+        const header = "createdAt;subject;areaId;row;answer";
+        const createdAt = new Date().toISOString();
+
+        for (const resEntry of Array.isArray(body.results) ? body.results : []) {
+          const subject = String(resEntry.subject || "").replace(/[;\n\r]/g, " ");
+          const areaId = String(resEntry.areaId || "");
+          const answers = Array.isArray(resEntry.answers) ? resEntry.answers : [];
+          for (let i = 0; i < answers.length; i++) {
+            const raw = String(answers[i] || "").trim();
+            const letter = raw ? String(raw[0]).toLowerCase() : "";
+            csvLines.push(`${createdAt};${subject};${areaId};${i + 1};${letter}`);
+          }
+        }
+
+        // ensure db dir exists
+        await fs.mkdir(dbDir, { recursive: true });
+
+        const existsCsv = await (async () => {
+          try { await fs.access(resultsCsvFile); return true; } catch { return false; }
+        })();
+
+        // UTF-8 BOM for Windows Excel compatibility when creating a new file
+        const BOM = "\uFEFF";
+        const toWriteHeader = (existsCsv ? "" : BOM + header + "\n");
+        const toWriteBody = csvLines.join("\n") + (csvLines.length ? "\n" : "");
+        const toWrite = toWriteHeader + toWriteBody;
+        if (toWrite) await fs.appendFile(resultsCsvFile, toWrite, "utf-8");
+      } catch (csvErr) {
+        console.error("CSV write failed:", csvErr);
+      }
+      return res.status(201).json({ message: "Kaydedildi" });
+    } catch (err) {
+      return res.status(500).json({ message: "Kaydetme hatası" });
+    }
+  });
+
   return httpServer;
 }
