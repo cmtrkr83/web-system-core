@@ -313,8 +313,8 @@ export default function ExamSelection() {
     setColumnMapping((prev) => ({ ...prev, [key]: value }));
   };
 
-  const EXCLUDED_SCHOOL_KEYWORDS = ["uygulama", "kademe", "engelli", "engelliler"];
-  const EXCLUDED_BRANCH_KEYWORDS = ["hafif", "ağır", "zihinsel", "engelli", "engelliler", "işitme"];
+  const EXCLUDED_SCHOOL_KEYWORDS = ["özel eğitim uygulama", "kademe", "engelli", "engelliler"];
+  const EXCLUDED_BRANCH_KEYWORDS = ["hafif", "Zihinsel", "zihinsel", "engelli", "engelliler", "işitme"];
 
   const isExcludedSchool = (schoolName: string) => {
     const normalized = schoolName.toLowerCase();
