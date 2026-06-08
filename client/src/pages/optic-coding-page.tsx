@@ -265,7 +265,7 @@ export default function OpticCoding() {
   };
 
   const docMoveRef = useRef<((e: MouseEvent) => void) | null>(null);
-  const docUpRef = useRef<((e: MouseEvent) => void) | null>(null);
+  const docUpRef = useRef<((e?: MouseEvent) => void) | null>(null);
 
   const startDragging = (fieldId: string) => {
     setDraggingFieldId(fieldId);
@@ -288,7 +288,7 @@ export default function OpticCoding() {
       }));
     };
 
-    const upHandler = () => {
+    const upHandler = (e: MouseEvent | undefined) => {
       setDraggingFieldId(null);
       if (docMoveRef.current) document.removeEventListener("mousemove", docMoveRef.current);
       if (docUpRef.current) document.removeEventListener("mouseup", docUpRef.current);
@@ -303,8 +303,7 @@ export default function OpticCoding() {
   };
 
   const stopDragging = () => {
-    // trigger removal if user calls stopDragging from UI
-    if (docUpRef.current) docUpRef.current();
+    docUpRef.current?.(undefined);
   };
 
   const handleTemplateUpload = (event: React.ChangeEvent<HTMLInputElement>) => {

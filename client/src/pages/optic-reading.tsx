@@ -118,6 +118,139 @@ function clearCanvas(canvas: HTMLCanvasElement) {
   ctx.clearRect(0, 0, 1, 1);
 }
 
+function getPixel(imageData: ImageData, x: number, y: number) {
+  const { width, height, data } = imageData;
+  const px = Math.max(0, Math.min(width - 1, Math.round(x)));
+  const py = Math.max(0, Math.min(height - 1, Math.round(y)));
+  const idx = (py * width + px) * 4;
+  return { r: data[idx], g: data[idx + 1], b: data[idx + 2] };
+}
+
+function brightness(r: number, g: number, b: number) {
+  return (r + g + b) / 3;
+}
+
+function isBlackPixel(r: number, g: number, b: number, threshold = 55) {
+  return brightness(r, g, b) < threshold && Math.max(r, g, b) - Math.min(r, g, b) < 40;
+}
+
+function sampleEdgeHash(imageData: ImageData, x: number, y: number, step: number) {
+  const edgePixels: Array<"t" | "r" | "b" | "l"> = [];
+  const t = getPixel(imageData, x, y - step);
+  const r = getPixel(imageData, x + step, y);
+  const b = getPixel(imageData, x, y + step);
+  const l = getPixel(imageData, x - step, y);
+  if (isBlackPixel(t.r, t.g, t.b)) edgePixels.push("t");
+  if (isBlackPixel(r.r, r.g, r.b)) edgePixels.push("r");
+  if (isBlackPixel(b.r, b.g, b.b)) edgePixels.push("b");
+  if (isBlackPixel(l.r, l.g, l.b)) edgePixels.push("l");
+  return edgePixels.join("");
+}
+
+function assertBoundingBox(box: { xMin: number; xMax: number; yMin: number; yMax: number }, imageBounds: { width: number; height: number }) {
+  if (box.xMin >= box.xMax || box.yMin >= box.yMax) return null;
+  const width = box.xMax - box.xMin;
+  const height = box.yMax - box.yMin;
+  if (width < 10 || height < 10) return null;
+  if (width / (box.yMax - box.yMin + 1) > 10) return null;
+  if (height / (box.xMax - box.xMin + 1) > 10) return null;
+  return { x: box.xMin, y: box.yMin, w: width, h: height };
+}
+
+function detectBlackBorderedSections(imageData: ImageData): RectPx[] {
+  const { width, height, data } = imageData;
+  if (width === 0 || height === 0) return [];
+
+  const visited = new Uint8Array(width * height);
+  const stack: Array<{ x: number; y: number; edgeHits: number }> = [];
+  const candidates: Array<{ xMin: number; xMax: number; yMin: number; yMax: number; total: number; black: number }> = [];
+  const step = Math.max(2, Math.round(Math.min(width, height) * 0.008));
+
+  for (let y = step; y < height - step; y += step) {
+    for (let x = step; x < width - step; x += step) {
+      const edgeHash = sampleEdgeHash(imageData, x, y, step);
+      if (edgeHash.length < 2) continue;
+
+      const idx = y * width + x;
+      if (visited[idx]) continue;
+
+      let xMin = x;
+      let xMax = x;
+      let yMin = y;
+      let yMax = y;
+      let total = 0;
+      let black = 0;
+      let edgeHits = 0;
+      stack.length = 0;
+
+      stack.push({ x, y, edgeHits: 0 });
+      visited[idx] = 1;
+
+      let head = 0;
+      while (head < stack.length) {
+        const { x: cx, y: cy } = stack[head];
+        head += 1;
+
+        xMin = Math.min(xMin, cx);
+        xMax = Math.max(xMax, cx);
+        yMin = Math.min(yMin, cy);
+        yMax = Math.max(yMax, cy);
+
+        const pixel = getPixel(imageData, cx, cy);
+        total += 1;
+        if (isBlackPixel(pixel.r, pixel.g, pixel.b)) black += 1;
+
+        const currentEdge = sampleEdgeHash(imageData, cx, cy, step);
+        if (currentEdge.length >= 2) edgeHits += 1;
+
+        const neighbors = [
+          { x: cx + step, y: cy },
+          { x: cx - step, y: cy },
+          { x: cx, y: cy + step },
+          { x: cx, y: cy - step },
+        ] as const;
+
+        for (const neighbor of neighbors) {
+          if (neighbor.x <= 0 || neighbor.x >= width - 1 || neighbor.y <= 0 || neighbor.y >= height - 1) continue;
+          const nIdx = neighbor.y * width + neighbor.x;
+          if (visited[nIdx]) continue;
+          visited[nIdx] = 1;
+          stack.push({ x: neighbor.x, y: neighbor.y, edgeHits: 0 });
+        }
+      }
+
+      if (stack.length >= 80 && edgeHits >= Math.max(6, stack.length * 0.08)) {
+        const boxWidth = xMax - xMin;
+        const boxHeight = yMax - yMin;
+        const ratio = boxWidth / (boxHeight || 1);
+        if (ratio > 0.35 && ratio < 3.5) {
+          candidates.push({ xMin, xMax, yMin, yMax, total: stack.length, black });
+        }
+      }
+    }
+  }
+
+  candidates.sort((a, b) => a.yMin - b.yMin || a.xMin - b.xMin);
+
+  const selected: RectPx[] = [];
+  for (const candidate of candidates) {
+    const rect = assertBoundingBox(candidate, { width, height });
+    if (!rect) continue;
+
+    const delta = Math.max(rect.w, rect.h) * (selected.length === 0 ? 0.55 : 0.65);
+    const overlap = selected.some((existing) => {
+      const dx = Math.max(0, Math.min(existing.x + existing.w, rect.x + rect.w) - Math.max(existing.x, rect.x));
+      const dy = Math.max(0, Math.min(existing.y + existing.h, rect.y + rect.h) - Math.max(existing.y, rect.y));
+      const minSize = Math.min(existing.w * existing.h, rect.w * rect.h);
+      return minSize > 0 && (dx * dy) / minSize > 0.65;
+    });
+    if (!overlap) {
+      selected.push(rect);
+    }
+  }
+  return selected;
+}
+
 function loadImage(fileUrl: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
@@ -268,110 +401,65 @@ export default function OpticReadingPage() {
   const [scanPreviewDataUrl, setScanPreviewDataUrl] = useState<string | null>(null);
   const [savedScans, setSavedScans] = useState<SavedScanSession[]>([]);
   const [isSavedScansLoading, setIsSavedScansLoading] = useState(false);
+  const [autoDetectedSections, setAutoDetectedSections] = useState<RectPx[]>([]);
+  const [autoDetectStatus, setAutoDetectStatus] = useState("");
+  const autoDetectTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
-      templatePdfRef.current?.destroy?.();
-      scanPdfRef.current?.destroy?.();
+      if (autoDetectTimerRef.current) {
+        window.clearTimeout(autoDetectTimerRef.current);
+      }
     };
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (templateSource?.fileUrl) URL.revokeObjectURL(templateSource.fileUrl);
-    };
-  }, [templateSource?.fileUrl]);
-
-  useEffect(() => {
-    return () => {
-      if (scanSource?.fileUrl) URL.revokeObjectURL(scanSource.fileUrl);
-    };
-  }, [scanSource?.fileUrl]);
-
-  useEffect(() => {
     const canvas = templateCanvasRef.current;
-    if (!canvas || !templateSource) {
-      if (canvas) clearCanvas(canvas);
+    if (!canvas || !templateSource || templateCanvasSize.width <= 1 || templateCanvasSize.height <= 1) {
       return;
     }
 
-    let cancelled = false;
-
-    const renderTemplate = async () => {
-      const rendered = await renderSourceToCanvas(templateSource, templatePageIndex, canvas, templatePdfRef.current);
-      if (!rendered) return;
-      if (cancelled) return;
-      setTemplateCanvasSize({ width: canvas.width, height: canvas.height });
-      setTempRect(null);
-      setDrawing(false);
-      drawingStateRef.current = null;
-    };
-
-    renderTemplate().catch((error) => {
-      console.error(error);
-      toast({ title: "Hata", description: "Şablon sayfası render edilemedi." });
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [templateSource, templatePageIndex, currentStep, toast]);
-
-  useEffect(() => {
-    const canvas = scanCanvasRef.current;
-    if (!canvas || !scanSource) {
-      if (canvas) clearCanvas(canvas);
-      return;
+    if (autoDetectTimerRef.current) {
+      window.clearTimeout(autoDetectTimerRef.current);
     }
 
-    let cancelled = false;
+    setAutoDetectedSections([]);
+    setAutoDetectStatus("Şablon üzerinde siyah kenarlı bölümler aranıyor...");
 
-    const renderScan = async () => {
-      const rendered = await renderSourceToCanvas(scanSource, scanPageIndex, canvas, scanPdfRef.current);
-      if (!rendered) return;
-      if (cancelled) return;
-      setScanStatus(`Tarama sayfası ${scanPageIndex + 1}/${scanSource.pageCount} yüklendi.`);
-    };
-
-    renderScan().catch((error) => {
-      console.error(error);
-      toast({ title: "Hata", description: "Taranan sayfa render edilemedi." });
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [scanSource, scanPageIndex, toast]);
-
-  useEffect(() => {
-    if (!scanSource || !isScanPreviewOpen) {
-      setScanPreviewDataUrl(null);
-      return;
-    }
-
-    let cancelled = false;
-
-    const renderPreview = async () => {
-      if (scanSource.kind === "image") {
-        if (!cancelled) setScanPreviewDataUrl(scanSource.fileUrl);
+    autoDetectTimerRef.current = window.setTimeout(() => {
+      const context = canvas.getContext("2d");
+      if (!context) {
+        setAutoDetectStatus("Bölüm tespiti için kanvas erişilemedi.");
         return;
       }
 
-      const canvas = document.createElement("canvas");
-      const rendered = await renderSourceToCanvas(scanSource, 0, canvas, scanPdfRef.current);
-      if (!rendered || cancelled) return;
-      setScanPreviewDataUrl(canvas.toDataURL("image/png"));
-    };
-
-    renderPreview().catch((error) => {
-      console.error(error);
-      toast({ title: "Hata", description: "Önizleme hazırlanamadı." });
-    });
+      try {
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const sections = detectBlackBorderedSections(imageData);
+        const visibleSections = sections.filter((section) => {
+          return section.w > 0 && section.h > 0 && section.x >= 0 && section.y >= 0;
+        });
+        setAutoDetectedSections(visibleSections);
+        setAutoDetectStatus(
+          visibleSections.length > 0
+            ? `${visibleSections.length} siyah kenarlı bölüm tespit edildi.`
+            : "Siyah kenarlı bölüm bulunamadı.",
+        );
+      } catch (error) {
+        console.error(error);
+        setAutoDetectStatus("Bölüm tespiti sırasında hata oluştu.");
+      } finally {
+        autoDetectTimerRef.current = null;
+      }
+    }, 80);
 
     return () => {
-      cancelled = true;
+      if (autoDetectTimerRef.current) {
+        window.clearTimeout(autoDetectTimerRef.current);
+        autoDetectTimerRef.current = null;
+      }
     };
-  }, [isScanPreviewOpen, scanSource, toast]);
+  }, [templateSource, templatePageIndex, currentStep, templateCanvasSize]);
 
   useEffect(() => {
     if (currentStep !== 2) return;
@@ -793,9 +881,11 @@ export default function OpticReadingPage() {
                   <Input id="template-file" type="file" accept="image/*,application/pdf" onChange={handleTemplateFileChange} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant={selectionMode === "draw" ? "default" : "outline"} onClick={() => setSelectionMode("draw")}>Çizim</Button>
-                  <Button variant={selectionMode === "move" ? "default" : "outline"} onClick={() => setSelectionMode("move")}>Taşı</Button>
+                <div className="rounded-lg border bg-muted/25 p-3 text-sm text-muted-foreground">
+                  <div className="font-medium text-foreground">Şablon durumu</div>
+                  <div className="mt-1">{templatePreviewLabel}</div>
+                  <div className="mt-1">Tanımlı alan: {areas.length}</div>
+                  {autoDetectStatus && <div className="mt-1 text-xs">{autoDetectStatus}</div>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -821,11 +911,6 @@ export default function OpticReadingPage() {
                       <SelectItem value="6">6</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={() => setTemplatePageIndex((value) => Math.max(0, value - 1))} disabled={!templateSource || templatePageIndex <= 0}>Önceki sayfa</Button>
-                  <Button onClick={() => setTemplatePageIndex((value) => Math.min(Math.max(templatePageCount - 1, 0), value + 1))} disabled={!templateSource || templatePageIndex >= templatePageCount - 1}>Sonraki sayfa</Button>
                 </div>
 
                 <div className="rounded-lg border bg-muted/25 p-3 text-sm text-muted-foreground">
@@ -861,7 +946,26 @@ export default function OpticReadingPage() {
                       onMouseLeave={handleTemplateMouseUp}
                     />
 
-                    <div className="pointer-events-none absolute inset-0">{renderTemplateOverlay}</div>
+                     <div className="pointer-events-none absolute inset-0">
+                       {renderTemplateOverlay}
+                       {autoDetectedSections.map((section, index) => (
+                         <div
+                           key={`auto-section-${index}`}
+                           className="absolute border-2 border-red-500 bg-red-500/10"
+                           style={{
+                             left: section.x,
+                             top: section.y,
+                             width: section.w,
+                             height: section.h,
+                             boxSizing: "border-box",
+                           }}
+                         >
+                           <div className="absolute -top-5 left-0 rounded bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                             Otomatik {index + 1}
+                           </div>
+                         </div>
+                       ))}
+                     </div>
 
                     {tempRect && drawing && templateCanvasSize.width > 1 && templateCanvasSize.height > 1 && (
                       <div
