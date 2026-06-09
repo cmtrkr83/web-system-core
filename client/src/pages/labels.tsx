@@ -9,11 +9,11 @@ import { cn } from "@/lib/utils";
 import { useRegistry } from "@/context/RegistryContext";
 
 const colorSchemes = [
-	{ id: "blue", name: "Mavi", primary: "bg-blue-600", border: "border-blue-600", bg: "bg-blue-50", text: "text-white" },
-	{ id: "orange", name: "Turuncu", primary: "bg-orange-500", border: "border-orange-500", bg: "bg-orange-50", text: "text-white" },
-	{ id: "green", name: "Yeşil", primary: "bg-green-600", border: "border-green-600", bg: "bg-green-50", text: "text-white" },
-	{ id: "black", name: "Siyah", primary: "bg-black", border: "border-black", bg: "bg-neutral-900", text: "text-white" },
-	{ id: "yellow", name: "Sarı", primary: "bg-yellow-400", border: "border-yellow-400", bg: "bg-yellow-50", text: "text-black" },
+	{ id: "blue", name: "Mavi", primary: "bg-blue-200", border: "border-blue-300", bg: "bg-blue-50", text: "text-blue-900" },
+	{ id: "orange", name: "Turuncu", primary: "bg-orange-200", border: "border-orange-300", bg: "bg-orange-50", text: "text-orange-900" },
+	{ id: "green", name: "Yeşil", primary: "bg-green-200", border: "border-green-300", bg: "bg-green-50", text: "text-green-900" },
+	{ id: "black", name: "Gri", primary: "bg-gray-300", border: "border-gray-400", bg: "bg-gray-50", text: "text-gray-800" },
+	{ id: "yellow", name: "Sarı", primary: "bg-yellow-200", border: "border-yellow-300", bg: "bg-yellow-50", text: "text-yellow-900" },
 	{ id: "none", name: "Renksiz", primary: "", border: "border-gray-300", bg: "bg-white", text: "text-black" },
 ];
 
@@ -138,11 +138,11 @@ export default function Labels() {
 		printWindow.document.close();
 
 		const schemeMap: Record<string, { primary: string; border: string; bg: string; text: string; muted: string }> = {
-			blue: { primary: "#2563eb", border: "#2563eb", bg: "#eff6ff", text: "#ffffff", muted: "#475569" },
-			orange: { primary: "#f97316", border: "#f97316", bg: "#fff7ed", text: "#ffffff", muted: "#475569" },
-			green: { primary: "#16a34a", border: "#16a34a", bg: "#f0fdf4", text: "#ffffff", muted: "#475569" },
-			black: { primary: "#000000", border: "#000000", bg: "#171717", text: "#ffffff", muted: "#d4d4d8" },
-			yellow: { primary: "#facc15", border: "#facc15", bg: "#fefce8", text: "#111827", muted: "#475569" },
+			blue: { primary: "#bfdbfe", border: "#93c5fd", bg: "#eff6ff", text: "#1e3a8a", muted: "#475569" },
+			orange: { primary: "#fed7aa", border: "#fdba74", bg: "#fff7ed", text: "#7c2d12", muted: "#475569" },
+			green: { primary: "#bbf7d0", border: "#86efac", bg: "#f0fdf4", text: "#14532d", muted: "#475569" },
+			black: { primary: "#d1d5db", border: "#9ca3af", bg: "#f9fafb", text: "#111827", muted: "#6b7280" },
+			yellow: { primary: "#fef08a", border: "#fde047", bg: "#fefce8", text: "#713f12", muted: "#475569" },
 			none: { primary: "#ffffff", border: "#d1d5db", bg: "#ffffff", text: "#111827", muted: "#6b7280" },
 		};
 
@@ -189,7 +189,7 @@ export default function Labels() {
 						box-sizing:border-box;
 					">
 						<div style="position:absolute; left:0; top:0; bottom:0; width:${sideStripWidthMm}mm; border-right:1px solid #d1d5db; display:flex; align-items:center; justify-content:center; background:${active.primary};">
-							<span style="writing-mode:vertical-rl; transform:rotate(180deg); text-transform:uppercase; font-weight:700; font-size:${Math.max(2.2, smallFontSizeMm)}mm; color:${scheme === "none" ? "#000000" : "#ffffff"}; line-height:1; letter-spacing:0.2mm;">${safe(districtName)}</span>
+							<span style="writing-mode:vertical-rl; transform:rotate(180deg); text-transform:uppercase; font-weight:700; font-size:${Math.max(2.2, smallFontSizeMm)}mm; color:${active.text}; line-height:1; letter-spacing:0.2mm;">${safe(districtName)}</span>
 						</div>
 						<div style="padding-left:${contentLeftPadMm}mm; height:100%; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between;">
 						<div style="text-align:center; margin-top:${boxPaddingMm}mm; display:flex; flex-direction:column; align-items:center; gap:${Math.max(0.5, boxPaddingMm / 2)}mm;">
@@ -284,15 +284,23 @@ export default function Labels() {
 
 	const currentScheme = colorSchemes.find(s => s.id === scheme) || colorSchemes[0];
 	const sideStripBgMap: Record<string, string> = {
-		blue: "#2563eb",
-		orange: "#f97316",
-		green: "#16a34a",
-		black: "#000000",
-		yellow: "#facc15",
+		blue: "#bfdbfe",
+		orange: "#fed7aa",
+		green: "#bbf7d0",
+		black: "#d1d5db",
+		yellow: "#fef08a",
 		none: "#ffffff",
 	};
+	const sideStripTextColorMap: Record<string, string> = {
+		blue: "#1e3a8a",
+		orange: "#7c2d12",
+		green: "#14532d",
+		black: "#111827",
+		yellow: "#713f12",
+		none: "#000000",
+	};
 	const sideStripBgHex = sideStripBgMap[scheme] || sideStripBgMap.blue;
-	const sideStripTextColor = scheme === "none" ? "#000000" : "#ffffff";
+	const sideStripTextColor = sideStripTextColorMap[scheme] || "#111827";
 
 	// Dinamik iç stil: etiket boyutlarına göre yazı ve padding ayarları (mm)
 	// Küçülme gerektiğinde yazı boyutlarının otomatik küçülmesi için düşük minimumlar kullanıyoruz
