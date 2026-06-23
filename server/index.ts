@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import path from "path";
 
 const app = express();
 const httpServer = createServer(app);
@@ -98,6 +99,9 @@ app.use((req, res, next) => {
 
     return res.status(status).json({ message });
   });
+
+  // Serve processed images via /db path
+  app.use("/db", express.static(path.resolve(process.cwd(), "db")));
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route

@@ -4,6 +4,8 @@ import Database from "better-sqlite3";
 import { randomUUID } from "crypto";
 import { storage } from "./storage";
 import { replaceRegistryPayloadSchema, insertExamSchema } from "@shared/schema";
+import { spawn } from "child_process";
+import Busboy from "busboy";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -100,13 +102,16 @@ export async function registerRoutes(
   });
 
   // Optics config endpoints (file-backed simple storage)
-  const fs = await import("fs/promises");
-  const path = await import("path");
-  const dbDir = path.resolve(process.cwd(), "db");
-  const configsFile = path.join(dbDir, "optic-configs.json");
-  const resultsFile = path.join(dbDir, "optic-results.json");
-  const resultsCsvFile = path.join(dbDir, "optic-results.csv");
-  const opticDbFile = path.join(dbDir, "optic-readings.sqlite");
+const fs = await import("fs/promises");
+   const path = await import("path");
+   const dbDir = path.resolve(process.cwd(), "db");
+   const configsFile = path.join(dbDir, "optic-configs.json");
+   const resultsFile = path.join(dbDir, "optic-results.json");
+   const resultsCsvFile = path.join(dbDir, "optic-results.csv");
+   const opticDbFile = path.join(dbDir, "optic-readings.sqlite");
+   const uploadsDir = path.join(dbDir, "optic_uploads");
+   const processedDir = path.join(dbDir, "optic_processed");
+   const errorsDir = path.join(dbDir, "optic_errors");
 
   await fs.mkdir(dbDir, { recursive: true });
 
@@ -339,6 +344,238 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Optik tarama listesi alınamadı:", err);
       return res.status(500).json({ message: "Liste alınamadı" });
+    }
+  });
+
+  app.post("/api/optics/process", async (req, res) => {
+    try {
+      await fs.mkdir(uploadsDir, { recursive: true });
+      await fs.mkdir(processedDir, { recursive: true });
+      await fs.mkdir(errorsDir, { recursive: true });
+
+      if (!req.body || !req.body.filePath) {
+        return res.status(400).json({ message: "filePath gerekli" });
+      }
+
+      const inputFile = String(req.body.filePath);
+      const dpi = Number(req.body.dpi) || 300;
+
+      const scriptPath = path.join(process.cwd(), "server", "optical_processor.py");
+      
+      const result = await new Promise<string>((resolve, reject) => {
+        const proc = spawn("python", [scriptPath, inputFile, String(dpi)], {
+          timeout: 120000,
+        });
+        
+        let stdout = "";
+        let stderr = "";
+        
+        proc.stdout?.on("data", (data) => { stdout += data.toString(); });
+        proc.stderr?.on("data", (data) => { stderr += data.toString(); });
+        proc.on("close", (code) => {
+          if (code !== 0) {
+            reject(new Error(stderr || `Python exited with code ${code}`));
+          } else {
+            resolve(stdout);
+          }
+        });
+        proc.on("error", (err) => reject(err));
+      });
+
+      return res.status(200).json(JSON.parse(result));
+    } catch (err) {
+      console.error("Optik işleme hatası:", err);
+      return res.status(500).json({ message: "İşleme hatası", error: String(err) });
+    }
+  });
+
+  // File upload endpoint
+  app.post("/api/optics/upload", (req, res) => {
+    const uploadDir = path.join(dbDir, "optic_uploads");
+    
+    const busboy = Busboy({ headers: req.headers as Record<string, string> });
+    
+    let fileName = "upload.pdf";
+    const chunks: Buffer[] = [];
+    
+    busboy.on("file", (fieldname: string, file: NodeJS.ReadableStream, filename: string, encoding: string, mimetype: string) => {
+      fileName = typeof filename === "string" ? filename : (filename as any).filename || "upload.pdf";
+      const stream = file as unknown as NodeJS.ReadableStream;
+      stream.on("data", (data: Buffer) => {
+        chunks.push(data);
+      });
+    });
+    
+    busboy.on("finish", async () => {
+      try {
+        await fs.mkdir(uploadDir, { recursive: true });
+        
+        const fileBuffer = Buffer.concat(chunks);
+        
+        if (fileBuffer.length === 0) {
+          return res.status(400).json({ message: "Dosya verisi bulunamadı" });
+        }
+        
+        const filePath = path.join(uploadDir, `${Date.now()}_${fileName}`);
+        await fs.writeFile(filePath, fileBuffer);
+        
+        return res.status(200).json({ filePath, fileName });
+      } catch (e: unknown) {
+        console.error("Upload error:", e);
+        return res.status(500).json({ message: "Dosya kaydetme hatası" });
+      }
+    });
+    
+    busboy.on("error", (err: unknown) => {
+      console.error("Busboy error:", err);
+      res.status(500).json({ message: "Upload hatası" });
+    });
+    
+    req.pipe(busboy);
+  });
+
+  // Detect black-bordered answer area in a JPEG image
+  app.post("/api/optics/detect-frame", async (req, res) => {
+    try {
+      const { filePath, threshold } = req.body;
+
+      if (!filePath) {
+        return res.status(400).json({ success: false, error: "filePath gerekli" });
+      }
+
+      const thr = typeof threshold === "number" ? Math.max(0, Math.min(255, Math.round(threshold))) : 120;
+
+      await fs.mkdir(uploadsDir, { recursive: true });
+      await fs.mkdir(processedDir, { recursive: true });
+      await fs.mkdir(errorsDir, { recursive: true });
+
+      const scriptPath = path.join(process.cwd(), "server", "optical_processor.py");
+
+      const result = await new Promise<string>((resolve, reject) => {
+        const proc = spawn("python", [scriptPath, "detect_frame", filePath, String(thr)], {
+          timeout: 30000,
+        });
+
+        let stdout = "";
+        let stderr = "";
+
+        proc.stdout?.on("data", (data) => { stdout += data.toString(); });
+        proc.stderr?.on("data", (data) => { stderr += data.toString(); });
+        proc.on("close", (code) => {
+          if (code !== 0) {
+            reject(new Error(stderr || `Python exited with code ${code}`));
+          } else {
+            resolve(stdout);
+          }
+        });
+        proc.on("error", (err) => reject(err));
+      });
+
+      const parsed = JSON.parse(result);
+      return res.status(200).json(parsed);
+    } catch (err) {
+      console.error("Çerçeve tespit hatası:", err);
+      return res.status(500).json({
+        success: false,
+        error: "Çerçeve tespit edilirken bir hata oluştu: " + String(err),
+      });
+    }
+  });
+
+  // Batch: process multiple JPEG files
+  app.post("/api/optics/batch", async (req, res) => {
+    try {
+      const { files, threshold } = req.body;
+
+      if (!files || !Array.isArray(files) || files.length === 0) {
+        return res.status(400).json({ success: false, error: "files dizisi gerekli" });
+      }
+
+      const thr = typeof threshold === "number" ? Math.max(0, Math.min(255, Math.round(threshold))) : 120;
+
+      const scriptPath = path.join(process.cwd(), "server", "optical_processor.py");
+      const tmpCsv = path.join(dbDir, `optic_batch_${Date.now()}.csv`);
+
+      // Python batch komutunu hazırla: batch <dosyalar> -o <csv> -t <eşik>
+      const pyArgs = [
+        scriptPath, "batch",
+        ...files,
+        "-o", tmpCsv,
+        "-t", String(thr),
+      ];
+
+      const result = await new Promise<string>((resolve, reject) => {
+        const proc = spawn("python", pyArgs, { timeout: 120000 + files.length * 60000 });
+        let stdout = "";
+        let stderr = "";
+        proc.stdout?.on("data", (data) => { stdout += data.toString(); });
+        proc.stderr?.on("data", (data) => { stderr += data.toString(); });
+        proc.on("close", (code) => {
+          if (code !== 0) {
+            reject(new Error(stderr || `Python batch exited with code ${code}`));
+          } else {
+            resolve(stdout);
+          }
+        });
+        proc.on("error", (err) => reject(err));
+      });
+
+      const summary = JSON.parse(result);
+
+      // CSV'yi oku
+      let csvContent = "";
+      try {
+        csvContent = await fs.readFile(tmpCsv, "utf-8");
+        await fs.unlink(tmpCsv).catch(() => {});
+      } catch {
+        // CSV okunamazsa boş dön
+      }
+
+      return res.status(200).json({
+        success: true,
+        csv: csvContent,
+        summary,
+      });
+    } catch (err) {
+      console.error("Batch işlem hatası:", err);
+      return res.status(500).json({
+        success: false,
+        error: "Batch işlem hatası: " + String(err),
+      });
+    }
+  });
+
+  // Error pages endpoint
+  app.post("/api/optics/error-pages", async (req, res) => {
+    try {
+      const { originalPath, pageNum, reason } = req.body;
+      
+      const errorRecord = {
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        originalPath,
+        pageNum,
+        reason,
+      };
+      
+      // errors.json dosyasına ekle
+      const errorsFile = path.join(dbDir, "optic_errors.json");
+      const existing = await (async () => {
+        try {
+          const d = await fs.readFile(errorsFile, "utf-8");
+          return JSON.parse(d) as any[];
+        } catch {
+          return [] as any[];
+        }
+      })();
+      
+      existing.push(errorRecord);
+      await fs.writeFile(errorsFile, JSON.stringify(existing, null, 2), "utf-8");
+      
+      return res.status(201).json({ message: "Hata kaydı eklendi" });
+    } catch (err) {
+      console.error("Error pages hatası:", err);
+      return res.status(500).json({ message: "Hata kaydı başarısız" });
     }
   });
 
