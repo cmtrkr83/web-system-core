@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Printer, Eye, Palette, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRegistry } from "@/context/RegistryContext";
+import { useToast } from "@/hooks/use-toast";
 
 const colorSchemes = [
 	{ id: "blue", name: "Mavi", primary: "bg-blue-200", border: "border-blue-300", bg: "bg-blue-50", text: "text-blue-900" },
@@ -29,6 +30,7 @@ interface Branch {
 }
 
 export default function BranchLabels() {
+	const { toast } = useToast();
 	const safe = (value: string) =>
 		String(value ?? "")
 			.replace(/&/g, "&amp;")
@@ -134,12 +136,12 @@ export default function BranchLabels() {
 
 	function handleHtmlPrint() {
 		if (!isLoaded) {
-			window.alert("Henüz veri yüklenmemiş. Lütfen Başlangıç sayfasından Excel dosyası yükleyin.");
+			toast({ title: "Veri yüklenmemiş", description: "Lütfen Başlangıç sayfasından Excel dosyası yükleyin.", variant: "destructive" });
 			return;
 		}
 
 		if (!pages || pages.length === 0) {
-			window.alert("Yazdırılacak etiket bulunamadı.");
+			toast({ title: "Etiket bulunamadı", description: "Yazdırılacak etiket bulunamadı.", variant: "destructive" });
 			return;
 		}
 
@@ -250,7 +252,7 @@ export default function BranchLabels() {
 
 		const printWindow = window.open("", "_blank", "width=1200,height=900");
 		if (!printWindow) {
-			window.alert("Yazdırma penceresi açılamadı. Tarayıcı engelleyicisini kontrol edin.");
+			toast({ title: "Pencere açılamadı", description: "Yazdırma penceresi açılamadı. Tarayıcı engelleyicisini kontrol edin.", variant: "destructive" });
 			return;
 		}
 
@@ -270,7 +272,12 @@ export default function BranchLabels() {
 			</html>`);
 		printWindow.document.close();
 		printWindow.focus();
-		printWindow.print();
+		try {
+			printWindow.print();
+		} catch {
+			toast({ title: "Hata", description: "Yazdırma sırasında hata oluştu.", variant: "destructive" });
+		}
+		toast({ title: "Başarılı", description: "Yazdırma sayfası hazırlandı." });
 	}
 
 	const currentScheme = colorSchemes.find(s => s.id === scheme) || colorSchemes[0];

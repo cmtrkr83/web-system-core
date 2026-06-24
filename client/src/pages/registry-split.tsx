@@ -246,7 +246,12 @@ export default function RegistrySplit() {
     `);
     printWindow.document.close();
     printWindow.focus();
-    printWindow.print();
+    try {
+      printWindow.print();
+      toast({ title: "Başarılı", description: `"${districtName}" yazdırılıyor.` });
+    } catch {
+      toast({ title: "Hata", description: "Yazdırma sırasında hata oluştu.", variant: "destructive" });
+    }
   };
 
   const handleDownload = async (districtId: string, districtName: string, showToast = true) => {

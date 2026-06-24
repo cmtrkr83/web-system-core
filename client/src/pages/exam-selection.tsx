@@ -36,25 +36,16 @@ const initialColumnMapping: ColumnMapping = {
   grade: "",
 };
 
-const requiredMappingFields: Array<keyof Pick<ColumnMapping, "district" | "schoolName" | "schoolCode" | "studentFirstName" | "studentLastName" | "studentNumber">> = [
-  "district",
-  "schoolName",
-  "schoolCode",
-  "studentFirstName",
-  "studentLastName",
-  "studentNumber",
-];
-
 const normalizeHeader = (value: string): string => {
   const charMap: Record<string, string> = {
-    "\u015E": "s", "\u015F": "s", // S, s
-    "\u011E": "g", "\u011F": "g", // G, g
-    "\u0130": "i",                 // I (buyuk i noktal)
-    "\u0131": "i",                 // i (kucuk i noktasiz)
+    "\u015E": "s", "\u015F": "s",
+    "\u011E": "g", "\u011F": "g",
+    "\u0130": "i",
+    "\u0131": "i",
     "I": "i",
-    "\u00DC": "u", "\u00FC": "u", // U, u
-    "\u00D6": "o", "\u00F6": "o", // O, o
-    "\u00C7": "c", "\u00E7": "c", // C, c
+    "\u00DC": "u", "\u00FC": "u",
+    "\u00D6": "o", "\u00F6": "o",
+    "\u00C7": "c", "\u00E7": "c",
   };
   return String(value ?? "")
     .trim()
@@ -70,14 +61,36 @@ const RAW_LOOKUP: Record<string, keyof ColumnMapping> = {
   "district": "district",
   "kurum adi": "schoolName",
   "okul adi": "schoolName",
+  "school name": "schoolName",
+  "schoolname": "schoolName",
+  "school": "schoolName",
+  "kurum": "schoolName",
+  "okul": "schoolName",
   "kurum kodu": "schoolCode",
   "okul kodu": "schoolCode",
+  "school code": "schoolCode",
+  "schoolcode": "schoolCode",
+  "code": "schoolCode",
   "ogrenci adi": "studentFirstName",
+  "student name": "studentFirstName",
+  "first name": "studentFirstName",
+  "firstname": "studentFirstName",
+  "adi": "studentFirstName",
+  "name": "studentFirstName",
   "ogrenci soyadi": "studentLastName",
   "soyadi": "studentLastName",
   "soyad": "studentLastName",
+  "last name": "studentLastName",
+  "lastname": "studentLastName",
+  "surname": "studentLastName",
   "ogrenci no": "studentNumber",
   "ogrenci numarasi": "studentNumber",
+  "student id": "studentNumber",
+  "studentid": "studentNumber",
+  "student no": "studentNumber",
+  "student number": "studentNumber",
+  "id": "studentNumber",
+  "no": "studentNumber",
   "tc kimlik no": "studentNumber",
   "tc no": "studentNumber",
   "tc": "studentNumber",
@@ -86,8 +99,12 @@ const RAW_LOOKUP: Record<string, keyof ColumnMapping> = {
   "subesi": "class",
   "sube": "class",
   "sube adi": "class",
+  "branch": "class",
+  "class": "class",
   "sinif": "grade",
   "sinif seviyesi": "grade",
+  "grade": "grade",
+  "level": "grade",
 };
 
 const COLUMN_LOOKUP: Record<string, keyof ColumnMapping> = Object.fromEntries(
@@ -96,7 +113,6 @@ const COLUMN_LOOKUP: Record<string, keyof ColumnMapping> = Object.fromEntries(
 
 const detectColumnMapping = (columns: string[]): ColumnMapping => {
   const result: ColumnMapping = { ...initialColumnMapping };
-
   for (const column of columns) {
     const normalized = normalizeHeader(column);
     const field = COLUMN_LOOKUP[normalized];
@@ -104,7 +120,6 @@ const detectColumnMapping = (columns: string[]): ColumnMapping => {
       result[field] = column;
     }
   }
-
   return result;
 };
 
@@ -150,6 +165,7 @@ export default function ExamSelection() {
     students: Student[];
   } | null>(null);
   const [excludeSpecialNeeds, setExcludeSpecialNeeds] = useState(true);
+  const [extraColumns, setExtraColumns] = useState<Set<string>>(new Set());
 
   const resetWizard = () => {
     setExamData({
@@ -170,6 +186,7 @@ export default function ExamSelection() {
     setStats({ districts: 0, schools: 0, students: 0 });
     setPreparedRegistryData(null);
     setExcludeSpecialNeeds(true);
+    setExtraColumns(new Set());
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -201,6 +218,11 @@ export default function ExamSelection() {
       await refreshRegistryData();
     } catch (error) {
       console.error("Geçici sınav geri alma hatası:", error);
+      toast({
+        title: "Hata",
+        description: "Geçici sınav temizlenemedi.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -224,6 +246,7 @@ export default function ExamSelection() {
         name: examData.name,
         date: examData.date,
         description: examData.description,
+        uploadMode: "free",
       });
 
       await selectExam(newExam.id);
@@ -237,6 +260,16 @@ export default function ExamSelection() {
       setCurrentStep(2);
     } catch (error) {
       console.error("Sınav oluşturma hatası:", error);
+      
+      if (createdExamId) {
+        try {
+          await apiRequest("DELETE", `/api/exams/${createdExamId}`);
+          await loadExams();
+        } catch (deleteError) {
+          console.error("Oluşturulan sınav temizlenemedi:", deleteError);
+        }
+      }
+      
       toast({
         title: "Hata",
         description: error instanceof Error ? error.message : "Sınav oluşturulamadı.",
@@ -278,11 +311,12 @@ export default function ExamSelection() {
         setRawData(rows);
         setExcelColumns(columns);
         setColumnMapping(detectColumnMapping(columns));
+        setExtraColumns(new Set(columns));
         setCurrentStep(3);
 
         toast({
           title: "Excel Okundu",
-          description: `${columns.length} sütun tespit edildi. Eşleştirmeyi kontrol edin.`,
+          description: `${columns.length} sütun tespit edildi. Sütunları eşleştirin.`,
         });
       } catch (error) {
         toast({
@@ -327,12 +361,10 @@ export default function ExamSelection() {
   };
 
   const handlePrepareRegistryUpload = () => {
-    const missingFields = requiredMappingFields.filter((field) => !columnMapping[field]);
-
-    if (missingFields.length > 0) {
+    if (!columnMapping.studentNumber) {
       toast({
         title: "Eksik Eşleştirme",
-        description: "Lütfen zorunlu sütunları eşleştirin.",
+        description: "Öğrenci numarası sütununu seçmelisiniz.",
         variant: "destructive",
       });
       return;
@@ -343,50 +375,66 @@ export default function ExamSelection() {
   };
 
   const handleApplyFiltersAndProceed = () => {
+    const studentIdCol = columnMapping.studentNumber!;
     const districtSet = new Set<string>();
     const schoolMap = new Map<string, { name: string; district: string }>();
     const students: Student[] = [];
 
     rawData.forEach((row, index) => {
-      const district = String(row[columnMapping.district] || "").trim();
-      const schoolName = String(row[columnMapping.schoolName] || "").trim();
-      const schoolCode = String(row[columnMapping.schoolCode] || `school-${index}`).trim();
-      const studentFirstName = String(row[columnMapping.studentFirstName] || "").trim();
-      const studentLastName = String(row[columnMapping.studentLastName] || "").trim();
-      const studentName = `${studentFirstName} ${studentLastName}`.trim();
-      const studentId = String(row[columnMapping.studentNumber] || `student-${index}`).trim();
+      const studentId = String(row[studentIdCol] || `student-${index}`).trim();
+      if (!studentId) return;
+
+      const district = columnMapping.district ? String(row[columnMapping.district] || "").trim() : "";
+      const schoolName = columnMapping.schoolName ? String(row[columnMapping.schoolName] || "").trim() : "";
+      const schoolCode = columnMapping.schoolCode ? String(row[columnMapping.schoolCode] || "").trim() : `school-${index}`;
+      const studentFirstName = columnMapping.studentFirstName ? String(row[columnMapping.studentFirstName] || "").trim() : "";
+      const studentLastName = columnMapping.studentLastName ? String(row[columnMapping.studentLastName] || "").trim() : "";
+      const hasLastName = !!columnMapping.studentLastName;
+      const studentName = hasLastName ? `${studentFirstName} ${studentLastName}`.trim() : (studentFirstName || studentId);
       const schoolNo = columnMapping.schoolNumber ? String(row[columnMapping.schoolNumber] || "").trim() : "";
       const classInfo = columnMapping.class ? String(row[columnMapping.class] || "").trim() : "";
       const gradeInfo = columnMapping.grade ? String(row[columnMapping.grade] || "").trim() : "";
+
+      // Build freeData from extra columns
+      const freeData: Record<string, string> = {};
+      for (const col of Array.from(extraColumns)) {
+        freeData[col] = String(row[col] ?? "").trim();
+      }
 
       if (excludeSpecialNeeds && isExcludedSchool(schoolName)) return;
       if (excludeSpecialNeeds && isExcludedBranch(classInfo)) return;
 
       if (district) districtSet.add(district);
-      if (schoolName && schoolCode) schoolMap.set(schoolCode, { name: schoolName, district });
+      if (schoolName) schoolMap.set(schoolCode, { name: schoolName, district });
 
-      if (studentName && studentId) {
-        students.push({
-          id: `st-${studentId}-${index}`,
-          name: studentName,
-          tc: studentId,
-          schoolId: schoolCode,
-          salon: gradeInfo,
-          class: classInfo,
-          schoolNo,
-        });
-      }
+      students.push({
+        id: `st-${studentId}-${index}`,
+        name: studentName,
+        tc: studentId,
+        schoolId: schoolCode || "free",
+        salon: gradeInfo,
+        class: classInfo,
+        schoolNo,
+        freeData: Object.keys(freeData).length > 0 ? JSON.stringify(freeData) : undefined,
+      });
     });
 
-    const districts: District[] = Array.from(districtSet).map((name, index) => ({
-      id: `d${index + 1}`,
-      name,
-    }));
+    let districts: District[];
+    let schools: School[];
 
-    const schools: School[] = Array.from(schoolMap.entries()).map(([code, info]) => {
-      const district = districts.find((item) => item.name === info.district);
-      return { id: code, name: info.name, districtId: district?.id || "d1", code };
-    });
+    if (schoolMap.size > 0) {
+      districts = Array.from(districtSet).map((name, index) => ({
+        id: `d${index + 1}`,
+        name,
+      }));
+      schools = Array.from(schoolMap.entries()).map(([code, info]) => {
+        const district = districts.find((item) => item.name === info.district);
+        return { id: code, name: info.name, districtId: district?.id || "d1", code };
+      });
+    } else {
+      districts = [{ id: "d1", name: "Genel" }];
+      schools = [{ id: "free", name: "Serbest Yükleme", districtId: "d1", code: "free" }];
+    }
 
     setStats({ districts: districts.length, schools: schools.length, students: students.length });
     setPreparedRegistryData({ districts, schools, students });
@@ -412,6 +460,7 @@ export default function ExamSelection() {
       });
 
       await refreshRegistryData();
+      await loadExams();
       setRegistryUploaded(true);
 
       toast({
@@ -497,20 +546,16 @@ export default function ExamSelection() {
     { step: 5, label: "Onay ve Yükleme" },
   ];
 
-  const mappingFields: Array<{
-    key: keyof ColumnMapping;
-    label: string;
-    required?: boolean;
-  }> = [
-    { key: "district", label: "İlçe Adı", required: true },
-    { key: "schoolName", label: "Okul Adı", required: true },
-    { key: "schoolCode", label: "Okul Kodu", required: true },
-    { key: "studentFirstName", label: "Öğrenci Adı", required: true },
-    { key: "studentLastName", label: "Öğrenci Soyadı", required: true },
-    { key: "studentNumber", label: "Öğrenci Numarası / TC", required: true },
-    { key: "schoolNumber", label: "OPAQ Numarası" },
-    { key: "class", label: "Şube" },
-    { key: "grade", label: "Sınıf Seviyesi" },
+  const mappingFields = [
+    { key: "studentNumber" as const, label: "Öğrenci Numarası / TC", required: true },
+    { key: "studentFirstName" as const, label: "Öğrenci Adı" },
+    { key: "studentLastName" as const, label: "Öğrenci Soyadı" },
+    { key: "schoolName" as const, label: "Okul Adı" },
+    { key: "schoolCode" as const, label: "Okul Kodu" },
+    { key: "district" as const, label: "İlçe Adı" },
+    { key: "class" as const, label: "Şube" },
+    { key: "grade" as const, label: "Sınıf Seviyesi" },
+    { key: "schoolNumber" as const, label: "Okul Numarası" },
   ];
 
   const renderWizardContent = () => {
@@ -593,7 +638,7 @@ export default function ExamSelection() {
               </div>
               <h3 className="text-lg font-semibold text-foreground">Excel dosyasını yükleyin</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                İlçe, okul ve öğrenci bilgilerini içeren dosyayı seçin.
+                Excel dosyasını seçin. Sütunları bir sonraki adımda eşleştireceksiniz.
               </p>
 
               <div className="mt-6 flex items-center justify-center gap-3">
@@ -644,7 +689,16 @@ export default function ExamSelection() {
                   </Label>
                   <Select
                     value={columnMapping[field.key] || undefined}
-                    onValueChange={(value) => handleMappingChange(field.key, value)}
+                    onValueChange={(value) => {
+                      handleMappingChange(field.key, value);
+                      if (field.key === "studentNumber") {
+                        setExtraColumns(prev => {
+                          const next = new Set(prev);
+                          next.delete(value);
+                          return next;
+                        });
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Sütun seçin" />
@@ -661,8 +715,65 @@ export default function ExamSelection() {
               ))}
             </div>
 
+            <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-foreground">Ek Sütunlar</p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const used = Object.values(columnMapping).filter(Boolean);
+                      setExtraColumns(new Set(excelColumns.filter(c => !used.includes(c))));
+                    }}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Tümünü Seç
+                  </button>
+                  <span className="text-xs text-muted-foreground">|</span>
+                  <button
+                    type="button"
+                    onClick={() => setExtraColumns(new Set())}
+                    className="text-xs text-muted-foreground hover:underline"
+                  >
+                    Temizle
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+                {excelColumns.filter(c => !Object.values(columnMapping).includes(c)).map((column) => {
+                  const isSelected = extraColumns.has(column);
+                  return (
+                    <label
+                      key={column}
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer transition-colors ${
+                        isSelected
+                          ? "border-primary bg-primary/5 text-foreground"
+                          : "border-border text-muted-foreground hover:border-muted-foreground/30"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {
+                          const next = new Set(extraColumns);
+                          if (next.has(column)) next.delete(column);
+                          else next.add(column);
+                          setExtraColumns(next);
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                      <span className="truncate">{column}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {extraColumns.size} ek sütun seçili
+              </p>
+            </div>
+
             <div className="rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground">
-              {rawData.length} satır yüklendi. Sütunları eşledikten sonra önizleme aşamasına geçebilirsiniz.
+              {rawData.length} satır yüklendi. Öğrenci Numarası zorunludur, diğer alanlar isteğe bağlıdır.
             </div>
 
             <div className="flex justify-between gap-3 pt-2">
@@ -739,10 +850,7 @@ export default function ExamSelection() {
 
             <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
               {currentStep === 5 && createdExamId ? (
-                <p>
-                  {mappingComplete ? "Sütun eşleştirmesi tamamlandı. " : ""}
-                  Bu kütük verileri seçili sınava bağlanacak ve ardından genel bakış ekranına yönlendirileceksiniz.
-                </p>
+                <p>{stats.students} öğrenci kaydı seçili sınava bağlanacak.</p>
               ) : null}
             </div>
 
@@ -753,20 +861,16 @@ export default function ExamSelection() {
                   <table className="w-full text-left text-sm">
                     <thead className="sticky top-0 bg-background">
                       <tr className="border-b">
-                        {mappingFields.slice(0, 6).map((field) => (
-                          <th key={String(field.key)} className="px-4 py-2 font-medium text-muted-foreground">
-                            {field.label}
-                          </th>
+                        {[columnMapping.studentNumber, ...Array.from(extraColumns)].filter(Boolean).map((label, i) => (
+                          <th key={i} className="px-4 py-2 font-medium text-muted-foreground">{label}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {rawData.slice(0, 3).map((row, index) => (
                         <tr key={index} className="border-b last:border-b-0">
-                          {mappingFields.slice(0, 6).map((field) => (
-                            <td key={String(field.key)} className="px-4 py-2">
-                              {String(row[columnMapping[field.key]] ?? "")}
-                            </td>
+                          {[columnMapping.studentNumber, ...Array.from(extraColumns)].filter(Boolean).map((col, i) => (
+                            <td key={i} className="px-4 py-2">{String(row[col] ?? "")}</td>
                           ))}
                         </tr>
                       ))}
@@ -843,13 +947,23 @@ export default function ExamSelection() {
                     <CardTitle className="text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2">
                       {exam.name}
                     </CardTitle>
-                    <span className={`mt-2 inline-block px-3 py-1 text-xs font-semibold rounded-full ${
-                      exam.isActive === "1"
-                        ? "text-white bg-primary"
-                        : "text-muted-foreground bg-muted"
-                    }`}>
-                      {exam.isActive === "1" ? "Aktif" : "İnaktif"}
-                    </span>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+                        exam.isActive === "1"
+                          ? "text-white bg-primary"
+                          : "text-muted-foreground bg-muted"
+                      }`}>
+                        {exam.isActive === "1" ? "Aktif" : "İnaktif"}
+                      </span>
+                      {exam.sinavid && (
+                        <span className="inline-block px-2.5 py-1 text-xs font-mono font-bold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                          #{exam.sinavid}
+                        </span>
+                      )}
+                      <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                        Serbest
+                      </span>
+                    </div>
                   </div>
 
                   <Button

@@ -8,6 +8,7 @@ export interface Student {
   schoolId: string;
   salon: string;
   class: string; // Şube
+  freeData?: string;     // Serbest Excel ek sütun verileri (JSON)
 }
 
 export interface School {
@@ -29,6 +30,8 @@ export interface Exam {
   description: string;
   createdAt: string;
   isActive: string;
+  sinavid?: string;
+  uploadMode?: string;
 }
 
 export interface RegistryMeta {

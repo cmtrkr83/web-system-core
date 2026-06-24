@@ -8,6 +8,7 @@ import { ClipboardCheck, FileCheck, FileSignature } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useRegistry } from "@/context/RegistryContext";
+import { useToast } from "@/hooks/use-toast";
 
 const sanitizeFileName = (text: string): string =>
   text
@@ -26,6 +27,7 @@ const sanitizeFileName = (text: string): string =>
     .replace(/\s+/g, "_");
 
 export default function Reports() {
+  const { toast } = useToast();
   const { districts, schools, students, isLoaded, exams, selectedExamId } = useRegistry();
   const selectedExam = exams.find((e) => e.id === selectedExamId);
 
@@ -36,38 +38,9 @@ export default function Reports() {
   const [isBlankTemplate, setIsBlankTemplate] = useState(false);
 
   const saveHtmlAsPdf = async (html: string, fileName: string) => {
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = html;
-    tempDiv.style.position = "absolute";
-    tempDiv.style.left = "-9999px";
-    tempDiv.style.top = "0";
-    tempDiv.style.width = "1123px";
-    tempDiv.style.background = "#fff";
-    document.body.appendChild(tempDiv);
-
-    const canvas = await html2canvas(tempDiv, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: "#ffffff",
-    });
-
-    const pdf = new jsPDF("l", "mm", "a4");
-    const imgData = canvas.toDataURL("image/png");
-    const imgWidth = 277;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
-    pdf.save(fileName);
-
-    document.body.removeChild(tempDiv);
-  };
-
-  const saveHtmlPagesAsPdf = async (htmlPages: string[], fileName: string) => {
-    const pdf = new jsPDF("l", "mm", "a4");
-
-    for (let i = 0; i < htmlPages.length; i++) {
+    try {
       const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = htmlPages[i];
+      tempDiv.innerHTML = html;
       tempDiv.style.position = "absolute";
       tempDiv.style.left = "-9999px";
       tempDiv.style.top = "0";
@@ -82,19 +55,56 @@ export default function Reports() {
         backgroundColor: "#ffffff",
       });
 
+      const pdf = new jsPDF("l", "mm", "a4");
       const imgData = canvas.toDataURL("image/png");
       const imgWidth = 277;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      if (i > 0) {
-        pdf.addPage();
-      }
       pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+      pdf.save(fileName);
 
       document.body.removeChild(tempDiv);
+    } catch (error) {
+      toast({ title: "Hata", description: "PDF oluşturulamadı.", variant: "destructive" });
     }
+  };
 
-    pdf.save(fileName);
+  const saveHtmlPagesAsPdf = async (htmlPages: string[], fileName: string) => {
+    try {
+      const pdf = new jsPDF("l", "mm", "a4");
+
+      for (let i = 0; i < htmlPages.length; i++) {
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = htmlPages[i];
+        tempDiv.style.position = "absolute";
+        tempDiv.style.left = "-9999px";
+        tempDiv.style.top = "0";
+        tempDiv.style.width = "1123px";
+        tempDiv.style.background = "#fff";
+        document.body.appendChild(tempDiv);
+
+        const canvas = await html2canvas(tempDiv, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+        });
+
+        const imgData = canvas.toDataURL("image/png");
+        const imgWidth = 277;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        if (i > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+
+        document.body.removeChild(tempDiv);
+      }
+
+      pdf.save(fileName);
+    } catch (error) {
+      toast({ title: "Hata", description: "PDF oluşturulamadı.", variant: "destructive" });
+    }
   };
 
   const chunkRows = (rows: string[][], chunkSize: number): string[][][] => {
@@ -153,7 +163,7 @@ export default function Reports() {
   // İlçe tutanağı oluştur
   const handleCreateDistrictReport = async () => {
     if (!isLoaded || districts.length === 0) {
-      alert("Lütfen önce veri yükleyin.");
+      toast({ title: "Veri yok", description: "Lütfen önce veri yükleyin.", variant: "destructive" });
       return;
     }
 
@@ -181,13 +191,14 @@ export default function Reports() {
     const today = new Date().toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
     await saveHtmlAsPdf(html, `Ilce_Teslim_Tutanagi_${today.replace(/\./g, "-")}.pdf`);
     setGenerated(true);
+    toast({ title: "Başarılı", description: "İlçe teslim tutanağı PDF olarak kaydedildi." });
   };
 
   // Okul tutanağı oluştur
   const handleCreateSchoolReport = async () => {
     // Boş şablon ise veri kontrolü yapma
     if (!isBlankTemplate && (!isLoaded || schools.length === 0)) {
-      alert("Lütfen önce veri yükleyin veya boş şablon seçeneğini işaretleyin.");
+      toast({ title: "Veri yok", description: "Lütfen önce veri yükleyin veya boş şablon seçeneğini işaretleyin.", variant: "destructive" });
       return;
     }
 
@@ -244,6 +255,7 @@ export default function Reports() {
     const filename = `Okul_Teslim_Tutanagi_${districtName.replace(/\s+/g, "_")}_${today.replace(/\./g, "-")}.pdf`;
     await saveHtmlPagesAsPdf(htmlPages, filename);
     setGenerated(true);
+    toast({ title: "Başarılı", description: "Okul teslim tutanağı PDF olarak kaydedildi." });
   };
 
   return (

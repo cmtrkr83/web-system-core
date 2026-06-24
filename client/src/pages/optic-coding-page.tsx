@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRegistry, type Student } from "@/context/RegistryContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ interface FieldItem {
   mappingKey: MappingKey;
   columnName: string;
   sourceKey: SourceKey;
+  freeDataKey?: string;
 }
 
 interface FieldState {
@@ -177,9 +178,31 @@ export default function OpticCoding() {
   const previewRef = useRef<HTMLDivElement | null>(null);
 
   const mappedFields = useMemo(() => {
+    const freeDataKeys = new Set<string>();
+    for (const student of students) {
+      if (student.freeData) {
+        try {
+          const data = JSON.parse(student.freeData);
+          for (const key of Object.keys(data)) {
+            freeDataKeys.add(key);
+          }
+        } catch { /* ignore */ }
+      }
+    }
+
+    if (freeDataKeys.size > 0) {
+      return Array.from(freeDataKeys).map((key, idx) => ({
+        id: `free-${idx}`,
+        mappingKey: "studentName" as MappingKey,
+        columnName: key,
+        sourceKey: "name" as SourceKey,
+        freeDataKey: key,
+      }));
+    }
+
     const fromStorage = buildFieldsFromStorage();
     return fromStorage.length > 0 ? fromStorage : fallbackFields;
-  }, []);
+  }, [students]);
 
   const [paperSize, setPaperSize] = useState<PaperSize>("A4");
   const [districtId, setDistrictId] = useState<string>("all");
@@ -189,6 +212,23 @@ export default function OpticCoding() {
   const [templateDataUrl, setTemplateDataUrl] = useState<string>("");
   const [draggingFieldId, setDraggingFieldId] = useState<string | null>(null);
   const [fieldStateMap, setFieldStateMap] = useState<Record<string, FieldState>>(() => buildInitialState(mappedFields));
+
+  useEffect(() => {
+    setFieldStateMap(prev => {
+      const next = { ...prev };
+      let changed = false;
+      mappedFields.forEach((field, idx) => {
+        if (!next[field.id]) {
+          next[field.id] = {
+            txtEnabled: true,
+            textPlacement: { xMm: 16, yMm: 24 + idx * 9 },
+          };
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [mappedFields]);
 
   const paper = PAPER_DIMENSIONS[paperSize];
   // preview is rendered in mm units so positioning is consistent with print output
@@ -218,7 +258,16 @@ export default function OpticCoding() {
     return scopedStudents.filter((s) => s.class === className);
   }, [scopedStudents, className]);
 
-  const resolveValue = (student: Student, sourceKey: SourceKey) => {
+  const resolveValue = (student: Student, field: FieldItem) => {
+    if (field.freeDataKey && student.freeData) {
+      try {
+        const data = JSON.parse(student.freeData);
+        const val = data[field.freeDataKey];
+        if (val !== undefined && val !== null) return String(val);
+      } catch { /* ignore */ }
+    }
+
+    const sourceKey = field.sourceKey;
     const school = schools.find((s) => s.id === student.schoolId);
     const district = districts.find((d) => d.id === school?.districtId);
 
@@ -310,7 +359,13 @@ export default function OpticCoding() {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => setTemplateDataUrl(typeof reader.result === "string" ? reader.result : "");
+    reader.onload = () => {
+      setTemplateDataUrl(typeof reader.result === "string" ? reader.result : "");
+      toast({ title: "Başarılı", description: `"${file.name}" yüklendi.` });
+    };
+    reader.onerror = () => {
+      toast({ title: "Hata", description: "Dosya okunamadı.", variant: "destructive" });
+    };
     reader.readAsDataURL(file);
   };
 
@@ -333,7 +388,7 @@ export default function OpticCoding() {
             const state = fieldStateMap[field.id];
             if (!state?.txtEnabled) return "";
 
-            const value = resolveValue(student, field.sourceKey);
+            const value = resolveValue(student, field);
             return `<div style="position:absolute;left:${state.textPlacement.xMm}mm;top:${state.textPlacement.yMm}mm;font-size:${fontSizeMm}mm;line-height:1;color:#000;white-space:nowrap;">${escapeHtml(String(value || ""))}</div>`;
           })
           .join("");
@@ -351,7 +406,11 @@ export default function OpticCoding() {
     printWindow.document.write(`<!doctype html><html lang="tr"><head><meta charset="UTF-8" /><style>@page{size:${paperSize} portrait;margin:0;}html,body{margin:0;padding:0;}body{background:#fff;}.optic-page{position:relative;width:${paper.widthMm}mm;height:${paper.heightMm}mm;page-break-after:always;overflow:hidden;}.optic-page:last-child{page-break-after:auto;}.optic-template{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;}</style></head><body>${pagesHtml}</body></html>`);
     printWindow.document.close();
     printWindow.focus();
-    printWindow.print();
+    try {
+      printWindow.print();
+    } catch {
+      toast({ title: "Hata", description: "Yazdırma sırasında hata oluştu.", variant: "destructive" });
+    }
 
     toast({ title: "Yazdirma Baslatildi", description: `${filteredStudents.length} ogrenci icin cikti hazirlandi.` });
   };
@@ -474,7 +533,7 @@ export default function OpticCoding() {
                     const state = fieldStateMap[field.id];
                     if (!state?.txtEnabled) return null;
 
-                    const previewValue = filteredStudents[0] ? resolveValue(filteredStudents[0], field.sourceKey) : "";
+                    const previewValue = filteredStudents[0] ? resolveValue(filteredStudents[0], field) : "";
 
                     return (
                       <div

@@ -53,6 +53,7 @@ export const registryStudents = sqliteTable(
     schoolId: text("school_id").notNull(),
     salon: text("salon").notNull(),
     class: text("class").notNull(),
+    freeData: text("free_data"),
   },
   (table) => ({
     pk: primaryKey(table.id, table.examId),
@@ -73,9 +74,13 @@ export const exams = sqliteTable("exams", {
   description: text("description").notNull().default(""),
   createdAt: text("created_at").notNull(),
   isActive: text("is_active").notNull().default("0"),
+  sinavid: text("sinavid"),
+  uploadMode: text("upload_mode").notNull().default("template"),
 });
 
-export const insertExamSchema = createInsertSchema(exams).omit({ id: true, createdAt: true });
+export const insertExamSchema = createInsertSchema(exams).omit({ id: true, createdAt: true }).extend({
+  uploadMode: z.string().optional(),
+});
 export const insertRegistryDistrictSchema = createInsertSchema(registryDistricts).omit({ examId: true });
 export const insertRegistrySchoolSchema = createInsertSchema(registrySchools).omit({ examId: true });
 export const insertRegistryStudentSchema = createInsertSchema(registryStudents).omit({ examId: true });

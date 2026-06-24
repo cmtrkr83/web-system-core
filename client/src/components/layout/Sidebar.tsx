@@ -9,7 +9,8 @@ import {
   QrCode,
   Menu,
   X,
-  BookOpen
+  BookOpen,
+  ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/reports", label: "Teslim Tutanağı", icon: ClipboardCheck },
   { href: "/optic-coding", label: "Optik Kodlama", icon: QrCode },
   { href: "/optic-reading", label: "Optik Okuma", icon: QrCode },
+  { href: "/evaluation", label: "Değerlendirme", icon: ClipboardList },
 ];
 
 export function Sidebar() {

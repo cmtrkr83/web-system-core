@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Printer, Eye, Palette, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRegistry } from "@/context/RegistryContext";
+import { useToast } from "@/hooks/use-toast";
 
 const colorSchemes = [
 	{ id: "blue", name: "Mavi", primary: "bg-blue-200", border: "border-blue-300", bg: "bg-blue-50", text: "text-blue-900" },
@@ -18,6 +19,7 @@ const colorSchemes = [
 ];
 
 export default function Labels() {
+	const { toast } = useToast();
 	const formatSchoolName = (name: string) => {
 		const turkishUpperMap: Record<string, string> = {
 			a: "A", ç: "Ç", d: "D", e: "E", f: "F", g: "G", ğ: "Ğ", h: "H", ı: "I",
@@ -118,18 +120,18 @@ export default function Labels() {
 
 	function handleHtmlPrint() {
 		if (!isLoaded) {
-			window.alert("Henüz veri yüklenmemiş. Lütfen Başlangıç sayfasından Excel dosyası yükleyin.");
+			toast({ title: "Veri yüklenmemiş", description: "Lütfen Başlangıç sayfasından Excel dosyası yükleyin.", variant: "destructive" });
 			return;
 		}
 
 		if (!pages || pages.length === 0) {
-			window.alert("Yazdırılacak etiket bulunamadı.");
+			toast({ title: "Etiket bulunamadı", description: "Yazdırılacak etiket bulunamadı.", variant: "destructive" });
 			return;
 		}
 
 		const printWindow = window.open("", "_blank", "width=1200,height=900");
 		if (!printWindow) {
-			window.alert("Yazdırma penceresi açılamadı. Tarayıcı engelleyicisini kontrol edin.");
+			toast({ title: "Pencere açılamadı", description: "Yazdırma penceresi açılamadı. Tarayıcı engelleyicisini kontrol edin.", variant: "destructive" });
 			return;
 		}
 
@@ -277,9 +279,10 @@ export default function Labels() {
 				printWindow.focus();
 				printWindow.print();
 			} catch {
-				// no-op fallback
+				toast({ title: "Hata", description: "Yazdırma sırasında hata oluştu.", variant: "destructive" });
 			}
 		}, 500);
+		toast({ title: "Başarılı", description: "Yazdırma sayfası hazırlandı." });
 	}
 
 	const currentScheme = colorSchemes.find(s => s.id === scheme) || colorSchemes[0];

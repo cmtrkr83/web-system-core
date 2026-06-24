@@ -33,7 +33,8 @@ export async function registerRoutes(
       });
     }
 
-    const exam = await storage.createExam(parsed.data);
+    const examData = { ...parsed.data, uploadMode: req.body.uploadMode || "template" };
+    const exam = await storage.createExam(examData as any);
     return res.status(201).json(exam);
   });
 

@@ -86,6 +86,7 @@ export function OpticCalibrationEditor({ onConfigSaved }: OpticCalibrationEditor
       setAreas([]);
       setSelectedAreaId(null);
       setCalibrateStep(0);
+      toast({ title: "Şablon yüklendi", description: `"${file.name}" başarıyla yüklendi.` });
     } catch {
       toast({ title: "Hata", description: "Sablon PDF acilamadi.", variant: "destructive" });
     } finally {
@@ -303,6 +304,7 @@ export function OpticCalibrationEditor({ onConfigSaved }: OpticCalibrationEditor
   const removeArea = (id: string) => {
     setAreas((prev) => prev.filter((a) => a.id !== id));
     if (selectedAreaId === id) setSelectedAreaId(null);
+    toast({ title: "Alan silindi", description: "Ders alanı kaldırıldı." });
   };
 
   const startCalibrate = () => {
@@ -328,6 +330,7 @@ export function OpticCalibrationEditor({ onConfigSaved }: OpticCalibrationEditor
       ),
     );
     setCalibrateStep(0);
+    toast({ title: "Baloncuk referansları sıfırlandı", description: "Varsayılan konumlara dönüldü." });
   };
 
   const buildConfig = (): OpticSheetConfig => ({

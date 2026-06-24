@@ -8,8 +8,10 @@ import { FileText, Printer, Eye, ChevronLeft, ChevronRight } from "lucide-react"
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useRegistry, type Student } from "@/context/RegistryContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RoomLists() {
+  const { toast } = useToast();
   const { districts, schools, students, isLoaded } = useRegistry();
   const [selectedDistrict, setSelectedDistrict] = useState<string>("all");
   const [selectedSchool, setSelectedSchool] = useState<string>("all");
@@ -191,7 +193,7 @@ export default function RoomLists() {
       }
 
       if (htmlSections.length === 0) {
-        alert('Yazdırılacak öğrenci bulunamadı.');
+        toast({ title: "Öğrenci bulunamadı", description: "Yazdırılacak öğrenci bulunamadı.", variant: "destructive" });
         return;
       }
 
@@ -240,8 +242,9 @@ export default function RoomLists() {
       }
 
       pdf.save(filename);
+      toast({ title: "Başarılı", description: "Salon listesi PDF olarak kaydedildi." });
     } catch (error) {
-      alert('PDF oluşturulurken hata oluştu.');
+      toast({ title: "Hata", description: "PDF oluşturulurken hata oluştu.", variant: "destructive" });
     }
   };
 

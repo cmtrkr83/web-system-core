@@ -44,6 +44,10 @@ export class MemStorage implements IStorage {
     this.exams = new Map();
   }
 
+  private generateSinavid(): string {
+    return String(Math.floor(100000 + Math.random() * 900000));
+  }
+
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
   }
@@ -91,7 +95,9 @@ export class MemStorage implements IStorage {
       id, 
       createdAt: now, 
       isActive: "0",
-      description: exam.description || ""
+      description: exam.description || "",
+      sinavid: this.generateSinavid(),
+      uploadMode: exam.uploadMode || "template"
     };
     this.exams.set(id, newExam);
     return newExam;
@@ -111,6 +117,19 @@ export class MemStorage implements IStorage {
 
 // SQLite Storage implementation using Drizzle ORM
 export class DrizzleStorage implements IStorage {
+  private usedSinavids = new Set<string>();
+
+  private generateSinavid(): string {
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const sid = String(Math.floor(100000 + Math.random() * 900000));
+      if (!this.usedSinavids.has(sid)) {
+        this.usedSinavids.add(sid);
+        return sid;
+      }
+    }
+    return String(Math.floor(100000 + Math.random() * 900000));
+  }
+
   private db;
 
   constructor(dbPath: string) {
@@ -135,7 +154,8 @@ export class DrizzleStorage implements IStorage {
         date TEXT NOT NULL,
         description TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
-        is_active TEXT NOT NULL DEFAULT '0'
+        is_active TEXT NOT NULL DEFAULT '0',
+        sinavid TEXT
       );
       CREATE TABLE IF NOT EXISTS registry_districts (
         id TEXT PRIMARY KEY,
@@ -177,6 +197,9 @@ export class DrizzleStorage implements IStorage {
     ensureColumn("registry_districts", "exam_id", "exam_id TEXT NOT NULL DEFAULT ''");
     ensureColumn("registry_schools", "exam_id", "exam_id TEXT NOT NULL DEFAULT ''");
     ensureColumn("registry_students", "exam_id", "exam_id TEXT NOT NULL DEFAULT ''");
+    ensureColumn("registry_students", "free_data", "free_data TEXT");
+    ensureColumn("exams", "sinavid", "sinavid TEXT");
+    ensureColumn("exams", "upload_mode", "upload_mode TEXT NOT NULL DEFAULT 'template'");
 
     const latestRegistryMeta = sqlite
       .prepare(`SELECT exam_id AS examId FROM registry_meta WHERE exam_id != '' ORDER BY loaded_at DESC LIMIT 1`)
@@ -268,6 +291,26 @@ export class DrizzleStorage implements IStorage {
       );
 
     this.db = drizzle(sqlite);
+
+    // Load existing sinavids into the dedup set
+    try {
+      const existing = this.db.select({ sinavid: exams.sinavid }).from(exams).all() as { sinavid: string | null }[];
+      for (const e of existing) {
+        if (e.sinavid) this.usedSinavids.add(e.sinavid);
+      }
+    } catch {} // table may not exist yet
+
+    // Backfill sinavid for existing exams that have null
+    try {
+      const nullSinavids = this.db.select().from(exams).all() as Exam[];
+      for (const exam of nullSinavids) {
+        if (!exam.sinavid) {
+          const sid = this.generateSinavid();
+          this.db.update(exams).set({ sinavid: sid }).where(eq(exams.id, exam.id)).run();
+          console.log(`  → Backfilled sinavid ${sid} for exam "${exam.name}"`);
+        }
+      }
+    } catch {} // column may not exist yet
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -377,11 +420,13 @@ export class DrizzleStorage implements IStorage {
       id, 
       createdAt: now, 
       isActive: "0",
-      description: exam.description || ""
+      description: exam.description || "",
+      sinavid: this.generateSinavid(),
+      uploadMode: exam.uploadMode || "template"
     };
     try {
       await this.db.insert(exams).values(newExam);
-      console.log("✓ Exam created:", newExam.id, newExam.name);
+      console.log("✓ Exam created:", newExam.id, newExam.name, "sinavid:", newExam.sinavid, "uploadMode:", newExam.uploadMode);
     } catch (err) {
       console.error("✗ Exam creation failed:", err);
       throw err;
