@@ -22,6 +22,7 @@ interface ColumnMapping {
   schoolNumber: string;
   class: string;
   grade: string;
+  province: string;
 }
 
 const initialColumnMapping: ColumnMapping = {
@@ -34,6 +35,7 @@ const initialColumnMapping: ColumnMapping = {
   schoolNumber: "",
   class: "",
   grade: "",
+  province: "",
 };
 
 const normalizeHeader = (value: string): string => {
@@ -105,6 +107,10 @@ const RAW_LOOKUP: Record<string, keyof ColumnMapping> = {
   "sinif seviyesi": "grade",
   "grade": "grade",
   "level": "grade",
+  "il adi": "province",
+  "il": "province",
+  "province": "province",
+  "city": "province",
 };
 
 const COLUMN_LOOKUP: Record<string, keyof ColumnMapping> = Object.fromEntries(
@@ -150,7 +156,8 @@ export default function ExamSelection() {
     studentNumber: "",
     schoolNumber: "",
     class: "",
-    grade: ""
+    grade: "",
+    province: "",
   });
   const [mappingComplete, setMappingComplete] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -394,12 +401,23 @@ export default function ExamSelection() {
       const schoolNo = columnMapping.schoolNumber ? String(row[columnMapping.schoolNumber] || "").trim() : "";
       const classInfo = columnMapping.class ? String(row[columnMapping.class] || "").trim() : "";
       const gradeInfo = columnMapping.grade ? String(row[columnMapping.grade] || "").trim() : "";
+      const provinceInfo = columnMapping.province ? String(row[columnMapping.province] || "").trim() : "";
 
-      // Build freeData from extra columns
-      const freeData: Record<string, string> = {};
+      // Build extraData from extra columns + mapped fields (orijinal Excel sutun adlariyla)
+      const extraData: Record<string, string> = {};
       for (const col of Array.from(extraColumns)) {
-        freeData[col] = String(row[col] ?? "").trim();
+        extraData[col] = String(row[col] ?? "").trim();
       }
+      if (district && columnMapping.district) extraData[columnMapping.district] = district;
+      if (schoolName && columnMapping.schoolName) extraData[columnMapping.schoolName] = schoolName;
+      if (schoolCode && columnMapping.schoolCode) extraData[columnMapping.schoolCode] = schoolCode;
+      if (studentFirstName && columnMapping.studentFirstName) extraData[columnMapping.studentFirstName] = studentFirstName;
+      if (studentLastName && columnMapping.studentLastName) extraData[columnMapping.studentLastName] = studentLastName;
+      if (schoolNo && columnMapping.schoolNumber) extraData[columnMapping.schoolNumber] = schoolNo;
+      if (classInfo && columnMapping.class) extraData[columnMapping.class] = classInfo;
+      if (gradeInfo && columnMapping.grade) extraData[columnMapping.grade] = gradeInfo;
+      if (provinceInfo && columnMapping.province) extraData[columnMapping.province] = provinceInfo;
+      if (studentId && columnMapping.studentNumber) extraData[columnMapping.studentNumber] = studentId;
 
       if (excludeSpecialNeeds && isExcludedSchool(schoolName)) return;
       if (excludeSpecialNeeds && isExcludedBranch(classInfo)) return;
@@ -409,13 +427,13 @@ export default function ExamSelection() {
 
       students.push({
         id: `st-${studentId}-${index}`,
-        name: studentName,
-        tc: studentId,
+        fullName: studentName,
+        studentNo: studentId,
         schoolId: schoolCode || "free",
-        salon: gradeInfo,
+        grade: gradeInfo,
         class: classInfo,
         schoolNo,
-        freeData: Object.keys(freeData).length > 0 ? JSON.stringify(freeData) : undefined,
+        extraData: Object.keys(extraData).length > 0 ? JSON.stringify(extraData) : undefined,
       });
     });
 
@@ -550,11 +568,12 @@ export default function ExamSelection() {
     { key: "studentNumber" as const, label: "Öğrenci Numarası / TC", required: true },
     { key: "studentFirstName" as const, label: "Öğrenci Adı" },
     { key: "studentLastName" as const, label: "Öğrenci Soyadı" },
-    { key: "schoolName" as const, label: "Okul Adı" },
     { key: "schoolCode" as const, label: "Okul Kodu" },
+    { key: "schoolName" as const, label: "Okul Adı" },
     { key: "district" as const, label: "İlçe Adı" },
-    { key: "class" as const, label: "Şube" },
+    { key: "province" as const, label: "İl Adı" },
     { key: "grade" as const, label: "Sınıf Seviyesi" },
+    { key: "class" as const, label: "Şube" },
     { key: "schoolNumber" as const, label: "Okul Numarası" },
   ];
 
@@ -691,13 +710,11 @@ export default function ExamSelection() {
                     value={columnMapping[field.key] || undefined}
                     onValueChange={(value) => {
                       handleMappingChange(field.key, value);
-                      if (field.key === "studentNumber") {
-                        setExtraColumns(prev => {
-                          const next = new Set(prev);
-                          next.delete(value);
-                          return next;
-                        });
-                      }
+                      setExtraColumns(prev => {
+                        const next = new Set(prev);
+                        next.delete(value);
+                        return next;
+                      });
                     }}
                   >
                     <SelectTrigger>
@@ -832,37 +849,37 @@ export default function ExamSelection() {
         )}
 
         {currentStep === 5 && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-xl border bg-background p-4">
-                <p className="text-sm text-muted-foreground">İlçe</p>
-                <p className="mt-2 text-2xl font-bold">{stats.districts}</p>
+          <div className="space-y-4 overflow-x-hidden">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border bg-background px-3 py-3">
+                <p className="text-xs text-muted-foreground">İlçe</p>
+                <p className="mt-1 text-xl font-bold">{stats.districts}</p>
               </div>
-              <div className="rounded-xl border bg-background p-4">
-                <p className="text-sm text-muted-foreground">Okul</p>
-                <p className="mt-2 text-2xl font-bold">{stats.schools}</p>
+              <div className="rounded-xl border bg-background px-3 py-3">
+                <p className="text-xs text-muted-foreground">Okul</p>
+                <p className="mt-1 text-xl font-bold">{stats.schools}</p>
               </div>
-              <div className="rounded-xl border bg-background p-4">
-                <p className="text-sm text-muted-foreground">Öğrenci</p>
-                <p className="mt-2 text-2xl font-bold">{stats.students}</p>
+              <div className="rounded-xl border bg-background px-3 py-3">
+                <p className="text-xs text-muted-foreground">Öğrenci</p>
+                <p className="mt-1 text-xl font-bold">{stats.students}</p>
               </div>
             </div>
 
-            <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
+            <div className="rounded-xl border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
               {currentStep === 5 && createdExamId ? (
                 <p>{stats.students} öğrenci kaydı seçili sınava bağlanacak.</p>
               ) : null}
             </div>
 
             {rawData.length > 0 && (
-              <div className="overflow-hidden rounded-xl border">
+              <div className="rounded-xl border">
                 <div className="border-b bg-muted/30 px-4 py-3 text-sm font-medium text-foreground">İlk kayıt önizlemesi</div>
-                <div className="max-h-56 overflow-auto">
-                  <table className="w-full text-left text-sm">
+                <div className="max-h-56 overflow-y-auto">
+                  <table className="w-full text-left text-sm table-fixed">
                     <thead className="sticky top-0 bg-background">
                       <tr className="border-b">
                         {[columnMapping.studentNumber, ...Array.from(extraColumns)].filter(Boolean).map((label, i) => (
-                          <th key={i} className="px-4 py-2 font-medium text-muted-foreground">{label}</th>
+                          <th key={i} className="px-2 py-2 font-medium text-muted-foreground truncate">{label}</th>
                         ))}
                       </tr>
                     </thead>
@@ -870,7 +887,7 @@ export default function ExamSelection() {
                       {rawData.slice(0, 3).map((row, index) => (
                         <tr key={index} className="border-b last:border-b-0">
                           {[columnMapping.studentNumber, ...Array.from(extraColumns)].filter(Boolean).map((col, i) => (
-                            <td key={i} className="px-4 py-2">{String(row[col] ?? "")}</td>
+                            <td key={i} className="px-2 py-2 truncate">{String(row[col] ?? "")}</td>
                           ))}
                         </tr>
                       ))}
@@ -1021,7 +1038,7 @@ export default function ExamSelection() {
                   İlk Sınavı Oluştur
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-4xl lg:max-w-5xl">
+            <DialogContent className="sm:max-w-4xl lg:max-w-5xl max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Yeni Sınav ve Kütük Oluştur</DialogTitle>
                   <DialogDescription>Sınavı oluşturun, ardından aynı pencereden kütük dosyasını yükleyin.</DialogDescription>

@@ -144,8 +144,8 @@ export default function RoomLists() {
               return `
                 <tr>
                   <td style="border:1px solid #000; padding:6px; text-align:center;">${serial}</td>
-                  <td style="border:1px solid #000; padding:6px; text-align:center;">${st.schoolNo || st.tc}</td>
-                  <td style="border:1px solid #000; padding:6px;">${st.name}</td>
+                  <td style="border:1px solid #000; padding:6px; text-align:center;">${st.schoolNo || st.studentNo}</td>
+                  <td style="border:1px solid #000; padding:6px;">${st.fullName}</td>
                   <td style="border:1px solid #000; padding:6px; text-align:center;">&nbsp;</td>
                   <td style="border:1px solid #000; padding:6px;">&nbsp;</td>
                 </tr>`;
@@ -363,8 +363,8 @@ export default function RoomLists() {
                         return (
                           <tr key={i}>
                             <td className="border border-black p-2 text-center">{serial}</td>
-                            <td className="border border-black p-2 text-center w-20">{st.schoolNo || st.tc}</td>
-                            <td className="border border-black p-2">{st.name}</td>
+                            <td className="border border-black p-2 text-center w-20">{st.schoolNo || st.studentNo}</td>
+                            <td className="border border-black p-2">{st.fullName}</td>
                             <td className="border border-black p-2 text-center w-24"></td>
                             <td className="border border-black p-2"></td>
                           </tr>

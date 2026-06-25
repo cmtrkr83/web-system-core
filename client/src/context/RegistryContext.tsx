@@ -2,13 +2,13 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 
 export interface Student {
   id: string;
-  name: string;
-  tc: string;            // OPAQ / TC numarası
-  schoolNo?: string;     // Okul numarası (opsiyonel)
+  fullName: string;
+  studentNo: string;
+  schoolNo?: string;
   schoolId: string;
-  salon: string;
-  class: string; // Şube
-  freeData?: string;     // Serbest Excel ek sütun verileri (JSON)
+  grade: string;
+  class: string;
+  extraData?: string;
 }
 
 export interface School {

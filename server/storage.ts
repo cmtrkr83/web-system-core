@@ -97,7 +97,9 @@ export class MemStorage implements IStorage {
       isActive: "0",
       description: exam.description || "",
       sinavid: this.generateSinavid(),
-      uploadMode: exam.uploadMode || "template"
+      uploadMode: exam.uploadMode || "free",
+      sourceFileName: exam.sourceFileName || "",
+      loadedAt: exam.loadedAt || null,
     };
     this.exams.set(id, newExam);
     return newExam;
@@ -155,7 +157,10 @@ export class DrizzleStorage implements IStorage {
         description TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
         is_active TEXT NOT NULL DEFAULT '0',
-        sinavid TEXT
+        sinavid TEXT,
+        upload_mode TEXT NOT NULL DEFAULT 'free',
+        source_file_name TEXT NOT NULL DEFAULT '',
+        loaded_at TEXT
       );
       CREATE TABLE IF NOT EXISTS registry_districts (
         id TEXT PRIMARY KEY,
@@ -199,7 +204,9 @@ export class DrizzleStorage implements IStorage {
     ensureColumn("registry_students", "exam_id", "exam_id TEXT NOT NULL DEFAULT ''");
     ensureColumn("registry_students", "free_data", "free_data TEXT");
     ensureColumn("exams", "sinavid", "sinavid TEXT");
-    ensureColumn("exams", "upload_mode", "upload_mode TEXT NOT NULL DEFAULT 'template'");
+    ensureColumn("exams", "upload_mode", "upload_mode TEXT NOT NULL DEFAULT 'free'");
+    ensureColumn("exams", "source_file_name", "source_file_name TEXT NOT NULL DEFAULT ''");
+    ensureColumn("exams", "loaded_at", "loaded_at TEXT");
 
     const latestRegistryMeta = sqlite
       .prepare(`SELECT exam_id AS examId FROM registry_meta WHERE exam_id != '' ORDER BY loaded_at DESC LIMIT 1`)
@@ -285,10 +292,24 @@ export class DrizzleStorage implements IStorage {
           school_id TEXT NOT NULL,
           salon TEXT NOT NULL,
           class TEXT NOT NULL,
+          free_data TEXT,
           PRIMARY KEY (id, exam_id)
         );`,
-        "id, exam_id, name, tc, school_no, school_id, salon, class",
+        "id, exam_id, name, tc, school_no, school_id, salon, class, free_data",
       );
+
+    // Create indexes for query performance
+    const ensureIndex = (sql: string) => {
+      try { sqlite.exec(sql); } catch (err) { console.error(`Index failed: ${sql}`, err); }
+    };
+    ensureIndex("CREATE INDEX IF NOT EXISTS idx_dist_exam ON registry_districts(exam_id)");
+    ensureIndex("CREATE INDEX IF NOT EXISTS idx_sch_exam ON registry_schools(exam_id)");
+    ensureIndex("CREATE INDEX IF NOT EXISTS idx_sch_district ON registry_schools(district_id)");
+    ensureIndex("CREATE INDEX IF NOT EXISTS idx_stu_exam ON registry_students(exam_id)");
+    ensureIndex("CREATE INDEX IF NOT EXISTS idx_stu_class ON registry_students(exam_id, class)");
+    ensureIndex("CREATE INDEX IF NOT EXISTS idx_stu_school ON registry_students(school_id)");
+    ensureIndex("CREATE INDEX IF NOT EXISTS idx_stu_no ON registry_students(exam_id, tc)");
+    ensureIndex("CREATE INDEX IF NOT EXISTS idx_exam_active ON exams(is_active)");
 
     this.db = drizzle(sqlite);
 
@@ -422,7 +443,9 @@ export class DrizzleStorage implements IStorage {
       isActive: "0",
       description: exam.description || "",
       sinavid: this.generateSinavid(),
-      uploadMode: exam.uploadMode || "template"
+      uploadMode: exam.uploadMode || "free",
+      sourceFileName: exam.sourceFileName || "",
+      loadedAt: exam.loadedAt || null,
     };
     try {
       await this.db.insert(exams).values(newExam);
