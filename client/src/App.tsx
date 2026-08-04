@@ -14,6 +14,7 @@ import Labels from "@/pages/labels";
 import BranchLabels from "@/pages/branch-labels";
 import Reports from "@/pages/reports";
 import OpticCoding from "./pages/optic-coding-page";
+import OpticCreate from "./pages/optic-creation";
 import OpticReading from "./pages/optic-reading";
 import Evaluation from "./pages/evaluation";
 import ExamSelection from "@/pages/exam-selection";
@@ -29,6 +30,7 @@ function Router() {
         <Route path="/labels" component={Labels} />
         <Route path="/branch-labels" component={BranchLabels} />
         <Route path="/reports" component={Reports} />
+        <Route path="/optic-create" component={OpticCreate} />
         <Route path="/optic-coding" component={OpticCoding} />
         <Route path="/optic-reading" component={OpticReading} />
         <Route path="/evaluation" component={Evaluation} />

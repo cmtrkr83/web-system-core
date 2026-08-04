@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 
 export interface Student {
   id: string;
@@ -64,6 +64,7 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [exams, setExams] = useState<Exam[]>([]);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
+  const refreshingExamRef = useRef<string | null>(null);
 
   const loadExams = async () => {
     const res = await fetch("/api/exams", {
@@ -103,9 +104,11 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
       throw new Error("Sınav seçilemedi");
     }
 
+    refreshingExamRef.current = examId;
     setSelectedExamId(examId);
     localStorage.setItem("selectedExamId", examId);
-    await loadExams();
+    await refreshRegistryData(examId);
+    refreshingExamRef.current = null;
   };
 
   const createExam = async (examData: Omit<Exam, "id" | "createdAt" | "isActive">) => {
@@ -186,6 +189,10 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!selectedExamId) {
+      return;
+    }
+
+    if (refreshingExamRef.current === selectedExamId) {
       return;
     }
 

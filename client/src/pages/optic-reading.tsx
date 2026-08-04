@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
-import { AlertCircle, CheckCircle2, FileScan, Loader2, Upload, ImageIcon, RotateCw, Crop, QrCode, XCircle, CircleDot, Circle, ListChecks, Download, Files } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileScan, Loader2, Upload, ImageIcon, RotateCw, Crop, QrCode, XCircle, CircleDot, Circle, ListChecks, Download, Files, FileText } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
+import { pdfToJpegFiles } from "@/lib/optic/pdf-renderer";
 
 interface Question {
   no: number;
@@ -61,6 +62,7 @@ export default function OpticReading() {
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isBatching, setIsBatching] = useState(false);
+  const [isConvertingPdf, setIsConvertingPdf] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
   const [result, setResult] = useState<DetectFrameResult | null>(null);
   const [batchResults, setBatchResults] = useState<DetectFrameResult[] | null>(null);
@@ -71,31 +73,55 @@ export default function OpticReading() {
   const [isReProcessing, setIsReProcessing] = useState(false);
   const uploadedPathRef = useRef<string | null>(null);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
 
-    const files: File[] = [];
+    const imageFilesAccum: File[] = [];
+    let hasPdf = false;
+
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i];
       const isImage = file.type === "image/jpeg" || file.type === "image/png" || file.type === "image/tiff"
         || file.name.toLowerCase().endsWith(".jpg") || file.name.toLowerCase().endsWith(".jpeg")
         || file.name.toLowerCase().endsWith(".png");
+      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
       if (isImage) {
-        files.push(file);
+        imageFilesAccum.push(file);
+      } else if (isPdf) {
+        hasPdf = true;
       }
     }
 
-    if (files.length === 0) {
+    if (hasPdf) {
+      setIsConvertingPdf(true);
+      try {
+        for (let i = 0; i < fileList.length; i++) {
+          const file = fileList[i];
+          if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+            const jpegs = await pdfToJpegFiles(file);
+            imageFilesAccum.push(...jpegs);
+          }
+        }
+      } catch {
+        toast({ title: "PDF hatası", description: "PDF sayfaları dönüştürülemedi.", variant: "destructive" });
+        setIsConvertingPdf(false);
+        return;
+      }
+      setIsConvertingPdf(false);
+    }
+
+    if (imageFilesAccum.length === 0) {
       toast({
         title: "Geçersiz dosya",
-        description: "JPEG veya PNG dosyası seçin.",
+        description: "JPEG, PNG veya PDF dosyası seçin.",
         variant: "destructive",
       });
       return;
     }
 
-    setImageFiles(files);
+    setImageFiles(imageFilesAccum);
     setResult(null);
     setBatchResults(null);
     setBatchCsv(null);
@@ -108,7 +134,7 @@ export default function OpticReading() {
     reader.onload = (e) => {
       setImagePreviewUrl(e.target?.result as string);
     };
-    reader.readAsDataURL(files[0]);
+    reader.readAsDataURL(imageFilesAccum[0]);
   };
 
   const uploadFile = useCallback(async (file: File): Promise<string> => {
@@ -359,7 +385,7 @@ export default function OpticReading() {
       <div>
         <h1 className="text-3xl font-heading font-bold">Optik Okuma</h1>
         <p className="text-muted-foreground mt-1">
-          JPEG/PNG görsel yükleyin. Tek dosya tespit veya birden çok dosyayı toplu işleme.
+          JPEG/PNG/PDF yükleyin. PDF dosyalari otomatik sayfalara ayrilir. Tek dosya tespit veya birden çok dosyayi toplu isleme.
         </p>
       </div>
 
@@ -371,16 +397,22 @@ export default function OpticReading() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="file-upload">Görsel Dosyaları (JPEG/PNG — birden çok seçilebilir)</Label>
+              <Label htmlFor="file-upload">Görsel Dosyaları (JPEG/PNG/PDF — birden çok seçilebilir)</Label>
               <Input
                 id="file-upload"
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,.jpg,.jpeg,image/png,.png"
+                accept="image/jpeg,.jpg,.jpeg,image/png,.png,application/pdf,.pdf"
                 multiple
                 onChange={handleFileChange}
               />
-              {imageFiles.length > 0 && (
+              {isConvertingPdf && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  PDF sayfalari JPEG'e donusturuluyor...
+                </div>
+              )}
+              {imageFiles.length > 0 && !isConvertingPdf && (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">
                     {imageFiles.length} dosya seçildi (toplam {imageFiles.reduce((s, f) => s + f.size, 0) / 1024 / 1024 < 1

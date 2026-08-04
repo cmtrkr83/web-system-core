@@ -1,213 +1,120 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRegistry, type Student } from "@/context/RegistryContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, FileDown, Printer, QrCode, Upload, Type } from "lucide-react";
-import QRCode from "qrcode";
+import {
+  buildOpticFormHtml,
+  isHeadingField,
+  normalizeFormField,
+  PDF_RENDER_DPI,
+  type OpticFormDesign,
+  type OpticFormFill,
+  type OpticFormOverlay,
+} from "@/lib/optic-form";
+import {
+  extractExcelColumns,
+  findDistrict,
+  findSchool,
+  mmToPx,
+  PAPER_DIMENSIONS,
+  PX_PER_MM,
+  resolveColumnValue,
+  STANDARD_COLUMNS,
+} from "@/lib/optic-coding";
+import { AlertCircle, FileDown, GripVertical, Link2, Move, Plus, Printer, Trash2 } from "lucide-react";
 
-type PaperSize = "A4" | "A5";
+const DRAG_SNAP_MM = 1;
+const OVERLAY_W_MM = 45;
+const OVERLAY_H_MM = 11;
 
-type SourceKey =
-  | "name"
-  | "studentName"
-  | "studentFirstName"
-  | "studentLastName"
-  | "tc"
-  | "schoolNo"
-  | "schoolName"
-  | "schoolCode"
-  | "districtName"
-  | "class"
-  | "salon";
-
-type MappingKey =
-  | "district"
-  | "schoolName"
-  | "schoolCode"
-  | "studentName"
-  | "studentFirstName"
-  | "studentLastName"
-  | "studentNumber"
-  | "schoolNumber"
-  | "class"
-  | "grade";
-
-interface Placement {
+interface CodingElement {
+  id: string;
+  columnKey: string;
+  label: string;
   xMm: number;
   yMm: number;
+  boundFieldId?: string;
+  fontSizeMm?: number;
+  letterSpacingMm?: number;
 }
 
-interface FieldItem {
-  id: string;
-  mappingKey: MappingKey;
-  columnName: string;
-  sourceKey: SourceKey;
-  freeDataKey?: string;
-}
-
-interface FieldState {
-  txtEnabled: boolean;
-  qrEnabled: boolean;
-  qrSizeMm: number;
-  textPlacement: Placement;
-  qrPlacement: Placement;
-}
-
-const PAPER_DIMENSIONS: Record<PaperSize, { widthMm: number; heightMm: number }> = {
-  A4: { widthMm: 210, heightMm: 297 },
-  A5: { widthMm: 148, heightMm: 210 },
-};
-
-const DEFAULT_QR_SIZE_MM = 20;
-
-const buildInitialState = (fields: FieldItem[]): Record<string, FieldState> => {
-  const state: Record<string, FieldState> = {};
-  fields.forEach((field, idx) => {
-    const yBase = 24 + idx * 14;
-    state[field.id] = {
-      txtEnabled: false,
-      qrEnabled: false,
-      qrSizeMm: DEFAULT_QR_SIZE_MM,
-      textPlacement: { xMm: 16, yMm: yBase },
-      qrPlacement: { xMm: 16, yMm: yBase },
-    };
-  });
-  return state;
-};
-
-function escapeHtml(value: string) {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+function generateCodingId(): string {
+  return `coding-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 export default function OpticCoding() {
   const { districts, schools, students, isLoaded } = useRegistry();
   const { toast } = useToast();
-  const previewRef = useRef<HTMLDivElement | null>(null);
-  const qrCacheRef = useRef<Map<string, string>>(new Map());
 
-  const resolveValue = (student: Student, field: FieldItem) => {
-    if (field.freeDataKey && student.extraData) {
-      try {
-        const data = JSON.parse(student.extraData);
-        const val = data[field.freeDataKey];
-        if (val !== undefined && val !== null) return String(val);
-      } catch { /* ignore */ }
-    }
+  const [formDesigns, setFormDesigns] = useState<OpticFormDesign[]>([]);
+  const [selectedFormId, setSelectedFormId] = useState<string>("");
+  const [elements, setElements] = useState<CodingElement[]>([]);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
-    const sourceKey = field.sourceKey;
-    const school = schools.find((s) => s.id === student.schoolId);
-    const district = districts.find((d) => d.id === school?.districtId);
-
-    switch (sourceKey) {
-      case "name":
-        return student.fullName || "";
-      case "studentName":
-        return student.fullName || "";
-      case "studentFirstName": {
-        const parts = (student.fullName || "").trim().split(/\s+/).filter(Boolean);
-        return parts[0] || student.fullName || "";
-      }
-      case "studentLastName": {
-        const parts = (student.fullName || "").trim().split(/\s+/).filter(Boolean);
-        return parts.length > 1 ? parts.slice(1).join(" ") : "";
-      }
-      case "tc":
-        return student.studentNo || "";
-      case "schoolNo":
-        return student.schoolNo || "";
-      case "schoolName":
-        return school?.name || "";
-      case "schoolCode":
-        return school?.code || school?.id || "";
-      case "districtName":
-        return district?.name || "";
-      case "class":
-        return student.class || "";
-      case "salon":
-        return student.grade || "";
-      default:
-        return "";
-    }
-  };
-
-  const generateQrSvgUrl = useCallback(async (text: string, sizeMm: number): Promise<string> => {
-    const px = Math.round(sizeMm * 96 / 25.4);
-    const cacheKey = `${text}|${px}`;
-    const cached = qrCacheRef.current.get(cacheKey);
-    if (cached) return cached;
-    try {
-      const svgStr = await QRCode.toString(text, {
-        type: "svg",
-        margin: 1,
-        width: px,
-        color: { dark: "#000000", light: "#ffffff" },
-      });
-      const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgStr)}`;
-      qrCacheRef.current.set(cacheKey, dataUrl);
-      return dataUrl;
-    } catch (e) {
-      return "";
-    }
-  }, []);
-
-  const mappedFields = useMemo(() => {
-    const keysSet = new Set<string>();
-    for (const student of students) {
-      if (student.extraData) {
-        try {
-          const data = JSON.parse(student.extraData);
-          for (const key of Object.keys(data)) {
-            keysSet.add(key);
-          }
-        } catch { /* ignore */ }
-      }
-    }
-    if (keysSet.size === 0) return [];
-    return Array.from(keysSet).map((key, idx) => ({
-      id: `free-${idx}`,
-      mappingKey: "studentName" as MappingKey,
-      columnName: key,
-      sourceKey: "name" as SourceKey,
-      freeDataKey: key,
-    }));
-  }, [students]);
-
-  const [paperSize, setPaperSize] = useState<PaperSize>("A4");
   const [districtId, setDistrictId] = useState<string>("all");
   const [schoolId, setSchoolId] = useState<string>("all");
   const [className, setClassName] = useState<string>("all");
-  const [fontSizeMm, setFontSizeMm] = useState<number>(4);
-  const [templateDataUrl, setTemplateDataUrl] = useState<string>("");
-  const [draggingFieldId, setDraggingFieldId] = useState<string | null>(null);
-  const [fieldStateMap, setFieldStateMap] = useState<Record<string, FieldState>>(() => buildInitialState(mappedFields));
-  const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
+
+  const [previewScale, setPreviewScale] = useState(1);
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  const previewAreaRef = useRef<HTMLDivElement | null>(null);
+  const overlayRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const dragState = useRef<{
+    id: string;
+    startClientX: number;
+    startClientY: number;
+    origX: number;
+    origY: number;
+    snapX: number;
+    snapY: number;
+  } | null>(null);
 
   useEffect(() => {
-    setFieldStateMap(prev => {
-      const next = { ...prev };
-      let changed = false;
-      mappedFields.forEach((field, idx) => {
-        if (!next[field.id]) {
-          const yBase = 24 + idx * 14;
-          next[field.id] = {
-            txtEnabled: false,
-            qrEnabled: false,
-            qrSizeMm: DEFAULT_QR_SIZE_MM,
-            textPlacement: { xMm: 16, yMm: yBase },
-            qrPlacement: { xMm: 16, yMm: yBase },
-          };
-          changed = true;
-        }
-      });
-      return changed ? next : prev;
-    });
-  }, [mappedFields]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/optics/form-designs", { credentials: "include", cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        setFormDesigns(
+          (Array.isArray(data) ? data : []).map((d) => ({
+            ...d,
+            fields: Array.isArray(d.fields) ? d.fields.map(normalizeFormField) : d.fields,
+          })),
+        );
+      } catch {
+        // ignore load errors
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const paper = PAPER_DIMENSIONS[paperSize];
+  const selectedDesign = formDesigns.find((f) => f.id === selectedFormId) || null;
+
+  const handleSelectForm = (id: string) => {
+    setSelectedFormId(id);
+    setElements([]);
+    setSelectedElementId(null);
+  };
+
+  useEffect(() => {
+    if (!selectedFormId && formDesigns.length > 0) {
+      handleSelectForm(formDesigns[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formDesigns]);
+
+  const excelColumns = useMemo(() => extractExcelColumns(students), [students]);
+  const availableColumns = useMemo(
+    () => [...STANDARD_COLUMNS.map((c) => ({ key: `std:${c.key}`, label: c.label })), ...excelColumns.map((key) => ({ key, label: key }))],
+    [excelColumns],
+  );
 
   const visibleSchools = useMemo(() => {
     if (districtId === "all") return schools;
@@ -216,7 +123,7 @@ export default function OpticCoding() {
 
   const scopedStudents = useMemo(() => {
     return students.filter((student) => {
-      const school = schools.find((s) => s.id === student.schoolId);
+      const school = findSchool(student, schools);
       if (!school) return districtId === "all" && schoolId === "all";
       if (districtId !== "all" && school.districtId !== districtId) return false;
       if (schoolId !== "all" && school.id !== schoolId) return false;
@@ -234,481 +141,575 @@ export default function OpticCoding() {
     return scopedStudents.filter((s) => s.class === className);
   }, [scopedStudents, className]);
 
-  const toggleFieldMode = (fieldId: string, mode: "text" | "qr") => {
-    setFieldStateMap((prev) => {
-      const cur = prev[fieldId];
-      if (!cur) return prev;
-      if (mode === "text") {
-        return { ...prev, [fieldId]: { ...cur, txtEnabled: !cur.txtEnabled } };
+  const paper = selectedDesign ? PAPER_DIMENSIONS[selectedDesign.paperSize] : PAPER_DIMENSIONS.A4;
+  const previewWidthPx = mmToPx(paper.widthMm);
+  const previewHeightPx = mmToPx(paper.heightMm);
+
+  useEffect(() => {
+    const el = previewAreaRef.current;
+    if (!el) return;
+    const update = () => {
+      const avail = Math.max(0, el.clientWidth - 32);
+      setPreviewScale(Math.min(1, avail / previewWidthPx));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [previewWidthPx, !!selectedDesign]);
+
+  const buildFill = useCallback(
+    (student: Student): OpticFormFill => {
+      const school = findSchool(student, schools);
+      const district = findDistrict(school, districts);
+      const fill: OpticFormFill = {};
+      for (const el of elements) {
+        if (!el.boundFieldId) continue;
+        const value = resolveColumnValue(student, school, district, el.columnKey);
+        if (value) fill[el.boundFieldId] = value;
       }
-      return { ...prev, [fieldId]: { ...cur, qrEnabled: !cur.qrEnabled } };
-    });
+      return fill;
+    },
+    [elements, schools, districts],
+  );
+
+  const buildOverlays = useCallback(
+    (student: Student): OpticFormOverlay[] => {
+      const school = findSchool(student, schools);
+      const district = findDistrict(school, districts);
+      return elements
+        .filter((el) => !el.boundFieldId)
+        .map((el) => ({
+          id: el.id,
+          label: el.label,
+          xMm: el.xMm,
+          yMm: el.yMm,
+          fontSizeMm: el.fontSizeMm,
+          letterSpacingMm: el.letterSpacingMm,
+          value: resolveColumnValue(student, school, district, el.columnKey),
+        }));
+    },
+    [elements, schools, districts],
+  );
+
+  const previewHtml = useMemo(() => {
+    const student = filteredStudents[0];
+    if (!student || !selectedDesign) return "";
+    return buildOpticFormHtml(selectedDesign, buildFill(student), buildOverlays(student));
+  }, [selectedDesign, filteredStudents, buildFill, buildOverlays]);
+
+  const selectedElement = elements.find((el) => el.id === selectedElementId) || null;
+
+  const addElement = (col: { key: string; label: string }, pos?: { xMm: number; yMm: number }) => {
+    const paperSize = selectedDesign ? PAPER_DIMENSIONS[selectedDesign.paperSize] : PAPER_DIMENSIONS.A4;
+    const baseX = pos?.xMm ?? 10;
+    const baseY = pos?.yMm ?? 10 + (elements.length % 10) * 9;
+    const xMm = Math.min(Math.max(baseX, 0), paperSize.widthMm - OVERLAY_W_MM);
+    const yMm = Math.min(Math.max(baseY, 0), paperSize.heightMm - OVERLAY_H_MM);
+    const el: CodingElement = { id: generateCodingId(), columnKey: col.key, label: col.label, xMm, yMm };
+    setElements((prev) => [...prev, el]);
+    setSelectedElementId(el.id);
   };
 
-  const setQrSize = (fieldId: string, sizeMm: number) => {
-    setFieldStateMap((prev) => {
-      const cur = prev[fieldId];
-      if (!cur) return prev;
-      return { ...prev, [fieldId]: { ...cur, qrSizeMm: Math.max(10, Math.min(60, sizeMm)) } };
-    });
+  const updateElement = (id: string, changes: Partial<CodingElement>) => {
+    setElements((prev) => prev.map((el) => (el.id === id ? { ...el, ...changes } : el)));
   };
 
-  const docMoveRef = useRef<((e: MouseEvent) => void) | null>(null);
-  const docUpRef = useRef<((e?: MouseEvent) => void) | null>(null);
-
-  const startDragging = (fieldId: string, mode: "text" | "qr") => {
-    setDraggingFieldId(fieldId);
-    const moveHandler = (e: MouseEvent) => {
-      if (!previewRef.current) return;
-      const rect = previewRef.current.getBoundingClientRect();
-      const xPx = e.clientX - rect.left;
-      const yPx = e.clientY - rect.top;
-      const pxPerMm = rect.width / paper.widthMm;
-      const xMm = Math.max(0, Math.min(paper.widthMm - 0.1, xPx / pxPerMm));
-      const yMm = Math.max(0, Math.min(paper.heightMm - 0.1, yPx / pxPerMm));
-      const pos = { xMm: Math.round(xMm * 100) / 100, yMm: Math.round(yMm * 100) / 100 };
-      setFieldStateMap((prev) => {
-        const cur = prev[fieldId];
-        if (!cur) return prev;
-        return {
-          ...prev,
-          [fieldId]: {
-            ...cur,
-            [mode === "text" ? "textPlacement" : "qrPlacement"]: pos,
-          },
-        };
-      });
-    };
-    const upHandler = (_e?: MouseEvent) => {
-      setDraggingFieldId(null);
-      if (docMoveRef.current) document.removeEventListener("mousemove", docMoveRef.current);
-      if (docUpRef.current) document.removeEventListener("mouseup", docUpRef.current);
-      docMoveRef.current = null;
-      docUpRef.current = null;
-    };
-    docMoveRef.current = moveHandler;
-    docUpRef.current = upHandler;
-    document.addEventListener("mousemove", moveHandler);
-    document.addEventListener("mouseup", upHandler);
+  const removeElement = (id: string) => {
+    setElements((prev) => prev.filter((el) => el.id !== id));
+    if (selectedElementId === id) setSelectedElementId(null);
   };
 
-  const stopDragging = () => {
-    docUpRef.current?.(undefined);
-  };
+  const snapToGrid = (v: number, s: number) => Math.round(v / s) * s;
 
-  const handleTemplateUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setTemplateDataUrl(typeof reader.result === "string" ? reader.result : "");
-      toast({ title: "Başarılı", description: `"${file.name}" yüklendi.` });
-    };
-    reader.onerror = () => {
-      toast({ title: "Hata", description: "Dosya okunamadı.", variant: "destructive" });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const buildPageHtml = useCallback((student: Student): string => {
-    const blocks: string[] = [];
-    for (const field of mappedFields) {
-      const state = fieldStateMap[field.id];
-      if (!state) continue;
-      const value = resolveValue(student, field);
-      if (state.txtEnabled && value) {
-        blocks.push(`<div style="position:absolute;left:${state.textPlacement.xMm}mm;top:${state.textPlacement.yMm}mm;font-size:${fontSizeMm}mm;line-height:1;color:#000;white-space:nowrap;">${escapeHtml(value)}</div>`);
-      }
-      if (state.qrEnabled && value) {
-        blocks.push(`<img src="" data-qr-text="${escapeHtml(value)}" data-qr-size="${state.qrSizeMm}" style="position:absolute;left:${state.qrPlacement.xMm}mm;top:${state.qrPlacement.yMm}mm;width:${state.qrSizeMm}mm;height:${state.qrSizeMm}mm;image-rendering:pixelated;" />`);
-      }
+  const onOverlayPointerDown = (e: React.PointerEvent, el: CodingElement) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    setSelectedElementId(el.id);
+    const domEl = overlayRefs.current[el.id];
+    if (!domEl) return;
+    try {
+      domEl.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore (e.g. synthetic events without an active pointer)
     }
-    return `<div class="optic-page" style="position:relative;width:${paper.widthMm}mm;height:${paper.heightMm}mm;overflow:hidden;background:#fff;">${templateDataUrl ? `<img src="${templateDataUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;" />` : ""}${blocks.join("")}</div>`;
-  }, [mappedFields, fieldStateMap, resolveValue, fontSizeMm, paper, templateDataUrl]);
+    dragState.current = {
+      id: el.id,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      origX: el.xMm,
+      origY: el.yMm,
+      snapX: el.xMm,
+      snapY: el.yMm,
+    };
+  };
 
-  const mmToPx = (mm: number) => Math.round(mm * 96 / 25.4);
+  const onOverlayPointerMove = (e: React.PointerEvent) => {
+    const d = dragState.current;
+    if (!d) return;
+    e.preventDefault();
+    const dx = (e.clientX - d.startClientX) / PX_PER_MM / previewScale;
+    const dy = (e.clientY - d.startClientY) / PX_PER_MM / previewScale;
+    d.snapX = snapToGrid(d.origX + dx, DRAG_SNAP_MM);
+    d.snapY = snapToGrid(d.origY + dy, DRAG_SNAP_MM);
+    d.snapX = Math.min(Math.max(d.snapX, 0), paper.widthMm - OVERLAY_W_MM);
+    d.snapY = Math.min(Math.max(d.snapY, 0), paper.heightMm - OVERLAY_H_MM);
+    const domEl = overlayRefs.current[d.id];
+    if (domEl) {
+      domEl.style.left = `${mmToPx(d.snapX)}px`;
+      domEl.style.top = `${mmToPx(d.snapY)}px`;
+    }
+  };
 
-  const generatePdfViaHtml2canvas = useCallback(async (): Promise<Blob | null> => {
+  const onOverlayPointerUp = () => {
+    const d = dragState.current;
+    if (!d) return;
+    dragState.current = null;
+    if (d.snapX !== d.origX || d.snapY !== d.origY) {
+      updateElement(d.id, { xMm: d.snapX, yMm: d.snapY });
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    const key = e.dataTransfer.getData("text/plain");
+    const col = availableColumns.find((c) => c.key === key);
+    if (!col) return;
+    e.preventDefault();
+    const rect = previewRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const xMm = (e.clientX - rect.left) / previewScale / PX_PER_MM;
+    const yMm = (e.clientY - rect.top) / previewScale / PX_PER_MM;
+    addElement(col, { xMm, yMm });
+  };
+
+  const exportPdf = async () => {
+    if (!isLoaded || filteredStudents.length === 0) {
+      toast({ title: "Hata", description: "Yazdırılacak öğrenci bulunamadı.", variant: "destructive" });
+      return;
+    }
+    if (!selectedDesign) {
+      toast({ title: "Hata", description: "Bir optik form seçilmelidir.", variant: "destructive" });
+      return;
+    }
+
     const { default: html2canvas } = await import("html2canvas");
     const { default: jsPDF } = await import("jspdf");
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: paperSize, hotfixes: ["px_scaling"] });
-    const wPx = mmToPx(paper.widthMm);
-    const hPx = mmToPx(paper.heightMm);
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: selectedDesign.paperSize, hotfixes: ["px_scaling"] });
 
-    // Tum SVG karekodlari once olustur (parallel)
-    const qrSvgCache = new Map<string, string>();
-    const qrPromises: Promise<void>[] = [];
     for (const student of filteredStudents) {
-      for (const field of mappedFields) {
-        const state = fieldStateMap[field.id];
-        if (!state?.qrEnabled) continue;
-        const value = resolveValue(student, field);
-        if (!value) continue;
-        const key = `${value}|${Math.round(state.qrSizeMm * 10)}`;
-        if (!qrSvgCache.has(key)) {
-          qrPromises.push(
-            generateQrSvgUrl(value, state.qrSizeMm).then(url => { qrSvgCache.set(key, url); })
-          );
-        }
-      }
-    }
-    await Promise.all(qrPromises);
+      const pageHtml = buildOpticFormHtml(selectedDesign, buildFill(student), buildOverlays(student));
 
-    for (let si = 0; si < filteredStudents.length; si++) {
-      if (si > 0) pdf.addPage();
-
-      // Sayfa HTML'ini olustur, DOM'a ekle, QR'lari yukle
       const wrapper = document.createElement("div");
-      wrapper.innerHTML = buildPageHtml(filteredStudents[si]);
+      wrapper.innerHTML = pageHtml;
       const pageEl = wrapper.firstElementChild as HTMLElement;
-      pageEl.style.width = `${wPx}px`;
-      pageEl.style.height = `${hPx}px`;
+      pageEl.style.width = `${previewWidthPx}px`;
+      pageEl.style.height = `${previewHeightPx}px`;
       pageEl.style.position = "fixed";
       pageEl.style.left = "-9999px";
       pageEl.style.top = "0";
-      pageEl.style.zIndex = "-1";
       document.body.appendChild(pageEl);
 
-      // QR img src'lerini ata (SVG data URL)
-      for (const img of Array.from(pageEl.querySelectorAll<HTMLImageElement>("img[data-qr-text]"))) {
-        const text = img.getAttribute("data-qr-text") || "";
-        const sizeMm = Number(img.getAttribute("data-qr-size")) || 20;
-        img.src = qrSvgCache.get(`${text}|${Math.round(sizeMm * 10)}`) || "";
-      }
-
-      // Gorsellerin yuklenmesini bekle
       const imgs = Array.from(pageEl.querySelectorAll("img"));
-      await Promise.all(imgs.map(img => {
-        if (img.complete && img.naturalWidth > 0) return;
-        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
-      }));
+      await Promise.all(
+        imgs.map((img) => {
+          if (img.complete && img.naturalWidth > 0) return;
+          return new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        }),
+      );
 
-      // html2canvas ile yakala
-      const canvas = await html2canvas(pageEl, { scale: 1, useCORS: false, logging: false, width: wPx, height: hPx });
+      const canvas = await html2canvas(pageEl, { scale: PDF_RENDER_DPI / 96, useCORS: true, logging: false, width: previewWidthPx, height: previewHeightPx });
       const imgData = canvas.toDataURL("image/png");
+      if (filteredStudents.indexOf(student) > 0) pdf.addPage();
       pdf.addImage(imgData, "PNG", 0, 0, paper.widthMm, paper.heightMm, undefined, "FAST");
-
       document.body.removeChild(pageEl);
     }
-    return pdf.output("blob");
-  }, [filteredStudents, mappedFields, fieldStateMap, resolveValue, buildPageHtml, generateQrSvgUrl, paper, paperSize]);
 
-  const handleExportPdf = async () => {
-    if (!isLoaded || filteredStudents.length === 0) {
-      toast({ title: "Hata", description: "Yazdirilacak ogrenci bulunamadi.", variant: "destructive" });
-      return;
-    }
-    const hasActiveField = mappedFields.some((field) => {
-      const s = fieldStateMap[field.id];
-      return s?.txtEnabled || s?.qrEnabled;
-    });
-    if (!hasActiveField) {
-      toast({ title: "Hata", description: "En az bir alan secmelisiniz.", variant: "destructive" });
-      return;
-    }
-    const blob = await generatePdfViaHtml2canvas();
-    if (!blob) {
-      toast({ title: "Hata", description: "PDF olusturulamadi.", variant: "destructive" });
-      return;
-    }
+    const blob = pdf.output("blob");
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "optik-kodlama.pdf";
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "PDF Olusturuldu", description: `${filteredStudents.length} ogrenci icin PDF kaydedildi.` });
+    toast({ title: "PDF Oluşturuldu", description: `${filteredStudents.length} öğrenci için kaydedildi.` });
   };
 
-  const handlePrintAll = async () => {
+  const printAll = async () => {
     if (!isLoaded || filteredStudents.length === 0) {
-      toast({ title: "Hata", description: "Yazdirilacak ogrenci bulunamadi.", variant: "destructive" });
+      toast({ title: "Hata", description: "Yazdırılacak öğrenci bulunamadı.", variant: "destructive" });
       return;
     }
-    const hasActiveField = mappedFields.some((field) => {
-      const s = fieldStateMap[field.id];
-      return s?.txtEnabled || s?.qrEnabled;
-    });
-    if (!hasActiveField) {
-      toast({ title: "Hata", description: "En az bir alan secmelisiniz.", variant: "destructive" });
+    if (!selectedDesign) {
+      toast({ title: "Hata", description: "Bir optik form seçilmelidir.", variant: "destructive" });
       return;
     }
 
-    // Tum karekodlari SVG olarak olustur (once, parallel)
-    const qrBatch = new Map<string, string>();
-    const qrPromises: Promise<void>[] = [];
+    const allPages: string[] = [];
     for (const student of filteredStudents) {
-      for (const field of mappedFields) {
-        const state = fieldStateMap[field.id];
-        if (!state?.qrEnabled) continue;
-        const value = resolveValue(student, field);
-        if (!value) continue;
-        const key = `${value}|${Math.round(state.qrSizeMm * 10)}`;
-        if (!qrBatch.has(key)) {
-          qrPromises.push(
-            generateQrSvgUrl(value, state.qrSizeMm).then(url => { qrBatch.set(key, url); })
-          );
-        }
-      }
-    }
-    await Promise.all(qrPromises);
-
-    const allPagesHtml: string[] = [];
-    for (const student of filteredStudents) {
-      const blocks: string[] = [];
-      for (const field of mappedFields) {
-        const state = fieldStateMap[field.id];
-        if (!state) continue;
-        const value = resolveValue(student, field);
-        if (state.txtEnabled && value) {
-          blocks.push(`<div style="position:absolute;left:${state.textPlacement.xMm}mm;top:${state.textPlacement.yMm}mm;font-size:${fontSizeMm}mm;line-height:1;color:#000;white-space:nowrap;">${escapeHtml(value)}</div>`);
-        }
-        if (state.qrEnabled && value) {
-          const key = `${value}|${Math.round(state.qrSizeMm * 10)}`;
-          const qrUrl = qrBatch.get(key) || "";
-          if (qrUrl) {
-            blocks.push(`<img src="${qrUrl}" alt="QR" style="position:absolute;left:${state.qrPlacement.xMm}mm;top:${state.qrPlacement.yMm}mm;width:${state.qrSizeMm}mm;height:${state.qrSizeMm}mm;image-rendering:pixelated;" />`);
-          }
-        }
-      }
-      allPagesHtml.push(`<section class="optic-page">${templateDataUrl ? `<img src="${templateDataUrl}" alt="optic-template" class="optic-template" />` : ""}${blocks.join("")}</section>`);
+      allPages.push(buildOpticFormHtml(selectedDesign, buildFill(student), buildOverlays(student)));
     }
 
     const printWindow = window.open("", "_blank", "width=1200,height=900");
     if (!printWindow) {
-      toast({ title: "Hata", description: "Yazdirma penceresi acilamadi.", variant: "destructive" });
+      toast({ title: "Hata", description: "Yazdırma penceresi açılamadı.", variant: "destructive" });
       return;
     }
-    printWindow.document.write(`<!doctype html><html lang="tr"><head><meta charset="UTF-8" /><style>@page{size:${paperSize} portrait;margin:0;}html,body{margin:0;padding:0;}body{background:#fff;}.optic-page{position:relative;width:${paper.widthMm}mm;height:${paper.heightMm}mm;page-break-after:always;overflow:hidden;}.optic-page:last-child{page-break-after:auto;}.optic-template{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;}</style></head><body>${allPagesHtml.join("")}</body></html>`);
+    printWindow.document.write(`<!doctype html><html lang="tr"><head><meta charset="UTF-8" /><style>@page{size:${selectedDesign.paperSize} portrait;margin:0;}html,body{margin:0;padding:0;}body{background:#fff;}.optic-page{page-break-after:always;}.optic-page:last-child{page-break-after:auto;}</style></head><body>${allPages
+      .map((page) => `<section class="optic-page">${page}</section>`)
+      .join("")}</body></html>`);
     printWindow.document.close();
     printWindow.focus();
-    try { printWindow.print(); } catch { /* ignore */ }
-    toast({ title: "Yazdirma Baslatildi", description: `${filteredStudents.length} ogrenci icin cikti hazirlandi.` });
+    try {
+      printWindow.print();
+    } catch {
+      // ignore
+    }
+    toast({ title: "Yazdırma Başlatıldı", description: `${filteredStudents.length} öğrenci için hazırlandı.` });
   };
 
-  const hasQrEnabled = useMemo(() => {
-    return mappedFields.some((f) => fieldStateMap[f.id]?.qrEnabled);
-  }, [mappedFields, fieldStateMap]);
-
-  useEffect(() => {
-    if (!hasQrEnabled || !filteredStudents[0]) return;
-    let cancelled = false;
-    const load = async () => {
-      const results: Record<string, string> = {};
-      for (const field of mappedFields) {
-        const state = fieldStateMap[field.id];
-        if (!state?.qrEnabled) continue;
-        const value = resolveValue(filteredStudents[0], field);
-        if (!value) continue;
-        const url = await generateQrSvgUrl(value, state.qrSizeMm);
-        if (!cancelled) results[field.id] = url;
-      }
-      if (!cancelled) setQrDataUrls(results);
-    };
-    load();
-    return () => { cancelled = true; };
-  }, [hasQrEnabled, mappedFields, filteredStudents, fieldStateMap, generateQrSvgUrl]);
+  const boundCount = useMemo(() => elements.filter((el) => el.boundFieldId).length, [elements]);
 
   return (
-    <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-      <div>
-        <h1 className="text-3xl font-heading font-bold">Optik Hazırlama</h1>
-        <p className="text-muted-foreground mt-1">Excel'den gelen alanlari metin veya karekod olarak konumlandirip yazdirabilirsiniz.</p>
+    <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-heading font-bold">Optik Kodlama</h1>
+          <p className="text-muted-foreground mt-1">Excel sütunlarını seçip optik form üzerine yerleştirin.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={printAll} disabled={!selectedDesign || filteredStudents.length === 0}>
+            <Printer className="mr-2 h-4 w-4" />
+            Yazdır
+          </Button>
+          <Button variant="outline" onClick={exportPdf} disabled={!selectedDesign || filteredStudents.length === 0}>
+            <FileDown className="mr-2 h-4 w-4" />
+            PDF
+          </Button>
+        </div>
       </div>
 
       {!isLoaded ? (
         <Card>
           <CardContent className="py-12 flex flex-col items-center justify-center text-center">
             <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Henuz Veri Yuklenmemis</h3>
-            <p className="text-muted-foreground max-w-md">Optik kodlama icin once Kutuk Belirleme sayfasindan Excel dosyasi yukleyiniz.</p>
+            <h3 className="text-lg font-semibold mb-2">Henüz Veri Yüklenmemiş</h3>
+            <p className="text-muted-foreground max-w-md">Optik kodlama için önce sınav seçimi sayfasından Excel dosyası yükleyiniz.</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-1 h-fit">
-            <CardHeader>
-              <CardTitle>Alan Secimi</CardTitle>
-              <CardDescription>Her alan icin metin ve/veya karekod modunu aktif edip boyutlandirabilirsiniz.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="paper-size">Kagit Boyutu</Label>
-                <select id="paper-size" className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" value={paperSize} onChange={(e) => setPaperSize(e.target.value as PaperSize)}>
-                  <option value="A4">A4</option>
-                  <option value="A5">A5</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="district-filter">Ilce</Label>
-                <select id="district-filter" className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" value={districtId} onChange={(e) => { setDistrictId(e.target.value); setSchoolId("all"); setClassName("all"); }}>
-                  <option value="all">Tumu</option>
-                  {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="school-filter">Okul</Label>
-                <select id="school-filter" className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" value={schoolId} onChange={(e) => { setSchoolId(e.target.value); setClassName("all"); }}>
-                  <option value="all">Tumu</option>
-                  {visibleSchools.map((s) => <option key={s.id} value={s.id}>{s.code} - {s.name}</option>)}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="class-filter">Sube</Label>
-                <select id="class-filter" className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" value={className} onChange={(e) => setClassName(e.target.value)}>
-                  <option value="all">Tumu</option>
-                  {classOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="template-upload">Hazir Optik Gorseli</Label>
-                <Input id="template-upload" type="file" accept="image/*" onChange={handleTemplateUpload} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="font-size">Metin Boyutu (mm)</Label>
-                <Input id="font-size" type="number" min={2} max={8} step={0.2} value={fontSizeMm} onChange={(e) => setFontSizeMm(Number(e.target.value) || 4)} />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Eslesen Alanlar</Label>
-                <div className="grid gap-3 grid-cols-2 max-h-[420px] overflow-auto pr-1">
-                  {mappedFields.map((field) => {
-                    const state = fieldStateMap[field.id];
-                    if (!state) return null;
-
-                    return (
-                      <div key={field.id} className="rounded-lg border border-border/70 bg-background p-3 shadow-sm transition-colors hover:border-primary/50">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-1 min-w-0">
-                            <div className="text-sm font-medium leading-none truncate">{field.columnName}</div>
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              type="button"
-                              title="Metin"
-                              className={`p-1 rounded text-xs border ${state.txtEnabled ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border"}`}
-                              onClick={() => toggleFieldMode(field.id, "text")}
-                            >
-                              <Type className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              title="Karekod"
-                              className={`p-1 rounded text-xs border ${state.qrEnabled ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border"}`}
-                              onClick={() => toggleFieldMode(field.id, "qr")}
-                            >
-                              <QrCode className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                        {state.qrEnabled && (
-                          <div className="mt-2">
-                            <Label className="text-[10px] text-muted-foreground">Karekod Boyutu (mm)</Label>
-                            <Input
-                              type="number"
-                              min={10}
-                              max={60}
-                              step={1}
-                              className="h-6 text-xs mt-0.5"
-                              value={state.qrSizeMm}
-                              onChange={(e) => setQrSize(field.id, Number(e.target.value) || DEFAULT_QR_SIZE_MM)}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+        <div className="grid grid-cols-[300px_1fr_260px] gap-4 items-start">
+          {/* LEFT: Form seçimi + sütunlar + filtreler */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Optik Form</CardTitle>
+                <CardDescription>Doldurulacak form tasarımını seçin.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="form-select">Form</Label>
+                  <select
+                    id="form-select"
+                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    value={selectedFormId}
+                    onChange={(e) => handleSelectForm(e.target.value)}
+                  >
+                    <option value="">Seçin...</option>
+                    {formDesigns.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} ({d.paperSize})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
+                {selectedDesign && (
+                  <div className="rounded-md bg-muted p-3 text-sm">
+                    {selectedDesign.name} · {selectedDesign.paperSize}
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {selectedDesign.fields.length} bilgi alanı · {selectedDesign.grids.length} cevap tablosu
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-              <div className="rounded-md bg-muted p-3 text-sm">Secilen ogrenci: <strong>{filteredStudents.length}</strong></div>
+            {selectedDesign && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Excel Sütunları</CardTitle>
+                  <CardDescription>Bir sütunu sürükleyip forma bırakın veya + ile ekleyin.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-1" style={{ maxHeight: 360, overflowY: "auto" }}>
+                  {availableColumns.length === 0 && <p className="text-sm text-muted-foreground">Yüklenen veride sütun yok.</p>}
+                  {availableColumns.map((col) => (
+                    <div
+                      key={col.key}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", col.key);
+                        e.dataTransfer.effectAllowed = "copy";
+                      }}
+                      className="group flex items-center justify-between rounded-lg border border-border/70 px-2.5 py-2 hover:bg-muted/50 cursor-grab"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                        <span className="text-sm truncate">{col.label}</span>
+                      </div>
+                      <button
+                        type="button"
+                        title="Forma ekle"
+                        onClick={() => addElement(col)}
+                        className="ml-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground opacity-60 hover:opacity-100 hover:bg-primary hover:text-white transition-opacity"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
 
-              <div className="flex gap-2">
-                <Button className="flex-1" onClick={handlePrintAll}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  Yazdir
-                </Button>
-                <Button className="flex-1" variant="outline" onClick={handleExportPdf}>
-                  <FileDown className="mr-2 h-4 w-4" />
-                  PDF Export
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Filtreler</CardTitle>
+                <CardDescription>Yazdırılacak öğrenci aralığı.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="district-filter">İlçe</Label>
+                  <select
+                    id="district-filter"
+                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    value={districtId}
+                    onChange={(e) => {
+                      setDistrictId(e.target.value);
+                      setSchoolId("all");
+                      setClassName("all");
+                    }}
+                  >
+                    <option value="all">Tümü</option>
+                    {districts.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="school-filter">Okul</Label>
+                  <select
+                    id="school-filter"
+                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    value={schoolId}
+                    onChange={(e) => {
+                      setSchoolId(e.target.value);
+                      setClassName("all");
+                    }}
+                  >
+                    <option value="all">Tümü</option>
+                    {visibleSchools.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.code} - {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="class-filter">Şube</Label>
+                  <select
+                    id="class-filter"
+                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    value={className}
+                    onChange={(e) => setClassName(e.target.value)}
+                  >
+                    <option value="all">Tümü</option>
+                    {classOptions.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="rounded-md bg-muted p-3 text-sm">
+                  Seçilen öğrenci: <strong>{filteredStudents.length}</strong>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Yerlesim Onizleme</CardTitle>
-              <CardDescription>Alanlari fare ile surukleyip birakabilirsiniz. Karekodlar otomatik olarak guncellenir.</CardDescription>
+          {/* CENTER: Önizleme */}
+          <Card className="min-w-0">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Önizleme</CardTitle>
+              <CardDescription>Forma bırakın, sürükleyerek konumlandırın.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="overflow-auto rounded-lg border bg-muted/30 p-3">
-                <div ref={previewRef} className="relative mx-auto bg-white shadow-md select-none" style={{ width: `${paper.widthMm}mm`, height: `${paper.heightMm}mm` }} onMouseUp={stopDragging}>
-                  {templateDataUrl ? (
-                    <img src={templateDataUrl} alt="Optik sablon" className="absolute inset-0 h-full w-full object-fill pointer-events-none" />
+            <CardContent>
+              <div ref={previewAreaRef} className="overflow-hidden rounded-lg border bg-muted/30 p-4">
+                <div className="relative mx-auto" style={{ width: previewWidthPx * previewScale, height: previewHeightPx * previewScale }}>
+                  {previewHtml ? (
+                    <div
+                      ref={previewRef}
+                      className="absolute left-0 top-0 select-none overflow-hidden bg-white shadow-md"
+                      style={{
+                        width: previewWidthPx,
+                        height: previewHeightPx,
+                        transform: `scale(${previewScale})`,
+                        transformOrigin: "top left",
+                      }}
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                    >
+                      <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                      {elements.map((el) => {
+                        const fieldLabel = el.boundFieldId ? selectedDesign?.fields.find((f) => f.id === el.boundFieldId)?.label : null;
+                        const isSelected = el.id === selectedElementId;
+                        return (
+                          <div
+                            key={el.id}
+                            ref={(node) => {
+                              overlayRefs.current[el.id] = node;
+                            }}
+                            onPointerDown={(e) => onOverlayPointerDown(e, el)}
+                            onPointerMove={onOverlayPointerMove}
+                            onPointerUp={onOverlayPointerUp}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedElementId(el.id);
+                            }}
+                            className="group"
+                            style={{
+                              position: "absolute",
+                              left: mmToPx(el.xMm),
+                              top: mmToPx(el.yMm),
+                              width: mmToPx(OVERLAY_W_MM),
+                              height: mmToPx(OVERLAY_H_MM),
+                              cursor: "move",
+                              border: isSelected ? "2px solid rgb(59 130 246)" : "1.5px dashed rgba(59,130,246,0.55)",
+                              background: "rgba(59,130,246,0.05)",
+                              boxSizing: "border-box",
+                              touchAction: "none",
+                              userSelect: "none",
+                              zIndex: 10,
+                            }}
+                          >
+                            <span className="pointer-events-none absolute left-1.5 top-1 text-[10px] font-semibold text-blue-600 truncate" style={{ maxWidth: mmToPx(OVERLAY_W_MM) - 4 }}>
+                              {el.label}
+                              {fieldLabel ? (
+                                <span className="inline-flex items-center gap-0.5">
+                                  <Link2 className="h-2.5 w-2.5 inline" /> {fieldLabel}
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="pointer-events-none absolute right-1 bottom-0.5 text-[10px] font-semibold text-blue-500 opacity-60 group-hover:opacity-100">
+                              <Move className="h-3 w-3 inline" /> {Math.round(el.xMm)}mm,{Math.round(el.yMm)}mm
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <div className="absolute inset-0 grid place-content-center text-sm text-muted-foreground border-2 border-dashed border-muted-foreground/25">
                       <div className="text-center space-y-1">
-                        <Upload className="w-5 h-5 mx-auto" />
-                        <p>Sablon yuklerseniz burada gorunur.</p>
+                        <AlertCircle className="w-5 h-5 mx-auto" />
+                        <p>Form seçin ve öğrenci yükleyin.</p>
                       </div>
                     </div>
                   )}
-
-                  {mappedFields.map((field) => {
-                    const state = fieldStateMap[field.id];
-                    if (!state) return null;
-                    const previewValue = filteredStudents[0] ? resolveValue(filteredStudents[0], field) : "";
-
-                    return (
-                      <>
-                        {state.txtEnabled && (
-                          <div
-                            key={`txt-${field.id}`}
-                            className="absolute cursor-move whitespace-nowrap text-[12px] font-medium select-none"
-                            style={{
-                              left: `${state.textPlacement.xMm}mm`,
-                              top: `${state.textPlacement.yMm}mm`,
-                              fontSize: `${fontSizeMm}mm`,
-                              color: previewValue ? "#1e40af" : "#94a3b8",
-                            }}
-                            onMouseDown={() => startDragging(field.id, "text")}
-                          >
-                            {previewValue || field.columnName}
-                          </div>
-                        )}
-                        {state.qrEnabled && previewValue && qrDataUrls[field.id] && (
-                          <div
-                            key={`qr-${field.id}`}
-                            className="absolute cursor-move inline-block select-none"
-                            style={{
-                              left: `${state.qrPlacement.xMm}mm`,
-                              top: `${state.qrPlacement.yMm}mm`,
-                            }}
-                            onMouseDown={() => startDragging(field.id, "qr")}
-                          >
-                            <img
-                              src={qrDataUrls[field.id]}
-                              alt={`QR-${field.columnName}`}
-                              style={{
-                                width: `${state.qrSizeMm}mm`,
-                                height: `${state.qrSizeMm}mm`,
-                                imageRendering: "pixelated",
-                              }}
-                              draggable={false}
-                            />
-                          </div>
-                        )}
-                      </>
-                    );
-                  })}
                 </div>
               </div>
+              {filteredStudents[0] && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Önizleme öğrencisi: <strong>{filteredStudents[0].fullName}</strong>
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* RIGHT: Yerleştirilenler */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Yerleştirilenler</CardTitle>
+              <CardDescription>Eklenen öğeler ve bağlama.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {elements.length === 0 && (
+                <p className="text-sm text-muted-foreground">Henüz öğe yok. Soldaki sütunlardan ekleyin.</p>
+              )}
+              {elements.map((el) => {
+                const isSelected = el.id === selectedElementId;
+                return (
+                  <div
+                    key={el.id}
+                    onClick={() => setSelectedElementId(el.id)}
+                    className={`rounded-lg border p-2.5 space-y-2 cursor-pointer ${isSelected ? "border-blue-400 bg-blue-50/40" : "border-border/70"}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{el.label}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {Math.round(el.xMm)}mm, {Math.round(el.yMm)}mm
+                          {el.boundFieldId ? " · bağlı" : " · serbest"}
+                        </div>
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeElement(el.id);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <select
+                      className="h-8 w-full rounded-md border border-input bg-transparent px-2 text-xs"
+                      value={el.boundFieldId ?? ""}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => updateElement(el.id, { boundFieldId: e.target.value || undefined })}
+                    >
+                      <option value="">— Serbest (etiket + değer) —</option>
+                      {selectedDesign?.fields.filter((f) => !isHeadingField(f)).map((f) => (
+                        <option key={f.id} value={f.id}>
+                          Bağla: {f.label || "(isimsiz alan)"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+              {selectedElement && (
+                <div className="rounded-lg border border-border/70 p-2.5 space-y-2">
+                  <Label className="text-xs">Yazı Boyutu (mm)</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={12}
+                    step={0.5}
+                    className="h-8"
+                    value={selectedElement.fontSizeMm ?? 3}
+                    onChange={(e) => updateElement(selectedElement.id, { fontSizeMm: Number(e.target.value) || undefined })}
+                  />
+                  <Label className="text-xs">Harf Aralığı (mm)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={5}
+                    step={0.5}
+                    className="h-8"
+                    value={selectedElement.letterSpacingMm ?? 0}
+                    onChange={(e) => updateElement(selectedElement.id, { letterSpacingMm: Number(e.target.value) || 0 })}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

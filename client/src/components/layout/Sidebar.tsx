@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   BookOpen,
-  ClipboardList
+  ClipboardList,
+  FilePlus2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/labels", label: "Okul Etiketi", icon: Tags },
   { href: "/branch-labels", label: "Şube Etiketi", icon: Package },
   { href: "/reports", label: "Teslim Tutanağı", icon: ClipboardCheck },
+  { href: "/optic-create", label: "Optik Oluşturma", icon: FilePlus2 },
   { href: "/optic-coding", label: "Optik Kodlama", icon: QrCode },
   { href: "/optic-reading", label: "Optik Okuma", icon: QrCode },
   { href: "/evaluation", label: "Değerlendirme", icon: ClipboardList },

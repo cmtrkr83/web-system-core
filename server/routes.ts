@@ -107,6 +107,7 @@ const fs = await import("fs/promises");
    const path = await import("path");
    const dbDir = path.resolve(process.cwd(), "db");
    const configsFile = path.join(dbDir, "optic-configs.json");
+   const formDesignsFile = path.join(dbDir, "optic-form-designs.json");
    const resultsFile = path.join(dbDir, "optic-results.json");
    const resultsCsvFile = path.join(dbDir, "optic-results.csv");
    const opticDbFile = path.join(dbDir, "optic-readings.sqlite");
@@ -167,6 +168,58 @@ const fs = await import("fs/promises");
       return res.status(200).json(JSON.parse(data));
     } catch (err) {
       return res.status(200).json([]);
+    }
+  });
+
+  app.get("/api/optics/form-designs", async (_req, res) => {
+    try {
+      const data = await fs.readFile(formDesignsFile, "utf-8");
+      return res.status(200).json(JSON.parse(data));
+    } catch (err) {
+      return res.status(200).json([]);
+    }
+  });
+
+  app.post("/api/optics/form-designs", async (req, res) => {
+    try {
+      const body = req.body;
+      const existing = await (async () => {
+        try {
+          const d = await fs.readFile(formDesignsFile, "utf-8");
+          return JSON.parse(d) as any[];
+        } catch {
+          return [] as any[];
+        }
+      })();
+
+      const index = existing.findIndex((item) => item.id === body.id);
+      if (index >= 0) {
+        existing[index] = { ...existing[index], ...body };
+      } else {
+        existing.push(body);
+      }
+      await fs.writeFile(formDesignsFile, JSON.stringify(existing, null, 2), "utf-8");
+      return res.status(201).json({ message: "Kaydedildi" });
+    } catch (err) {
+      return res.status(500).json({ message: "Kaydetme hatası" });
+    }
+  });
+
+  app.delete("/api/optics/form-designs/:id", async (req, res) => {
+    try {
+      const existing = await (async () => {
+        try {
+          const d = await fs.readFile(formDesignsFile, "utf-8");
+          return JSON.parse(d) as any[];
+        } catch {
+          return [] as any[];
+        }
+      })();
+      const next = existing.filter((item) => item.id !== req.params.id);
+      await fs.writeFile(formDesignsFile, JSON.stringify(next, null, 2), "utf-8");
+      return res.status(200).json({ message: "Silindi" });
+    } catch (err) {
+      return res.status(500).json({ message: "Silme hatası" });
     }
   });
 
