@@ -12,6 +12,7 @@ export interface FormTextField {
   borderRadiusMm?: number;
   fontSizeMm?: number;
   letterSpacingMm?: number;
+  autoWidth?: boolean;
   xMm?: number;
   yMm?: number;
 }
@@ -50,9 +51,10 @@ export function formFieldHeightMm(field: FormTextField): number {
 
 export function fieldContentWidthMm(field: FormTextField, columnWidthMm: number): number {
   if (isHeadingField(field)) {
+    if (field.widthMm > 0) return Math.max(10, field.widthMm);
     const fs = field.fontSizeMm ?? HEADING_DEFAULT_FONT_MM;
     const ls = field.letterSpacingMm ?? HEADING_DEFAULT_SPACING_MM;
-    return Math.max(20, field.label.length * (fs * 0.62 + ls));
+    return Math.max(20, field.label.length * (fs * 0.72 + ls));
   }
   if (isBookletField(field)) return BOOKLET_OPTIONS.length * BUBBLE_PITCH_MM + 0.3;
   if (isBoxField(field)) return field.widthMm || columnWidthMm;
@@ -448,7 +450,7 @@ export function buildOpticFormHtml(design: OpticFormDesign, fill?: OpticFormFill
                     ${buildFieldInputHtml(field, fillValue)}
                   </div>`
                 : isHeadingField(field)
-                  ? `<div style="font-size:${field.fontSizeMm ?? HEADING_DEFAULT_FONT_MM}mm;font-weight:700;color:${BUBBLE_BORDER_COLOR};letter-spacing:${field.letterSpacingMm ?? HEADING_DEFAULT_SPACING_MM}mm;line-height:1.15;white-space:pre-wrap;">${escapeHtml(field.label)}</div>`
+                  ? `<div data-heading-id="${field.id}" style="display:inline-block;font-size:${field.fontSizeMm ?? HEADING_DEFAULT_FONT_MM}mm;font-weight:700;color:${BUBBLE_BORDER_COLOR};letter-spacing:${field.letterSpacingMm ?? HEADING_DEFAULT_SPACING_MM}mm;line-height:1.15;white-space:${field.autoWidth === false ? "pre-wrap" : "nowrap"};">${escapeHtml(field.label)}</div>`
                   : `<div style="font-size:2.8mm;font-weight:600;color:${BUBBLE_BORDER_COLOR};padding-left:1mm;">${escapeHtml(field.label.toLocaleUpperCase("tr-TR"))}</div>
                      ${buildFieldInputHtml(field, fillValue)}`
             }

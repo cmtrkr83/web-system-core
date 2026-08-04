@@ -146,6 +146,24 @@ export default function OpticCreate() {
     return items;
   }, [form, placements, gridPlaces]);
 
+  useEffect(() => {
+    const root = previewRef.current;
+    if (!form || !root) return;
+    let changed = false;
+    const next = form.fields.map((f) => {
+      if (!isHeadingField(f) || f.autoWidth === false) return f;
+      const el = root.querySelector<HTMLElement>(`[data-heading-id="${f.id}"]`);
+      if (!el) return f;
+      const wMm = Math.round((el.offsetWidth / PX_PER_MM) * 10) / 10;
+      if (wMm > 0 && Math.abs(wMm - (f.widthMm ?? 0)) > 0.4) {
+        changed = true;
+        return { ...f, widthMm: wMm };
+      }
+      return f;
+    });
+    if (changed) patch({ fields: next });
+  }, [form, previewHtml]);
+
   const snapToGrid = (v: number, s: number) => Math.round(v / s) * s;
 
   const onOverlayPointerDown = (e: React.PointerEvent, o: { key: string; xMm: number; yMm: number; wMm: number; hMm: number; snapMm: number }) => {
@@ -518,21 +536,48 @@ export default function OpticCreate() {
                     )}
                   </div>
                   {isHeadingField(field) && (
-                    <div>
-                      <Label className="flex justify-between text-xs">
-                        Harf Aralığı
-                        <span>{field.letterSpacingMm ?? 0}mm</span>
-                      </Label>
-                      <input
-                        type="range"
-                        min={0}
-                        max={5}
-                        step={0.1}
-                        className="w-full"
-                        value={field.letterSpacingMm ?? 0}
-                        onChange={(e) => updateField(field.id, { letterSpacingMm: Number(e.target.value) })}
-                      />
-                    </div>
+                    <>
+                      <div className="space-y-1.5">
+                        <Label className="flex justify-between text-xs">
+                          <span>Genişlik</span>
+                          <label className="flex items-center gap-1 text-xs font-normal">
+                            <input
+                              type="checkbox"
+                              className="h-3.5 w-3.5"
+                              checked={field.autoWidth !== false}
+                              onChange={(e) => updateField(field.id, { autoWidth: e.target.checked })}
+                            />
+                            Otomatik
+                          </label>
+                        </Label>
+                        <Input
+                          type="number"
+                          min={10}
+                          max={200}
+                          step={0.5}
+                          className="h-7"
+                          value={field.autoWidth === false ? field.widthMm ?? 88 : ""}
+                          placeholder="Otomatik"
+                          disabled={field.autoWidth !== false}
+                          onChange={(e) => updateField(field.id, { widthMm: Number(e.target.value) || 10, autoWidth: false })}
+                        />
+                      </div>
+                      <div>
+                        <Label className="flex justify-between text-xs">
+                          Harf Aralığı
+                          <span>{field.letterSpacingMm ?? 0}mm</span>
+                        </Label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={5}
+                          step={0.1}
+                          className="w-full"
+                          value={field.letterSpacingMm ?? 0}
+                          onChange={(e) => updateField(field.id, { letterSpacingMm: Number(e.target.value) })}
+                        />
+                      </div>
+                    </>
                   )}
                   {isBoxField(field) && (
                     <div className="grid grid-cols-2 gap-2">
