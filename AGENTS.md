@@ -29,6 +29,7 @@ Web System Core — sınav kütük yönetimi, optik kodlama/okuma, etiket/tutana
   - `optic-coding-page.tsx` sıfırdan yeniden kuruldu (3 sütun: sol ayarlar+alan ekle, orta önizleme, sağ bileşen listesi; sürükle-bırak; Excel `extraData` sütunları + standart alanlar). **Not:** Bu sayfa hâlâ WYSIWYG çekirdeğine dayanıyor ancak kullanıcı "önce optik form oluşturma gerekir" dedi; kodlama sayfası bundan sonra oluşturulan form üzerine işlenecek şekilde revize edilebilir.
 - **Sırada / kararsız:** Bileşen türleri (metin/QR/görsel vb.) henüz netleşmedi; optik okuma sayfası bu oturumda kurcalanmadı.
 - Dev sunucusu Vite'ın çözemediği eski bir import hatası nedeniyle çökebilir; `npm run dev` yeniden başlatınca düzelir.
+- **Node sürümü zorunlu:** Vite 7 `^20.19.0 || >=22.12.0` ister. Sistemdeki Node 20.11.1 ile dev sunucusu `crypto.hash is not a function` hatasıyla çöker. Çözüm: `export PATH="/opt/homebrew/opt/node@22/bin:$PATH"` (brew `node@22`, v22.23.2) ile `npm run dev` başlat; native modüller için gerekiyorsa önce `npm rebuild better-sqlite3`.
 
 ## Çalıştırma
 
