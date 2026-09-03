@@ -2,43 +2,19 @@ import type { Student, School, District } from "@/context/RegistryContext";
 
 export type PaperSize = "A4" | "A5";
 
-export type ComponentType = "text" | "qr" | "image";
-
-export interface PlacedComponent {
-  id: string;
-  type: ComponentType;
-  label: string;
-  sourceColumn?: string;
-  fixedText?: string;
-  xMm: number;
-  yMm: number;
-  fontSizeMm?: number;
-  bold?: boolean;
-  qrSizeMm?: number;
-  imageDataUrl?: string;
-  imageWidthMm?: number;
-  visible: boolean;
-}
-
 export const PAPER_DIMENSIONS: Record<PaperSize, { widthMm: number; heightMm: number }> = {
   A4: { widthMm: 210, heightMm: 297 },
   A5: { widthMm: 148, heightMm: 210 },
 };
 
 export const PX_PER_MM = 96 / 25.4;
+export const PT_PER_MM = 72 / 25.4;
 
 export const mmToPx = (mm: number) => Math.round(mm * PX_PER_MM);
 
-export const STANDARD_COLUMNS: Array<{ key: string; label: string }> = [
-  { key: "fullName", label: "Ad Soyad" },
-  { key: "studentNo", label: "TC Kimlik No" },
-  { key: "schoolNo", label: "Okul No" },
-  { key: "class", label: "Sınıf / Şube" },
-  { key: "grade", label: "Salon" },
-  { key: "schoolName", label: "Okul Adı" },
-  { key: "schoolCode", label: "Okul Kodu" },
-  { key: "districtName", label: "İlçe Adı" },
-];
+export const mmToPt = (mm: number) => Math.round(mm * PT_PER_MM);
+
+export const snapToGrid = (v: number, s: number) => Math.round(v / s) * s;
 
 export function extractExcelColumns(students: Student[]): string[] {
   const keys = new Set<string>();
@@ -109,15 +85,6 @@ export function findDistrict(school: School | undefined, districts: District[]):
   return districts.find((d) => d.id === school.districtId);
 }
 
-export interface PageRenderOptions {
-  paperSize: PaperSize;
-  templateDataUrl?: string;
-  components: PlacedComponent[];
-  getValue: (component: PlacedComponent) => string;
-  defaultFontSizeMm: number;
-  qrDataUrls?: Record<string, string>;
-}
-
 export function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -126,46 +93,104 @@ export function escapeHtml(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
-export function buildPageHtml(options: PageRenderOptions): string {
-  const paper = PAPER_DIMENSIONS[options.paperSize];
-  const blocks: string[] = [];
-
-  for (const component of options.components) {
-    if (!component.visible) continue;
-
-    if (component.type === "text") {
-      const value = options.getValue(component);
-      if (!value) continue;
-      const fontSize = component.fontSizeMm ?? options.defaultFontSizeMm;
-      const fontWeight = component.bold ? "bold" : "normal";
-      blocks.push(
-        `<div data-comp-id="${component.id}" style="position:absolute;left:${component.xMm}mm;top:${component.yMm}mm;font-size:${fontSize}mm;line-height:1;font-weight:${fontWeight};color:#000;white-space:nowrap;">${escapeHtml(value)}</div>`,
-      );
-    } else if (component.type === "qr") {
-      const value = options.getValue(component);
-      if (!value) continue;
-      const size = component.qrSizeMm ?? 25;
-      const qrUrl = options.qrDataUrls?.[component.id];
-      if (!qrUrl) continue;
-      blocks.push(
-        `<img data-comp-id="${component.id}" src="${qrUrl}" alt="QR" style="position:absolute;left:${component.xMm}mm;top:${component.yMm}mm;width:${size}mm;height:${size}mm;image-rendering:pixelated;" />`,
-      );
-    } else if (component.type === "image") {
-      if (!component.imageDataUrl) continue;
-      const width = component.imageWidthMm ?? 40;
-      blocks.push(
-        `<img data-comp-id="${component.id}" src="${component.imageDataUrl}" alt="logo" style="position:absolute;left:${component.xMm}mm;top:${component.yMm}mm;width:${width}mm;height:auto;" />`,
-      );
-    }
-  }
-
-  const template = options.templateDataUrl
-    ? `<img src="${options.templateDataUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;" />`
-    : "";
-
-  return `<div style="position:relative;width:${paper.widthMm}mm;height:${paper.heightMm}mm;overflow:hidden;background:#fff;">${template}${blocks.join("")}</div>`;
+export interface PdfPageRenderOptions {
+  pages: string[];
+  widthPx: number;
+  heightPx: number;
+  widthMm: number;
+  heightMm: number;
+  paperSize: PaperSize;
+  renderDpi?: number;
+  onProgress?: (completed: number, total: number) => void;
 }
 
-export function generateId(): string {
-  return `comp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+export async function createPdfFromPages(options: PdfPageRenderOptions): Promise<Blob> {
+  const { default: html2canvas } = await import("html2canvas");
+  const { PDFDocument } = await import("pdf-lib");
+
+  const dpi = options.renderDpi ?? 300;
+  const pageWidthPt = mmToPt(options.widthMm);
+  const pageHeightPt = mmToPt(options.heightMm);
+  const pdfDoc = await PDFDocument.create();
+
+  for (let i = 0; i < options.pages.length; i++) {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = options.pages[i];
+    const pageEl = wrapper.firstElementChild as HTMLElement;
+    pageEl.style.width = `${options.widthPx}px`;
+    pageEl.style.height = `${options.heightPx}px`;
+    pageEl.style.background = "#ffffff";
+    pageEl.style.position = "fixed";
+    pageEl.style.left = "-9999px";
+    pageEl.style.top = "0";
+    document.body.appendChild(pageEl);
+
+    try {
+      const imgs = Array.from(pageEl.querySelectorAll("img"));
+      await Promise.all(
+        imgs.map((img) => {
+          if (img.complete) return;
+          return new Promise<void>((resolve) => {
+            const done = () => resolve();
+            img.addEventListener("load", done, { once: true });
+            img.addEventListener("error", done, { once: true });
+          });
+        }),
+      );
+
+      const canvas = await html2canvas(pageEl, {
+        scale: dpi / 96,
+        useCORS: true,
+        logging: false,
+        width: options.widthPx,
+        height: options.heightPx,
+      });
+      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+      const imgBytes = Uint8Array.from(atob(imgData.split(",")[1]), (c) => c.charCodeAt(0));
+      const image = await pdfDoc.embedJpg(imgBytes);
+      const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
+      page.drawImage(image, { x: 0, y: 0, width: pageWidthPt, height: pageHeightPt });
+    } finally {
+      document.body.removeChild(pageEl);
+    }
+
+    options.onProgress?.(i + 1, options.pages.length);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  const pdfBytes = await pdfDoc.save();
+  return new Blob([pdfBytes], { type: "application/pdf" });
+}
+
+export function openPrintWindow(pages: string[], paperSize: PaperSize): boolean {
+  const printWindow = window.open("", "_blank", "width=1200,height=900");
+  if (!printWindow) return false;
+  const pageSections = pages.map((page) => `<section class="optic-page">${page}</section>`).join("");
+  printWindow.document.write(
+    `<!doctype html><html lang="tr"><head><meta charset="UTF-8" /><style>@page{size:${paperSize} portrait;margin:0;}html,body{margin:0;padding:0;}body{background:#fff;}.optic-page{page-break-after:always;}.optic-page:last-child{page-break-after:auto;}</style></head><body>${pageSections}</body></html>`,
+  );
+  printWindow.document.close();
+  printWindow.focus();
+  try {
+    printWindow.print();
+  } catch {
+    // ignore
+  }
+  return true;
+}
+
+const qrCache = new Map<string, string>();
+
+export async function buildQrDataUrl(text: string, widthPx = 600): Promise<string> {
+  const key = `${widthPx}:${text}`;
+  const cached = qrCache.get(key);
+  if (cached) return cached;
+  const { default: QRCode } = await import("qrcode");
+  const dataUrl = await QRCode.toDataURL(text, {
+    width: widthPx,
+    margin: 2,
+    errorCorrectionLevel: "M",
+  });
+  qrCache.set(key, dataUrl);
+  return dataUrl;
 }

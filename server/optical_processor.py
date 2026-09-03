@@ -58,7 +58,35 @@ def img_to_base64(image: np.ndarray, quality: int = 60) -> str:
 
 
 def read_qr_code(image: np.ndarray) -> Optional[str]:
-    """QR kod oku - önce doğrudan dene, sonra farklı binarizasyonlarla dene"""
+    """QR kod oku - önce OpenCV QRCodeDetector, sonra pyzbar (varsa) ile dene"""
+    try:
+        detector = cv2.QRCodeDetector()
+        data, points, _ = detector.detectAndDecode(image)
+        if data and data.strip():
+            return data.strip()
+        ret, infos, pts, _ = detector.detectAndDecodeMulti(image)
+        if ret and infos and pts is not None:
+            for i, info in enumerate(infos):
+                if info and info.strip():
+                    return info.strip()
+            # Perspektif düzeltmeli deneme (eğik taramalar için)
+            for i, p in enumerate(pts):
+                p = np.array(p, dtype=np.float32).reshape(-1, 2)
+                if len(p) != 4:
+                    continue
+                w2 = int(max(np.linalg.norm(p[1] - p[0]), np.linalg.norm(p[2] - p[3])))
+                h2 = int(max(np.linalg.norm(p[3] - p[0]), np.linalg.norm(p[2] - p[1])))
+                if w2 < 8 or h2 < 8:
+                    continue
+                dst = np.array([[0, 0], [w2 - 1, 0], [w2 - 1, h2 - 1], [0, h2 - 1]], dtype=np.float32)
+                M = cv2.getPerspectiveTransform(p, dst)
+                warped = cv2.warpPerspective(image, M, (w2, h2))
+                data2, _, _ = detector.detectAndDecode(warped)
+                if data2 and data2.strip():
+                    return data2.strip()
+    except Exception:
+        pass
+
     if pyzbar is None:
         return None
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -707,15 +735,255 @@ def pdf_to_jpeg(pdf_path: Path, dpi: int = 300) -> List[Path]:
         return []
 
 
+# ============================================================================
+# MANIFEST TABANLI OKUMA (v2)
+# Referans kareleri (5 köşe) -> homografi -> baloncuk merkezlerinden örnekleme
+# ============================================================================
+
+REF_MARK_SIZE_MM = 5.0
+BUBBLE_SIZE_MM = 4.23
+SAMPLE_RADIUS_MM = 1.5
+
+
+def _load_manifest(path: str) -> Dict[str, Any]:
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _px_per_mm(image: np.ndarray, manifest: Dict[str, Any]) -> float:
+    h, w = image.shape[:2]
+    return min(w / float(manifest["pageWidthMm"]), h / float(manifest["pageHeightMm"]))
+
+
+def _detect_reference_marks(gray: np.ndarray, manifest: Dict[str, Any], ppmm: float) -> List[Dict[str, Any]]:
+    """Her beklenen işaret için yakın çevredeki en uygun siyah kareyi bul."""
+    h, w = gray.shape[:2]
+    _, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
+    expected_area = (REF_MARK_SIZE_MM * ppmm) ** 2
+
+    for window_mm in (8.0, 18.0):
+        window = int(window_mm * ppmm)
+        found: List[Dict[str, Any]] = []
+        for m in manifest["referenceMarks"]:
+            cx = int(m["cx"] * ppmm)
+            cy = int(m["cy"] * ppmm)
+            x0 = max(0, cx - window)
+            x1 = min(w, cx + window)
+            y0 = max(0, cy - window)
+            y1 = min(h, cy + window)
+            roi = binary[y0:y1, x0:x1]
+            contours, _ = cv2.findContours(roi, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            best = None
+            best_dist = float("inf")
+            for c in contours:
+                area = cv2.contourArea(c)
+                if area < expected_area * 0.4 or area > expected_area * 2.2:
+                    continue
+                rx, ry, rw, rh = cv2.boundingRect(c)
+                if rw < 2 or rh < 2:
+                    continue
+                aspect = max(rw, rh) / max(1.0, min(rw, rh))
+                if aspect > 1.6:
+                    continue
+                fill = area / (rw * rh) if rw * rh > 0 else 0
+                if fill < 0.6:
+                    continue
+                mom = cv2.moments(c)
+                if mom["m00"] == 0:
+                    continue
+                cxp = x0 + mom["m10"] / mom["m00"]
+                cyp = y0 + mom["m01"] / mom["m00"]
+                dist = ((cxp - cx) ** 2 + (cyp - cy) ** 2) ** 0.5
+                if dist < best_dist:
+                    best_dist = dist
+                    best = (cxp, cyp)
+            if best is not None:
+                found.append({"mm": (float(m["cx"]), float(m["cy"])), "px": best})
+        if len(found) >= 3:
+            return found
+    return []
+
+
+def _points_non_collinear(pts: List[tuple]) -> bool:
+    if len(pts) < 3:
+        return False
+    a, b, c = pts[0], pts[1], pts[2]
+    area = abs(a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1])) / 2.0
+    return area > 1e-4
+
+
+def _compute_homography(found: List[Dict[str, Any]]) -> Optional[np.ndarray]:
+    src = np.array([f["mm"] for f in found], dtype=np.float32)
+    dst = np.array([f["px"] for f in found], dtype=np.float32)
+    if len(src) >= 4:
+        H, _ = cv2.findHomography(src, dst, cv2.RANSAC, 3.0)
+        return H
+    if len(src) == 3 and _points_non_collinear([(float(p[0]), float(p[1])) for p in dst]):
+        aff = cv2.getAffineTransform(src, dst)
+        return np.vstack([aff, [0.0, 0.0, 1.0]])
+    return None
+
+
+def _mm_to_px(H: np.ndarray, x: float, y: float) -> tuple:
+    p = H @ np.array([x, y, 1.0])
+    return float(p[0] / p[2]), float(p[1] / p[2])
+
+
+def _bubble_darkness(gray: np.ndarray, H: np.ndarray, cx: float, cy: float, radius_px: int) -> float:
+    px, py = _mm_to_px(H, cx, cy)
+    px = min(max(px, radius_px + 2), gray.shape[1] - radius_px - 2)
+    py = min(max(py, radius_px + 2), gray.shape[0] - radius_px - 2)
+    mask = np.zeros(gray.shape, dtype=np.uint8)
+    cv2.circle(mask, (int(round(px)), int(round(py))), radius_px, 255, -1)
+    return 255.0 - float(cv2.mean(gray, mask)[0])
+
+
+def _decode_options(entries: List[tuple], empty_ref: float) -> tuple:
+    """entries: [(key, darkness)]. Dolu seçeneği ve güven skorunu döndür."""
+    entries = sorted(entries, key=lambda t: -t[1])
+    best_key, best = entries[0]
+    second = entries[1][1] if len(entries) > 1 else best
+    span = max(1.0, 255.0 - empty_ref)
+    floor = empty_ref + max(25.0, span * 0.22)
+    if best < floor:
+        return None, 0.0
+    conf = min(1.0, (best - second) / span)
+    if best - second < max(30.0, span * 0.28):
+        conf *= 0.5
+    return best_key, round(conf, 3)
+
+
+def read_manifest_image(file_path: str, manifest: Dict[str, Any]) -> Dict[str, Any]:
+    """Manifest + görsel -> alan/kitapçık/sınav ID/cevaplar + güven skorları."""
+    path = Path(file_path)
+    if not path.exists():
+        return {"success": False, "file_name": path.name, "error": "Dosya bulunamadı"}
+    image = load_image(path)
+    if image is None:
+        return {"success": False, "file_name": path.name, "error": "Görsel okunamadı"}
+
+    h, w = image.shape[:2]
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    ppmm = _px_per_mm(image, manifest)
+
+    result: Dict[str, Any] = {
+        "success": True,
+        "file_name": path.name,
+        "image_width": w,
+        "image_height": h,
+        "qr": read_qr_code(image) or "",
+        "marks_detected": 0,
+        "fields": [],
+        "grids": [],
+    }
+
+    found = _detect_reference_marks(gray, manifest, ppmm)
+    result["marks_detected"] = len(found)
+    if len(found) < 3:
+        result["success"] = False
+        result["error"] = f"Referans kareleri tespit edilemedi ({len(found)}/5)"
+        return result
+
+    H = _compute_homography(found)
+    if H is None:
+        result["success"] = False
+        result["error"] = (
+            "Homografi hesaplanamadı: bulunan referans kareleri aynı hizada (eğik/eksik tarama olabilir). "
+            "Sayfanın tamamının göründüğünden emin olun."
+        )
+        return result
+
+    radius_px = int(SAMPLE_RADIUS_MM * ppmm)
+    overlay = image.copy()
+    for f in found:
+        cv2.circle(overlay, (int(round(f["px"][0])), int(round(f["px"][1]))), 6, (0, 255, 0), 2)
+
+    # --- Alanlar (TC / sınav ID / kitapçık) ---
+    for field in manifest.get("fields", []):
+        if field["type"] == "booklet":
+            darks = [(b["option"], _bubble_darkness(gray, H, b["cx"], b["cy"], radius_px)) for b in field["bubbles"]]
+            empty_ref = float(np.median([d for _, d in darks]))
+            key, conf = _decode_options(darks, empty_ref)
+            result["fields"].append({
+                "id": field["id"],
+                "label": field["label"],
+                "type": "booklet",
+                "value": key or "",
+                "confidence": conf,
+            })
+        else:
+            digits: List[str] = []
+            confidences: List[float] = []
+            for col in range(len(field["bubbles"]) // 10):
+                col_bubbles = [b for b in field["bubbles"] if b["q"] == col]
+                darks = [(b["option"], _bubble_darkness(gray, H, b["cx"], b["cy"], radius_px)) for b in col_bubbles]
+                empty_ref = float(np.median([d for _, d in darks]))
+                key, conf = _decode_options(darks, empty_ref)
+                digits.append(key if key is not None else "?")
+                confidences.append(conf)
+            result["fields"].append({
+                "id": field["id"],
+                "label": field["label"],
+                "type": "numeric",
+                "value": "".join(digits),
+                "confidence": round(sum(confidences) / max(1, len(confidences)), 3),
+            })
+
+    # --- Cevap gridleri ---
+    for grid in manifest.get("grids", []):
+        answers = []
+        by_q: Dict[int, List[tuple]] = {}
+        for b in grid["bubbles"]:
+            by_q.setdefault(b["q"], []).append((b["option"], _bubble_darkness(gray, H, b["cx"], b["cy"], radius_px)))
+        for q in sorted(by_q):
+            empty_ref = float(np.median([d for _, d in by_q[q]]))
+            key, conf = _decode_options(by_q[q], empty_ref)
+            answers.append({"no": q, "answer": key or "", "confidence": conf})
+        result["grids"].append({
+            "subject": grid["subject"],
+            "questionCount": grid["questionCount"],
+            "answers": answers,
+        })
+
+    # --- Overlay: dolu seçimleri yeşil, boşları kırmızı işaretle ---
+    for grid in result["grids"]:
+        g = next((x for x in manifest["grids"] if x["subject"] == grid["subject"]), None)
+        if not g:
+            continue
+        for a in grid["answers"]:
+            matches = [b for b in g["bubbles"] if b["q"] == a["no"] and b["option"] == a["answer"]]
+            if matches:
+                px, py = _mm_to_px(H, matches[0]["cx"], matches[0]["cy"])
+                cv2.circle(overlay, (int(round(px)), int(round(py))), radius_px + 4, (0, 255, 0), 2)
+            else:
+                all_b = [b for b in g["bubbles"] if b["q"] == a["no"]]
+                if all_b:
+                    px, py = _mm_to_px(H, all_b[0]["cx"], all_b[0]["cy"])
+                    cv2.circle(overlay, (int(round(px)), int(round(py))), radius_px + 4, (0, 0, 255), 1)
+
+    result["overlay_base64"] = img_to_base64(overlay, quality=70)
+    return result
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print(json.dumps({"error": "Kullanım: python optical_processor.py <mode> <args...>"}))
-        print(json.dumps({"error": "Modlar: detect_frame (tek JPEG), batch (klasör/dosyalar), process (PDF/JPEG)"}))
+        print(json.dumps({"error": "Kullanım: python optical_processor.py read <manifest.json> <görsel...>"}))
         sys.exit(1)
 
     mode = sys.argv[1]
 
-    if mode == "detect_frame":
+    if mode == "read":
+        if len(sys.argv) < 4:
+            print(json.dumps({"error": "read modu için manifest yolu ve en az 1 görsel yolu gerekli"}))
+            sys.exit(1)
+        manifest = _load_manifest(sys.argv[2])
+        results = []
+        for idx, img in enumerate(sys.argv[3:]):
+            print(json.dumps({"progress": f"{idx+1}/{len(sys.argv)-3}", "file": Path(img).name}), file=sys.stderr)
+            results.append(read_manifest_image(img, manifest))
+        print(json.dumps(results, ensure_ascii=False))
+
+    elif mode == "detect_frame":
         if len(sys.argv) < 3:
             print(json.dumps({"error": "detect_frame modu için dosya yolu gerekli"}))
             sys.exit(1)
@@ -829,5 +1097,5 @@ if __name__ == "__main__":
         }))
 
     else:
-        print(json.dumps({"error": f"Bilinmeyen mod: {mode}. Kullanılabilir: detect_frame, batch, process"}))
+        print(json.dumps({"error": f"Bilinmeyen mod: {mode}. Kullanılabilir: read"}))
         sys.exit(1)

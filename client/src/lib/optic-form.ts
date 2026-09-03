@@ -1,4 +1,4 @@
-import type { PaperSize } from "./optic-coding";
+import { escapeHtml, type PaperSize } from "./optic-coding";
 
 export type FormFieldType = "text" | "numeric" | "id" | "booklet" | "box" | "heading";
 
@@ -20,7 +20,7 @@ export interface FormTextField {
 export const TEXT_FIELD_HEIGHT_MM = 9.5;
 export const NUMERIC_FIELD_HEIGHT_MM = 10 + 2 + 5 + 10 * 5 + 1.5;
 export const BOOKLET_FIELD_HEIGHT_MM = 10 + 2 + 5 + 1.5;
-export const BOOKLET_OPTIONS = ["A", "B", "C", "D"];
+const BOOKLET_OPTIONS = ["A", "B", "C", "D"];
 export const BOX_FIELD_DEFAULT_HEIGHT_MM = 14;
 export const BOX_FIELD_DEFAULT_RADIUS_MM = 2;
 export const HEADING_MIN_FONT_MM = 2;
@@ -49,7 +49,7 @@ export function formFieldHeightMm(field: FormTextField): number {
   return isNumericField(field) ? NUMERIC_FIELD_HEIGHT_MM : TEXT_FIELD_HEIGHT_MM;
 }
 
-export function fieldContentWidthMm(field: FormTextField, columnWidthMm: number): number {
+function fieldContentWidthMm(field: FormTextField, columnWidthMm: number): number {
   if (isHeadingField(field)) {
     if (field.widthMm > 0) return Math.max(10, field.widthMm);
     const fs = field.fontSizeMm ?? HEADING_DEFAULT_FONT_MM;
@@ -151,7 +151,7 @@ export function gridHeightMm(grid: AnswerGrid): number {
   return 10 + 2 + grid.questionCount * ROW_HEIGHT_MM + 0.6;
 }
 
-export function computeAnswerRegionTop(design: OpticFormDesign): number {
+function computeAnswerRegionTop(design: OpticFormDesign): number {
   const paperHeight = design.paperSize === "A4" ? 297 : 210;
   const placements = computeFieldPlacements(design);
   let infoBottomMm = 0;
@@ -206,8 +206,15 @@ export interface OpticManifestGrid {
   bubbles: OpticManifestBubble[];
 }
 
+export interface OpticManifestField {
+  id: string;
+  label: string;
+  type: "numeric" | "booklet";
+  bubbles: OpticManifestBubble[];
+}
+
 export interface OpticManifest {
-  version: 1;
+  version: 2;
   id: string;
   name: string;
   paperSize: PaperSize;
@@ -215,6 +222,7 @@ export interface OpticManifest {
   pageHeightMm: number;
   referenceMarks: { cx: number; cy: number }[];
   answerAreaTopMm: number;
+  fields: OpticManifestField[];
   grids: OpticManifestGrid[];
   generatedAt: string;
 }
@@ -222,8 +230,6 @@ export interface OpticManifest {
 export function buildOpticFormManifest(design: OpticFormDesign): OpticManifest {
   const paperWidth = design.paperSize === "A4" ? 210 : 148;
   const paperHeight = design.paperSize === "A4" ? 297 : 210;
-  const contentW = paperWidth - LEFT_MARGIN_MM - RIGHT_MARGIN_MM;
-  const contentH = paperHeight - MARGIN_MM * 2;
   const borderMm = (BUBBLE_BORDER_PX * 25.4) / 96;
 
   const grids: OpticManifestGrid[] = computeGridPlacements(design).map(({ grid, xMm, yMm, widthMm, heightMm }) => {
@@ -251,17 +257,47 @@ export function buildOpticFormManifest(design: OpticFormDesign): OpticManifest {
     };
   });
 
+  const fields: OpticManifestField[] = computeFieldPlacements(design)
+    .filter(({ field }) => isNumericField(field) || isBookletField(field))
+    .map(({ field, xMm, yMm }) => {
+      const bubbles: OpticManifestBubble[] = [];
+      if (isBookletField(field)) {
+        const letters = optionLetters(field.digitCount ?? 4);
+        letters.forEach((letter, i) => {
+          bubbles.push({
+            q: i,
+            option: letter,
+            cx: Math.round((xMm + borderMm + i * BUBBLE_PITCH_MM + BUBBLE_PITCH_MM / 2) * 100) / 100,
+            cy: Math.round((yMm + 10 + 2 + ROW_HEIGHT_MM / 2) * 100) / 100,
+          });
+        });
+      } else {
+        const digits = field.digitCount ?? 11;
+        for (let i = 0; i < digits; i++) {
+          for (let d = 0; d < DIGIT_ROWS_PER_COLUMN; d++) {
+            bubbles.push({
+              q: i,
+              option: String(d),
+              cx: Math.round((xMm + borderMm + i * BUBBLE_PITCH_MM + BUBBLE_PITCH_MM / 2) * 100) / 100,
+              cy: Math.round((yMm + 10 + 2 + 5 + d * ROW_HEIGHT_MM + ROW_HEIGHT_MM / 2) * 100) / 100,
+            });
+          }
+        }
+      }
+      return { id: field.id, label: field.label, type: isBookletField(field) ? "booklet" : "numeric", bubbles };
+    });
+
   const s = 5;
   const referenceMarks = [
     { cx: 4 + s / 2, cy: 4 + s / 2 },
     { cx: 12 + s / 2, cy: 4 + s / 2 },
-    { cx: contentW - 4 - s / 2, cy: 4 + s / 2 },
-    { cx: 4 + s / 2, cy: contentH - 4 - s / 2 },
-    { cx: contentW - 4 - s / 2, cy: contentH - 4 - s / 2 },
+    { cx: paperWidth - 4 - s / 2, cy: 4 + s / 2 },
+    { cx: 4 + s / 2, cy: paperHeight - 4 - s / 2 },
+    { cx: paperWidth - 4 - s / 2, cy: paperHeight - 4 - s / 2 },
   ];
 
   return {
-    version: 1,
+    version: 2,
     id: design.id,
     name: design.name,
     paperSize: design.paperSize,
@@ -269,6 +305,7 @@ export function buildOpticFormManifest(design: OpticFormDesign): OpticManifest {
     pageHeightMm: paperHeight,
     referenceMarks,
     answerAreaTopMm: computeAnswerRegionTop(design),
+    fields,
     grids,
     generatedAt: new Date().toISOString(),
   };
@@ -290,14 +327,17 @@ export type OpticFormFill = Record<string, string>;
 export interface OpticFormOverlay {
   id: string;
   label: string;
+  kind?: "text" | "qr";
   xMm: number;
   yMm: number;
   value: string;
   fontSizeMm?: number;
   letterSpacingMm?: number;
+  qrSizeMm?: number;
+  qrDataUrl?: string;
 }
 
-export const DEFAULT_OPTIC_FORM_FIELDS: FormTextField[] = [
+const DEFAULT_OPTIC_FORM_FIELDS: FormTextField[] = [
   { id: "field-ad", label: "AD SOYAD", widthMm: 88 },
   { id: "field-tc", label: "T.C. KİMLİK NO", widthMm: 88, type: "numeric", digitCount: 11 },
 ];
@@ -312,17 +352,11 @@ const ROW_HEIGHT_MM = 5;
 const BUBBLE_BORDER_PX = 0.5;
 const BUBBLE_BORDER_COLOR = "#F4A9C4";
 const ROW_STRIPE_COLOR = "rgba(244, 169, 196, 0.18)";
-const ID_DIGIT_COUNT = 10;
+const DIGIT_ROWS_PER_COLUMN = 10;
+
+export const QR_DEFAULT_SIZE_MM = 25;
 
 export const PDF_RENDER_DPI = 300;
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
 
 function optionLetters(count: number): string[] {
   return Array.from({ length: count }, (_, i) => String.fromCharCode(65 + i));
@@ -371,14 +405,16 @@ function buildNumericFieldHtml(field: FormTextField, fillDigits?: string): strin
     const colStyle = isOddCol ? `background-color:${ROW_STRIPE_COLOR};` : "";
     const raw = fillDigits ? fillDigits[i] : undefined;
     const digit = raw !== undefined && /^[0-9]$/.test(raw) ? Number(raw) : -1;
-    const rows = Array.from({ length: ID_DIGIT_COUNT }, (_, d) =>
+    const rows = Array.from({ length: DIGIT_ROWS_PER_COLUMN }, (_, d) =>
       `<div style="display:flex;align-items:center;height:${ROW_HEIGHT_MM}mm;">${buildOptionBubbleHtml(String(d), d === digit)}</div>`,
     ).join("");
     return `<div style="width:${BUBBLE_PITCH_MM}mm;flex-shrink:0;display:flex;flex-direction:column;${colStyle}">${rows}</div>`;
   }).join("");
-  const headerCells = Array.from({ length: count }, (_, i) =>
-    `<div style="width:${BUBBLE_PITCH_MM}mm;height:${ROW_HEIGHT_MM}mm;box-sizing:border-box;${i % 2 === 0 ? `background-color:${ROW_STRIPE_COLOR};` : ""}"></div>`,
-  ).join("");
+  const headerCells = Array.from({ length: count }, (_, i) => {
+    const raw = fillDigits ? fillDigits[i] : undefined;
+    const colStyle = i % 2 === 0 ? `background-color:${ROW_STRIPE_COLOR};` : "";
+    return `<div style="width:${BUBBLE_PITCH_MM}mm;height:${ROW_HEIGHT_MM}mm;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:4mm;font-weight:600;color:#000;line-height:1;overflow:hidden;${colStyle}">${raw !== undefined && raw !== "" ? escapeHtml(raw) : ""}</div>`;
+  }).join("");
   return `<div style="margin-top:2mm;">
     <div style="border:0.5px solid ${BUBBLE_BORDER_COLOR};border-radius:1.5mm;overflow:hidden;display:inline-block;">
       <div style="display:flex;border-bottom:0.5px solid ${BUBBLE_BORDER_COLOR};">${headerCells}</div>
@@ -481,10 +517,16 @@ export function buildOpticFormHtml(design: OpticFormDesign, fill?: OpticFormFill
      <span style="position:absolute;bottom:4mm;right:4mm;width:5mm;height:5mm;background:#000;"></span>`;
 
   const overlaysHtml = overlays
-    .map(
-      (o) => `
-      <div style="position:absolute;left:${o.xMm}mm;top:${o.yMm}mm;display:inline-block;max-width:${paperWidth - o.xMm - RIGHT_MARGIN_MM}mm;font-size:${o.fontSizeMm ?? 3}mm;font-weight:400;color:#000;line-height:1;letter-spacing:${o.letterSpacingMm ?? 0}mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${o.value ? escapeHtml(o.value) : "&nbsp;"}</div>`,
-    )
+    .map((o) => {
+      if (o.kind === "qr") {
+        const size = o.qrSizeMm ?? QR_DEFAULT_SIZE_MM;
+        const img = o.qrDataUrl
+          ? `<img src="${o.qrDataUrl}" alt="" style="width:${size}mm;height:${size}mm;display:block;" />`
+          : `<div style="width:${size}mm;height:${size}mm;box-sizing:border-box;border:0.5px dashed #999;"></div>`;
+        return `<div style="position:absolute;left:${o.xMm}mm;top:${o.yMm}mm;width:${size}mm;height:${size}mm;">${img}</div>`;
+      }
+      return `<div style="position:absolute;left:${o.xMm}mm;top:${o.yMm}mm;display:inline-block;max-width:${paperWidth - o.xMm - RIGHT_MARGIN_MM}mm;font-size:${o.fontSizeMm ?? 3}mm;font-weight:400;color:#000;line-height:1;letter-spacing:${o.letterSpacingMm ?? 0}mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${o.value ? escapeHtml(o.value) : "&nbsp;"}</div>`;
+    })
     .join("");
 
   return `
@@ -513,8 +555,20 @@ export function createDefaultForm(name: string, paperSize: PaperSize): OpticForm
   };
 }
 
-export function generateFormId(): string {
-  return `form-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+export function fetchFormDesigns(): Promise<OpticFormDesign[]> {
+  return (async () => {
+    try {
+      const res = await fetch("/api/optics/form-designs", { credentials: "include", cache: "no-store" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (Array.isArray(data) ? data : []).map((f) => ({
+        ...f,
+        fields: Array.isArray(f.fields) ? f.fields.map(normalizeFormField) : f.fields,
+      }));
+    } catch {
+      return [];
+    }
+  })();
 }
 
 export function generateElementId(): string {

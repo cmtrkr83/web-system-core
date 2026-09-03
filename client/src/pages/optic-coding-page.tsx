@@ -7,28 +7,35 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   buildOpticFormHtml,
+  fetchFormDesigns,
   isHeadingField,
-  normalizeFormField,
   PDF_RENDER_DPI,
+  QR_DEFAULT_SIZE_MM,
   type OpticFormDesign,
   type OpticFormFill,
   type OpticFormOverlay,
 } from "@/lib/optic-form";
 import {
+  buildQrDataUrl,
+  createPdfFromPages,
   extractExcelColumns,
   findDistrict,
   findSchool,
   mmToPx,
+  openPrintWindow,
   PAPER_DIMENSIONS,
   PX_PER_MM,
   resolveColumnValue,
-  STANDARD_COLUMNS,
+  snapToGrid,
 } from "@/lib/optic-coding";
-import { AlertCircle, FileDown, GripVertical, Link2, Move, Plus, Printer, Trash2 } from "lucide-react";
+import { AlertCircle, FileDown, GripVertical, Plus, Printer, QrCode, Trash2 } from "lucide-react";
 
 const DRAG_SNAP_MM = 1;
 const OVERLAY_W_MM = 45;
 const OVERLAY_H_MM = 11;
+const QR_MIN_SIZE_MM = 10;
+const QR_MAX_SIZE_MM = 60;
+const QR_RENDER_PX = 600;
 
 interface CodingElement {
   id: string;
@@ -36,9 +43,11 @@ interface CodingElement {
   label: string;
   xMm: number;
   yMm: number;
+  kind: "text" | "qr";
   boundFieldId?: string;
   fontSizeMm?: number;
   letterSpacingMm?: number;
+  qrSizeMm?: number;
 }
 
 function generateCodingId(): string {
@@ -57,6 +66,7 @@ export default function OpticCoding() {
   const [districtId, setDistrictId] = useState<string>("all");
   const [schoolId, setSchoolId] = useState<string>("all");
   const [className, setClassName] = useState<string>("all");
+  const [exporting, setExporting] = useState<{ done: number; total: number } | null>(null);
 
   const [previewScale, setPreviewScale] = useState(1);
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -71,24 +81,27 @@ export default function OpticCoding() {
     snapX: number;
     snapY: number;
   } | null>(null);
+  const resizeState = useRef<{
+    id: string;
+    startClientX: number;
+    startClientY: number;
+    origSize: number;
+    snapSize: number;
+    xMm: number;
+    yMm: number;
+  } | null>(null);
+
+  const elementBoxMm = (el: CodingElement): { w: number; h: number } =>
+    el.kind === "qr"
+      ? { w: el.qrSizeMm ?? QR_DEFAULT_SIZE_MM, h: el.qrSizeMm ?? QR_DEFAULT_SIZE_MM }
+      : { w: OVERLAY_W_MM, h: OVERLAY_H_MM };
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch("/api/optics/form-designs", { credentials: "include", cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (cancelled) return;
-        setFormDesigns(
-          (Array.isArray(data) ? data : []).map((d) => ({
-            ...d,
-            fields: Array.isArray(d.fields) ? d.fields.map(normalizeFormField) : d.fields,
-          })),
-        );
-      } catch {
-        // ignore load errors
-      }
+      const data = await fetchFormDesigns();
+      if (cancelled) return;
+      setFormDesigns(data);
     })();
     return () => {
       cancelled = true;
@@ -112,7 +125,7 @@ export default function OpticCoding() {
 
   const excelColumns = useMemo(() => extractExcelColumns(students), [students]);
   const availableColumns = useMemo(
-    () => [...STANDARD_COLUMNS.map((c) => ({ key: `std:${c.key}`, label: c.label })), ...excelColumns.map((key) => ({ key, label: key }))],
+    () => excelColumns.map((key) => ({ key, label: key })),
     [excelColumns],
   );
 
@@ -149,14 +162,16 @@ export default function OpticCoding() {
     const el = previewAreaRef.current;
     if (!el) return;
     const update = () => {
-      const avail = Math.max(0, el.clientWidth - 32);
-      setPreviewScale(Math.min(1, avail / previewWidthPx));
+      const rect = el.getBoundingClientRect();
+      const availW = Math.max(0, rect.width - 32);
+      const availH = Math.max(0, rect.height - 32);
+      setPreviewScale(Math.min(1, availW / previewWidthPx, availH / previewHeightPx));
     };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [previewWidthPx, !!selectedDesign]);
+  }, [previewWidthPx, previewHeightPx, !!selectedDesign, isLoaded]);
 
   const buildFill = useCallback(
     (student: Student): OpticFormFill => {
@@ -174,39 +189,64 @@ export default function OpticCoding() {
   );
 
   const buildOverlays = useCallback(
-    (student: Student): OpticFormOverlay[] => {
+    async (student: Student): Promise<OpticFormOverlay[]> => {
       const school = findSchool(student, schools);
       const district = findDistrict(school, districts);
-      return elements
-        .filter((el) => !el.boundFieldId)
-        .map((el) => ({
-          id: el.id,
-          label: el.label,
-          xMm: el.xMm,
-          yMm: el.yMm,
-          fontSizeMm: el.fontSizeMm,
-          letterSpacingMm: el.letterSpacingMm,
-          value: resolveColumnValue(student, school, district, el.columnKey),
-        }));
+      const out: OpticFormOverlay[] = [];
+      for (const el of elements) {
+        if (el.boundFieldId) continue;
+        const value = resolveColumnValue(student, school, district, el.columnKey);
+        if (el.kind === "qr") {
+          const qrSizeMm = el.qrSizeMm ?? QR_DEFAULT_SIZE_MM;
+          const qrDataUrl = value ? await buildQrDataUrl(value, QR_RENDER_PX) : undefined;
+          out.push({ id: el.id, label: el.label, kind: "qr", xMm: el.xMm, yMm: el.yMm, value, qrSizeMm, qrDataUrl });
+        } else {
+          out.push({ id: el.id, label: el.label, kind: "text", xMm: el.xMm, yMm: el.yMm, value, fontSizeMm: el.fontSizeMm, letterSpacingMm: el.letterSpacingMm });
+        }
+      }
+      return out;
     },
     [elements, schools, districts],
   );
 
-  const previewHtml = useMemo(() => {
-    const student = filteredStudents[0];
-    if (!student || !selectedDesign) return "";
-    return buildOpticFormHtml(selectedDesign, buildFill(student), buildOverlays(student));
+  const [previewHtml, setPreviewHtml] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const student = filteredStudents[0];
+      if (!student || !selectedDesign) {
+        setPreviewHtml("");
+        return;
+      }
+      const overlays = await buildOverlays(student);
+      if (cancelled) return;
+      setPreviewHtml(buildOpticFormHtml(selectedDesign, buildFill(student), overlays));
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedDesign, filteredStudents, buildFill, buildOverlays]);
 
   const selectedElement = elements.find((el) => el.id === selectedElementId) || null;
 
-  const addElement = (col: { key: string; label: string }, pos?: { xMm: number; yMm: number }) => {
+  const addElement = (col: { key: string; label: string }, pos?: { xMm: number; yMm: number }, kind: "text" | "qr" = "text") => {
+    if (elements.some((el) => el.columnKey === col.key)) return;
     const paperSize = selectedDesign ? PAPER_DIMENSIONS[selectedDesign.paperSize] : PAPER_DIMENSIONS.A4;
     const baseX = pos?.xMm ?? 10;
     const baseY = pos?.yMm ?? 10 + (elements.length % 10) * 9;
-    const xMm = Math.min(Math.max(baseX, 0), paperSize.widthMm - OVERLAY_W_MM);
-    const yMm = Math.min(Math.max(baseY, 0), paperSize.heightMm - OVERLAY_H_MM);
-    const el: CodingElement = { id: generateCodingId(), columnKey: col.key, label: col.label, xMm, yMm };
+    const box = kind === "qr" ? { w: QR_DEFAULT_SIZE_MM, h: QR_DEFAULT_SIZE_MM } : { w: OVERLAY_W_MM, h: OVERLAY_H_MM };
+    const xMm = Math.min(Math.max(baseX, 0), paperSize.widthMm - box.w);
+    const yMm = Math.min(Math.max(baseY, 0), paperSize.heightMm - box.h);
+    const el: CodingElement = {
+      id: generateCodingId(),
+      columnKey: col.key,
+      label: col.label,
+      xMm,
+      yMm,
+      kind,
+      ...(kind === "qr" ? { qrSizeMm: QR_DEFAULT_SIZE_MM } : {}),
+    };
     setElements((prev) => [...prev, el]);
     setSelectedElementId(el.id);
   };
@@ -219,8 +259,6 @@ export default function OpticCoding() {
     setElements((prev) => prev.filter((el) => el.id !== id));
     if (selectedElementId === id) setSelectedElementId(null);
   };
-
-  const snapToGrid = (v: number, s: number) => Math.round(v / s) * s;
 
   const onOverlayPointerDown = (e: React.PointerEvent, el: CodingElement) => {
     if (e.button !== 0) return;
@@ -248,12 +286,15 @@ export default function OpticCoding() {
     const d = dragState.current;
     if (!d) return;
     e.preventDefault();
+    const el = elements.find((x) => x.id === d.id);
+    if (!el) return;
+    const box = elementBoxMm(el);
     const dx = (e.clientX - d.startClientX) / PX_PER_MM / previewScale;
     const dy = (e.clientY - d.startClientY) / PX_PER_MM / previewScale;
     d.snapX = snapToGrid(d.origX + dx, DRAG_SNAP_MM);
     d.snapY = snapToGrid(d.origY + dy, DRAG_SNAP_MM);
-    d.snapX = Math.min(Math.max(d.snapX, 0), paper.widthMm - OVERLAY_W_MM);
-    d.snapY = Math.min(Math.max(d.snapY, 0), paper.heightMm - OVERLAY_H_MM);
+    d.snapX = Math.min(Math.max(d.snapX, 0), paper.widthMm - box.w);
+    d.snapY = Math.min(Math.max(d.snapY, 0), paper.heightMm - box.h);
     const domEl = overlayRefs.current[d.id];
     if (domEl) {
       domEl.style.left = `${mmToPx(d.snapX)}px`;
@@ -270,6 +311,53 @@ export default function OpticCoding() {
     }
   };
 
+  const onResizePointerDown = (e: React.PointerEvent, el: CodingElement) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    setSelectedElementId(el.id);
+    const handle = e.currentTarget;
+    try {
+      handle.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    const size = el.qrSizeMm ?? QR_DEFAULT_SIZE_MM;
+    resizeState.current = {
+      id: el.id,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      origSize: size,
+      snapSize: size,
+      xMm: el.xMm,
+      yMm: el.yMm,
+    };
+  };
+
+  const onResizePointerMove = (e: React.PointerEvent) => {
+    const d = resizeState.current;
+    if (!d) return;
+    e.preventDefault();
+    const dx = (e.clientX - d.startClientX) / PX_PER_MM / previewScale;
+    const dy = (e.clientY - d.startClientY) / PX_PER_MM / previewScale;
+    const maxSize = Math.min(paper.widthMm - d.xMm, paper.heightMm - d.yMm, QR_MAX_SIZE_MM);
+    d.snapSize = Math.min(Math.max(snapToGrid(d.origSize + Math.max(dx, dy), DRAG_SNAP_MM), QR_MIN_SIZE_MM), maxSize);
+    const domEl = overlayRefs.current[d.id];
+    if (domEl) {
+      domEl.style.width = `${mmToPx(d.snapSize)}px`;
+      domEl.style.height = `${mmToPx(d.snapSize)}px`;
+    }
+  };
+
+  const onResizePointerUp = () => {
+    const d = resizeState.current;
+    if (!d) return;
+    resizeState.current = null;
+    if (d.snapSize !== d.origSize) {
+      updateElement(d.id, { qrSizeMm: d.snapSize });
+    }
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
@@ -278,6 +366,7 @@ export default function OpticCoding() {
     const key = e.dataTransfer.getData("text/plain");
     const col = availableColumns.find((c) => c.key === key);
     if (!col) return;
+    if (elements.some((el) => el.columnKey === col.key)) return;
     e.preventDefault();
     const rect = previewRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -296,49 +385,36 @@ export default function OpticCoding() {
       return;
     }
 
-    const { default: html2canvas } = await import("html2canvas");
-    const { default: jsPDF } = await import("jspdf");
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: selectedDesign.paperSize, hotfixes: ["px_scaling"] });
-
-    for (const student of filteredStudents) {
-      const pageHtml = buildOpticFormHtml(selectedDesign, buildFill(student), buildOverlays(student));
-
-      const wrapper = document.createElement("div");
-      wrapper.innerHTML = pageHtml;
-      const pageEl = wrapper.firstElementChild as HTMLElement;
-      pageEl.style.width = `${previewWidthPx}px`;
-      pageEl.style.height = `${previewHeightPx}px`;
-      pageEl.style.position = "fixed";
-      pageEl.style.left = "-9999px";
-      pageEl.style.top = "0";
-      document.body.appendChild(pageEl);
-
-      const imgs = Array.from(pageEl.querySelectorAll("img"));
-      await Promise.all(
-        imgs.map((img) => {
-          if (img.complete && img.naturalWidth > 0) return;
-          return new Promise((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-          });
-        }),
+    try {
+      setExporting({ done: 0, total: filteredStudents.length });
+      const pages = await Promise.all(
+        filteredStudents.map(async (student) =>
+          buildOpticFormHtml(selectedDesign, buildFill(student), await buildOverlays(student)),
+        ),
       );
+      const blob = await createPdfFromPages({
+        pages,
+        widthPx: previewWidthPx,
+        heightPx: previewHeightPx,
+        widthMm: paper.widthMm,
+        heightMm: paper.heightMm,
+        paperSize: selectedDesign.paperSize,
+        renderDpi: PDF_RENDER_DPI,
+        onProgress: (done, total) => setExporting({ done, total }),
+      });
+      setExporting(null);
 
-      const canvas = await html2canvas(pageEl, { scale: PDF_RENDER_DPI / 96, useCORS: true, logging: false, width: previewWidthPx, height: previewHeightPx });
-      const imgData = canvas.toDataURL("image/png");
-      if (filteredStudents.indexOf(student) > 0) pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, 0, paper.widthMm, paper.heightMm, undefined, "FAST");
-      document.body.removeChild(pageEl);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "optik-kodlama.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "PDF Oluşturuldu", description: `${filteredStudents.length} öğrenci için kaydedildi.` });
+    } catch {
+      setExporting(null);
+      toast({ title: "PDF hatası", description: "PDF oluşturulamadı.", variant: "destructive" });
     }
-
-    const blob = pdf.output("blob");
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "optik-kodlama.pdf";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: "PDF Oluşturuldu", description: `${filteredStudents.length} öğrenci için kaydedildi.` });
   };
 
   const printAll = async () => {
@@ -351,27 +427,20 @@ export default function OpticCoding() {
       return;
     }
 
-    const allPages: string[] = [];
-    for (const student of filteredStudents) {
-      allPages.push(buildOpticFormHtml(selectedDesign, buildFill(student), buildOverlays(student)));
-    }
-
-    const printWindow = window.open("", "_blank", "width=1200,height=900");
-    if (!printWindow) {
-      toast({ title: "Hata", description: "Yazdırma penceresi açılamadı.", variant: "destructive" });
-      return;
-    }
-    printWindow.document.write(`<!doctype html><html lang="tr"><head><meta charset="UTF-8" /><style>@page{size:${selectedDesign.paperSize} portrait;margin:0;}html,body{margin:0;padding:0;}body{background:#fff;}.optic-page{page-break-after:always;}.optic-page:last-child{page-break-after:auto;}</style></head><body>${allPages
-      .map((page) => `<section class="optic-page">${page}</section>`)
-      .join("")}</body></html>`);
-    printWindow.document.close();
-    printWindow.focus();
     try {
-      printWindow.print();
+      const pages = await Promise.all(
+        filteredStudents.map(async (student) =>
+          buildOpticFormHtml(selectedDesign, buildFill(student), await buildOverlays(student)),
+        ),
+      );
+      if (!openPrintWindow(pages, selectedDesign.paperSize)) {
+        toast({ title: "Hata", description: "Yazdırma penceresi açılamadı.", variant: "destructive" });
+        return;
+      }
+      toast({ title: "Yazdırma Başlatıldı", description: `${filteredStudents.length} öğrenci için hazırlandı.` });
     } catch {
-      // ignore
+      toast({ title: "Hata", description: "QR kodlar oluşturulamadı.", variant: "destructive" });
     }
-    toast({ title: "Yazdırma Başlatıldı", description: `${filteredStudents.length} öğrenci için hazırlandı.` });
   };
 
   const boundCount = useMemo(() => elements.filter((el) => el.boundFieldId).length, [elements]);
@@ -384,13 +453,13 @@ export default function OpticCoding() {
           <p className="text-muted-foreground mt-1">Excel sütunlarını seçip optik form üzerine yerleştirin.</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={printAll} disabled={!selectedDesign || filteredStudents.length === 0}>
+          <Button onClick={printAll} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting}>
             <Printer className="mr-2 h-4 w-4" />
             Yazdır
           </Button>
-          <Button variant="outline" onClick={exportPdf} disabled={!selectedDesign || filteredStudents.length === 0}>
+          <Button variant="outline" onClick={exportPdf} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting}>
             <FileDown className="mr-2 h-4 w-4" />
-            PDF
+            {exporting ? `PDF ${exporting.done}/${exporting.total}` : "PDF"}
           </Button>
         </div>
       </div>
@@ -448,30 +517,47 @@ export default function OpticCoding() {
                 </CardHeader>
                 <CardContent className="space-y-1" style={{ maxHeight: 360, overflowY: "auto" }}>
                   {availableColumns.length === 0 && <p className="text-sm text-muted-foreground">Yüklenen veride sütun yok.</p>}
-                  {availableColumns.map((col) => (
-                    <div
-                      key={col.key}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("text/plain", col.key);
-                        e.dataTransfer.effectAllowed = "copy";
-                      }}
-                      className="group flex items-center justify-between rounded-lg border border-border/70 px-2.5 py-2 hover:bg-muted/50 cursor-grab"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
-                        <span className="text-sm truncate">{col.label}</span>
-                      </div>
-                      <button
-                        type="button"
-                        title="Forma ekle"
-                        onClick={() => addElement(col)}
-                        className="ml-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground opacity-60 hover:opacity-100 hover:bg-primary hover:text-white transition-opacity"
+                  {availableColumns.map((col) => {
+                    const isMapped = elements.some((el) => el.columnKey === col.key);
+                    return (
+                      <div
+                        key={col.key}
+                        draggable={!isMapped}
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("text/plain", col.key);
+                          e.dataTransfer.effectAllowed = "copy";
+                        }}
+                        className={`group flex items-center justify-between rounded-lg border px-2.5 py-2 ${isMapped ? "border-green-300/60 bg-green-50/40" : "border-border/70 hover:bg-muted/50 cursor-grab"}`}
                       >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <GripVertical className={`h-3.5 w-3.5 shrink-0 ${isMapped ? "text-muted-foreground/30" : "text-muted-foreground/60"}`} />
+                          <span className={`text-sm truncate ${isMapped ? "text-muted-foreground" : ""}`}>{col.label}</span>
+                        </div>
+                        {isMapped ? (
+                          <span className="shrink-0 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Eşlendi</span>
+                        ) : (
+                          <div className="ml-1 flex shrink-0 items-center gap-1">
+                            <button
+                              type="button"
+                              title="QR olarak ekle"
+                              onClick={() => addElement(col, undefined, "qr")}
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border text-muted-foreground opacity-60 hover:opacity-100 hover:bg-primary hover:text-white transition-opacity"
+                            >
+                              <QrCode className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              title="Forma ekle"
+                              onClick={() => addElement(col)}
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border text-muted-foreground opacity-60 hover:opacity-100 hover:bg-primary hover:text-white transition-opacity"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </CardContent>
               </Card>
             )}
@@ -568,8 +654,8 @@ export default function OpticCoding() {
                     >
                       <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: previewHtml }} />
                       {elements.map((el) => {
-                        const fieldLabel = el.boundFieldId ? selectedDesign?.fields.find((f) => f.id === el.boundFieldId)?.label : null;
                         const isSelected = el.id === selectedElementId;
+                        const box = elementBoxMm(el);
                         return (
                           <div
                             key={el.id}
@@ -583,33 +669,34 @@ export default function OpticCoding() {
                               e.stopPropagation();
                               setSelectedElementId(el.id);
                             }}
-                            className="group"
                             style={{
                               position: "absolute",
                               left: mmToPx(el.xMm),
                               top: mmToPx(el.yMm),
-                              width: mmToPx(OVERLAY_W_MM),
-                              height: mmToPx(OVERLAY_H_MM),
+                              width: mmToPx(box.w),
+                              height: mmToPx(box.h),
                               cursor: "move",
-                              border: isSelected ? "2px solid rgb(59 130 246)" : "1.5px dashed rgba(59,130,246,0.55)",
-                              background: "rgba(59,130,246,0.05)",
+                              border: isSelected ? "1.5px dashed rgb(59 130 246)" : "none",
                               boxSizing: "border-box",
                               touchAction: "none",
                               userSelect: "none",
                               zIndex: 10,
                             }}
                           >
-                            <span className="pointer-events-none absolute left-1.5 top-1 text-[10px] font-semibold text-blue-600 truncate" style={{ maxWidth: mmToPx(OVERLAY_W_MM) - 4 }}>
-                              {el.label}
-                              {fieldLabel ? (
-                                <span className="inline-flex items-center gap-0.5">
-                                  <Link2 className="h-2.5 w-2.5 inline" /> {fieldLabel}
-                                </span>
-                              ) : null}
-                            </span>
-                            <span className="pointer-events-none absolute right-1 bottom-0.5 text-[10px] font-semibold text-blue-500 opacity-60 group-hover:opacity-100">
-                              <Move className="h-3 w-3 inline" /> {Math.round(el.xMm)}mm,{Math.round(el.yMm)}mm
-                            </span>
+                            {isSelected && el.kind === "qr" && (
+                              <span className="pointer-events-none absolute left-1 top-1 rounded bg-blue-600 px-1 py-0.5 text-[9px] font-semibold text-white">
+                                QR
+                              </span>
+                            )}
+                            {isSelected && el.kind === "qr" && (
+                              <span
+                                onPointerDown={(e) => onResizePointerDown(e, el)}
+                                onPointerMove={onResizePointerMove}
+                                onPointerUp={onResizePointerUp}
+                                className="absolute bottom-0 right-0 h-3.5 w-3.5 cursor-nwse-resize rounded-sm border border-white bg-blue-600"
+                                style={{ touchAction: "none" }}
+                              />
+                            )}
                           </div>
                         );
                       })}
@@ -655,7 +742,7 @@ export default function OpticCoding() {
                         <div className="text-sm font-medium truncate">{el.label}</div>
                         <div className="text-[11px] text-muted-foreground">
                           {Math.round(el.xMm)}mm, {Math.round(el.yMm)}mm
-                          {el.boundFieldId ? " · bağlı" : " · serbest"}
+                          {el.kind === "qr" ? " · QR" : el.boundFieldId ? " · bağlı" : " · serbest"}
                         </div>
                       </div>
                       <Button
@@ -670,23 +757,25 @@ export default function OpticCoding() {
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                    <select
-                      className="h-8 w-full rounded-md border border-input bg-transparent px-2 text-xs"
-                      value={el.boundFieldId ?? ""}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => updateElement(el.id, { boundFieldId: e.target.value || undefined })}
-                    >
-                      <option value="">— Serbest (etiket + değer) —</option>
-                      {selectedDesign?.fields.filter((f) => !isHeadingField(f)).map((f) => (
-                        <option key={f.id} value={f.id}>
-                          Bağla: {f.label || "(isimsiz alan)"}
-                        </option>
-                      ))}
-                    </select>
+                    {el.kind !== "qr" && (
+                      <select
+                        className="h-8 w-full rounded-md border border-input bg-transparent px-2 text-xs"
+                        value={el.boundFieldId ?? ""}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => updateElement(el.id, { boundFieldId: e.target.value || undefined })}
+                      >
+                        <option value="">— Serbest (etiket + değer) —</option>
+                        {selectedDesign?.fields.filter((f) => !isHeadingField(f)).map((f) => (
+                          <option key={f.id} value={f.id}>
+                            Bağla: {f.label || "(isimsiz alan)"}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 );
               })}
-              {selectedElement && (
+              {selectedElement && selectedElement.kind !== "qr" && (
                 <div className="rounded-lg border border-border/70 p-2.5 space-y-2">
                   <Label className="text-xs">Yazı Boyutu (mm)</Label>
                   <Input
@@ -708,6 +797,25 @@ export default function OpticCoding() {
                     value={selectedElement.letterSpacingMm ?? 0}
                     onChange={(e) => updateElement(selectedElement.id, { letterSpacingMm: Number(e.target.value) || 0 })}
                   />
+                </div>
+              )}
+              {selectedElement && selectedElement.kind === "qr" && (
+                <div className="rounded-lg border border-border/70 p-2.5 space-y-2">
+                  <Label className="text-xs">QR Boyutu (mm)</Label>
+                  <Input
+                    type="number"
+                    min={QR_MIN_SIZE_MM}
+                    max={QR_MAX_SIZE_MM}
+                    step={1}
+                    className="h-8"
+                    value={selectedElement.qrSizeMm ?? QR_DEFAULT_SIZE_MM}
+                    onChange={(e) =>
+                      updateElement(selectedElement.id, {
+                        qrSizeMm: Math.min(Math.max(Number(e.target.value) || QR_DEFAULT_SIZE_MM, QR_MIN_SIZE_MM), QR_MAX_SIZE_MM),
+                      })
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">Sayfada sürükleyip köşe tutamacından da boyutlandırabilirsiniz.</p>
                 </div>
               )}
             </CardContent>

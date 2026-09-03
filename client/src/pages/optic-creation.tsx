@@ -11,9 +11,9 @@ import {
   computeFieldPlacements,
   computeGridPlacements,
   createDefaultForm,
+  fetchFormDesigns,
   formFieldHeightMm,
   generateElementId,
-  generateFormId,
   gridColumnWidth,
   gridHeightMm,
   GRID_SNAP_MM,
@@ -24,13 +24,12 @@ import {
   isBoxField,
   isHeadingField,
   isNumericField,
-  normalizeFormField,
   PDF_RENDER_DPI,
   type AnswerGrid,
   type FormTextField,
   type OpticFormDesign,
 } from "@/lib/optic-form";
-import { mmToPx, PX_PER_MM } from "@/lib/optic-coding";
+import { createPdfFromPages, mmToPx, openPrintWindow, PX_PER_MM, snapToGrid } from "@/lib/optic-coding";
 import { FileDown, Move, Plus, Printer, Save, Trash2 } from "lucide-react";
 
 const DRAG_SNAP_MM = 1;
@@ -52,6 +51,8 @@ export default function OpticCreate() {
   const [form, setForm] = useState<OpticFormDesign | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
+  const [newFormName, setNewFormName] = useState("");
+  const [newFormSize, setNewFormSize] = useState<"A4" | "A5">("A4");
 
   const previewRef = useRef<HTMLDivElement | null>(null);
   const previewAreaRef = useRef<HTMLDivElement | null>(null);
@@ -70,19 +71,7 @@ export default function OpticCreate() {
   } | null>(null);
 
   const loadForms = useCallback(async () => {
-    try {
-      const res = await fetch("/api/optics/form-designs", { credentials: "include", cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      setForms(
-        (Array.isArray(data) ? data : []).map((f) => ({
-          ...f,
-          fields: Array.isArray(f.fields) ? f.fields.map(normalizeFormField) : f.fields,
-        })),
-      );
-    } catch {
-      setForms([]);
-    }
+    setForms(await fetchFormDesigns());
   }, []);
 
   useEffect(() => {
@@ -163,8 +152,6 @@ export default function OpticCreate() {
     });
     if (changed) patch({ fields: next });
   }, [form, previewHtml]);
-
-  const snapToGrid = (v: number, s: number) => Math.round(v / s) * s;
 
   const onOverlayPointerDown = (e: React.PointerEvent, o: { key: string; xMm: number; yMm: number; wMm: number; hMm: number; snapMm: number }) => {
     if (e.button !== 0) return;
@@ -282,64 +269,46 @@ export default function OpticCreate() {
 
   const exportPdf = async () => {
     if (!form) return;
-    const { default: html2canvas } = await import("html2canvas");
-    const { default: jsPDF } = await import("jspdf");
-
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: form.paperSize, hotfixes: ["px_scaling"] });
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = previewHtml;
-    const pageEl = wrapper.firstElementChild as HTMLElement;
-    pageEl.style.width = `${previewWidthPx}px`;
-    pageEl.style.height = `${previewHeightPx}px`;
-    pageEl.style.position = "fixed";
-    pageEl.style.left = "-9999px";
-    pageEl.style.top = "0";
-    document.body.appendChild(pageEl);
-
-    const imgs = Array.from(pageEl.querySelectorAll("img"));
-    await Promise.all(
-      imgs.map((img) => {
-        if (img.complete && img.naturalWidth > 0) return;
-        return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
-        });
-      }),
-    );
-
-    const canvas = await html2canvas(pageEl, { scale: PDF_RENDER_DPI / 96, useCORS: true, logging: false, width: previewWidthPx, height: previewHeightPx });
-    const imgData = canvas.toDataURL("image/png");
-    pdf.addImage(imgData, "PNG", 0, 0, paper.widthMm, paper.heightMm, undefined, "FAST");
-    document.body.removeChild(pageEl);
-
-    const blob = pdf.output("blob");
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${form.name.replace(/[^\w\s-]/g, "").trim() || "optic-form"}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: "PDF Oluşturuldu", description: "Optik form PDF olarak indirildi." });
+    try {
+      const blob = await createPdfFromPages({
+        pages: [previewHtml],
+        widthPx: previewWidthPx,
+        heightPx: previewHeightPx,
+        widthMm: paper.widthMm,
+        heightMm: paper.heightMm,
+        paperSize: form.paperSize,
+        renderDpi: PDF_RENDER_DPI,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${form.name.replace(/[^\w\s-]/g, "").trim() || "optic-form"}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "PDF Oluşturuldu", description: "Optik form PDF olarak indirildi." });
+    } catch {
+      toast({ title: "PDF hatası", description: "PDF oluşturulamadı.", variant: "destructive" });
+    }
   };
 
   const printForm = () => {
     if (!form) return;
-    const printWindow = window.open("", "_blank", "width=1200,height=900");
-    if (!printWindow) {
+    if (!openPrintWindow([previewHtml], form.paperSize)) {
       toast({ title: "Hata", description: "Yazdırma penceresi açılamadı.", variant: "destructive" });
       return;
     }
-    printWindow.document.write(
-      `<!doctype html><html lang="tr"><head><meta charset="UTF-8" /><style>@page{size:${form.paperSize} portrait;margin:0;}html,body{margin:0;padding:0;}body{background:#fff;}</style></head><body>${previewHtml}</body></html>`,
-    );
-    printWindow.document.close();
-    printWindow.focus();
-    try {
-      printWindow.print();
-    } catch {
-      // ignore
-    }
     toast({ title: "Yazdırma Başlatıldı", description: `"${form.name}" yazdırma için hazırlandı.` });
+  };
+
+  const deleteForm = async (id: string, name: string) => {
+    if (!window.confirm(`"${name}" formu silinecek. Emin misiniz?`)) return;
+    try {
+      await apiRequest("DELETE", `/api/optics/form-designs/${id}`);
+      toast({ title: "Form silindi", description: `"${name}" silindi.` });
+      await loadForms();
+    } catch {
+      toast({ title: "Silme hatası", description: "Form silinemedi.", variant: "destructive" });
+    }
   };
 
   if (!form) {
@@ -359,24 +328,28 @@ export default function OpticCreate() {
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="new-form-name">Form Adı</Label>
-                <Input id="new-form-name" placeholder="Örn. 8.Sınıf Deneme Sınavı" />
+                <Input
+                  id="new-form-name"
+                  placeholder="Örn. 8.Sınıf Deneme Sınavı"
+                  value={newFormName}
+                  onChange={(e) => setNewFormName(e.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="new-form-size">Kağıt Boyutu</Label>
-                <select id="new-form-size" className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" defaultValue="A4">
+                <select
+                  id="new-form-size"
+                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  value={newFormSize}
+                  onChange={(e) => setNewFormSize(e.target.value as "A4" | "A5")}
+                >
                   <option value="A4">A4</option>
                   <option value="A5">A5</option>
                 </select>
               </div>
               <Button
                 className="w-full"
-                onClick={() => {
-                  const nameInput = document.getElementById("new-form-name") as HTMLInputElement | null;
-                  const sizeInput = document.getElementById("new-form-size") as HTMLSelectElement | null;
-                  const name = nameInput?.value.trim() || "Yeni Optik Form";
-                  const paperSize = (sizeInput?.value as "A4" | "A5") || "A4";
-                  setForm(createDefaultForm(name, paperSize));
-                }}
+                onClick={() => setForm(createDefaultForm(newFormName.trim() || "Yeni Optik Form", newFormSize))}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Formu Oluştur
@@ -399,9 +372,20 @@ export default function OpticCreate() {
                       {f.paperSize} · {f.grids.length} ders · {f.fields.length} bilgi alanı
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => setForm({ ...f })}>
-                    Aç
-                  </Button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      title="Formu sil"
+                      onClick={() => deleteForm(f.id, f.name)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setForm({ ...f })}>
+                      Aç
+                    </Button>
+                  </div>
                 </div>
               ))}
             </CardContent>

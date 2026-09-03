@@ -4,7 +4,7 @@ import Database from "better-sqlite3";
 import { randomUUID } from "crypto";
 import { storage } from "./storage";
 import { replaceRegistryPayloadSchema, insertExamSchema } from "@shared/schema";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import Busboy from "busboy";
 
 export async function registerRoutes(
@@ -105,15 +105,10 @@ export async function registerRoutes(
   // Optics config endpoints (file-backed simple storage)
 const fs = await import("fs/promises");
    const path = await import("path");
-   const dbDir = path.resolve(process.cwd(), "db");
-   const configsFile = path.join(dbDir, "optic-configs.json");
-   const formDesignsFile = path.join(dbDir, "optic-form-designs.json");
-   const resultsFile = path.join(dbDir, "optic-results.json");
-   const resultsCsvFile = path.join(dbDir, "optic-results.csv");
-   const opticDbFile = path.join(dbDir, "optic-readings.sqlite");
-   const uploadsDir = path.join(dbDir, "optic_uploads");
-   const processedDir = path.join(dbDir, "optic_processed");
-   const errorsDir = path.join(dbDir, "optic_errors");
+    const dbDir = path.resolve(process.cwd(), "db");
+    const formDesignsFile = path.join(dbDir, "optic-form-designs.json");
+    const opticDbFile = path.join(dbDir, "optic-readings.sqlite");
+    const uploadsDir = path.join(dbDir, "optic_uploads");
 
   await fs.mkdir(dbDir, { recursive: true });
 
@@ -126,6 +121,10 @@ const fs = await import("fs/promises");
       file_name TEXT NOT NULL DEFAULT '',
       page_count INTEGER NOT NULL DEFAULT 0,
       qr TEXT NOT NULL DEFAULT '',
+      tc_no TEXT NOT NULL DEFAULT '',
+      booklet TEXT NOT NULL DEFAULT '',
+      exam_id TEXT NOT NULL DEFAULT '',
+      confidence REAL NOT NULL DEFAULT 0,
       results_json TEXT NOT NULL DEFAULT '[]'
     );
 
@@ -146,11 +145,19 @@ const fs = await import("fs/promises");
     CREATE INDEX IF NOT EXISTS idx_optic_scan_answers_session_id ON optic_scan_answers(session_id);
   `);
 
+  // Eski veritabanlarına yeni sütunları ekle (migration)
+  const sessionCols = opticDb.prepare("PRAGMA table_info(optic_scan_sessions)").all() as Array<{ name: string }>;
+  const hasSessionCol = (name: string) => sessionCols.some((c) => c.name === name);
+  if (!hasSessionCol("tc_no")) opticDb.exec("ALTER TABLE optic_scan_sessions ADD COLUMN tc_no TEXT NOT NULL DEFAULT ''");
+  if (!hasSessionCol("booklet")) opticDb.exec("ALTER TABLE optic_scan_sessions ADD COLUMN booklet TEXT NOT NULL DEFAULT ''");
+  if (!hasSessionCol("exam_id")) opticDb.exec("ALTER TABLE optic_scan_sessions ADD COLUMN exam_id TEXT NOT NULL DEFAULT ''");
+  if (!hasSessionCol("confidence")) opticDb.exec("ALTER TABLE optic_scan_sessions ADD COLUMN confidence REAL NOT NULL DEFAULT 0");
+
   const insertScanSession = opticDb.prepare(`
     INSERT INTO optic_scan_sessions (
-      id, created_at, file_name, page_count, qr, results_json
+      id, created_at, file_name, page_count, qr, tc_no, booklet, exam_id, confidence, results_json
     ) VALUES (
-      @id, @created_at, @file_name, @page_count, @qr, @results_json
+      @id, @created_at, @file_name, @page_count, @qr, @tc_no, @booklet, @exam_id, @confidence, @results_json
     )
   `);
 
@@ -162,14 +169,53 @@ const fs = await import("fs/promises");
     )
   `);
 
-  app.get("/api/optics/configs", async (_req, res) => {
-    try {
-      const data = await fs.readFile(configsFile, "utf-8");
-      return res.status(200).json(JSON.parse(data));
-    } catch (err) {
-      return res.status(200).json([]);
+  const PYTHON_CANDIDATES = [
+    process.env.OPTIC_PYTHON,
+    "/usr/local/bin/python3",
+    "/opt/homebrew/bin/python3",
+    "python3",
+    "python",
+  ].filter((p): p is string => Boolean(p));
+
+  let resolvedPython: string | null = null;
+
+  function resolvePython(): string {
+    if (resolvedPython) return resolvedPython;
+    for (const candidate of PYTHON_CANDIDATES) {
+      try {
+        const check = spawnSync(candidate, ["-c", "import cv2, numpy; print('ok')"], {
+          timeout: 8000,
+          encoding: "utf-8",
+        });
+        if (check.status === 0 && /ok/.test(check.stdout ?? "")) {
+          resolvedPython = candidate;
+          return candidate;
+        }
+      } catch {
+        // sıradaki adaya geç
+      }
     }
-  });
+    resolvedPython = PYTHON_CANDIDATES[0] ?? "python";
+    return resolvedPython;
+  }
+
+  function runPython(args: string[], timeoutMs: number): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const proc = spawn(resolvePython(), args, { timeout: timeoutMs });
+      let stdout = "";
+      let stderr = "";
+      proc.stdout?.on("data", (data) => { stdout += data.toString(); });
+      proc.stderr?.on("data", (data) => { stderr += data.toString(); });
+      proc.on("close", (code) => {
+        if (code !== 0) {
+          reject(new Error(stderr || `Python exited with code ${code}`));
+        } else {
+          resolve(stdout);
+        }
+      });
+      proc.on("error", (err) => reject(err));
+    });
+  }
 
   app.get("/api/optics/form-designs", async (_req, res) => {
     try {
@@ -223,93 +269,7 @@ const fs = await import("fs/promises");
     }
   });
 
-  app.post("/api/optics/configs", async (req, res) => {
-    try {
-      const body = req.body;
-      const existing = await (async () => {
-        try {
-          const d = await fs.readFile(configsFile, "utf-8");
-          return JSON.parse(d) as any[];
-        } catch {
-          return [] as any[];
-        }
-      })();
 
-      existing.push({ id: Date.now().toString(), createdAt: new Date().toISOString(), ...body });
-      await fs.writeFile(configsFile, JSON.stringify(existing, null, 2), "utf-8");
-      return res.status(201).json({ message: "Kaydedildi" });
-    } catch (err) {
-      return res.status(500).json({ message: "Kaydetme hatası" });
-    }
-  });
-
-  app.get("/api/optics/results", async (_req, res) => {
-    try {
-      const data = await fs.readFile(resultsFile, "utf-8");
-      return res.status(200).json(JSON.parse(data));
-    } catch (err) {
-      return res.status(200).json([]);
-    }
-  });
-
-  app.post("/api/optics/results", async (req, res) => {
-    try {
-      const body = req.body;
-      const existing = await (async () => {
-        try {
-          const d = await fs.readFile(resultsFile, "utf-8");
-          return JSON.parse(d) as any[];
-        } catch {
-          return [] as any[];
-        }
-      })();
-
-      existing.push({ id: Date.now().toString(), createdAt: new Date().toISOString(), ...body });
-      await fs.writeFile(resultsFile, JSON.stringify(existing, null, 2), "utf-8");
-      // Also append CSV rows: for each result (area) and each row -> page, subject, areaId, rowNumber, answer
-      try {
-        const csvLines: string[] = [];
-        const header = "createdAt;page;subject;areaId;row;answer";
-        const createdAt = new Date().toISOString();
-
-        for (const resEntry of Array.isArray(body.results) ? body.results : []) {
-          const subject = String(resEntry.subject || "").replace(/[;\n\r]/g, " ");
-          const areaId = String(resEntry.areaId || "");
-          const page = Number.isFinite(Number(resEntry.pageIndex)) ? Number(resEntry.pageIndex) + 1 : "";
-          const answers = Array.isArray(resEntry.answers) ? resEntry.answers : [];
-          for (let i = 0; i < answers.length; i++) {
-            const rawAnswer = answers[i];
-            const resolved = typeof rawAnswer === "string"
-              ? rawAnswer
-              : rawAnswer && typeof rawAnswer === "object" && "answer" in rawAnswer
-                ? String((rawAnswer as { answer?: unknown }).answer || "")
-                : String(rawAnswer || "");
-            const letter = resolved ? String(resolved[0]).toLowerCase() : "";
-            csvLines.push(`${createdAt};${page};${subject};${areaId};${i + 1};${letter}`);
-          }
-        }
-
-        // ensure db dir exists
-        await fs.mkdir(dbDir, { recursive: true });
-
-        const existsCsv = await (async () => {
-          try { await fs.access(resultsCsvFile); return true; } catch { return false; }
-        })();
-
-        // UTF-8 BOM for Windows Excel compatibility when creating a new file
-        const BOM = "\uFEFF";
-        const toWriteHeader = (existsCsv ? "" : BOM + header + "\n");
-        const toWriteBody = csvLines.join("\n") + (csvLines.length ? "\n" : "");
-        const toWrite = toWriteHeader + toWriteBody;
-        if (toWrite) await fs.appendFile(resultsCsvFile, toWrite, "utf-8");
-      } catch (csvErr) {
-        console.error("CSV write failed:", csvErr);
-      }
-      return res.status(201).json({ message: "Kaydedildi" });
-    } catch (err) {
-      return res.status(500).json({ message: "Kaydetme hatası" });
-    }
-  });
 
   app.post("/api/optics/scans", async (req, res) => {
     try {
@@ -317,6 +277,10 @@ const fs = await import("fs/promises");
         fileName?: string;
         pageCount?: number;
         qrData?: string;
+        tcNo?: string;
+        booklet?: string;
+        examId?: string;
+        confidence?: number;
         results?: Array<{
           areaId?: string;
           pageIndex?: number;
@@ -342,6 +306,10 @@ const fs = await import("fs/promises");
           file_name: String(body.fileName || ""),
           page_count: Number(body.pageCount) || 0,
           qr: qrData,
+          tc_no: String(body.tcNo || ""),
+          booklet: String(body.booklet || ""),
+          exam_id: String(body.examId || ""),
+          confidence: Number(body.confidence) || 0,
           results_json: JSON.stringify(rows),
         });
 
@@ -386,6 +354,10 @@ const fs = await import("fs/promises");
             s.file_name AS fileName,
             s.page_count AS pageCount,
             s.qr AS qr,
+            s.tc_no AS tcNo,
+            s.booklet AS booklet,
+            s.exam_id AS examId,
+            s.confidence AS confidence,
             COUNT(a.id) AS answerCount
           FROM optic_scan_sessions s
           LEFT JOIN optic_scan_answers a ON a.session_id = s.id
@@ -401,45 +373,27 @@ const fs = await import("fs/promises");
     }
   });
 
-  app.post("/api/optics/process", async (req, res) => {
+  // Manifest tabanlı okuma: referans kareleri + baloncuk örneklemesi
+  app.post("/api/optics/read", async (req, res) => {
     try {
-      await fs.mkdir(uploadsDir, { recursive: true });
-      await fs.mkdir(processedDir, { recursive: true });
-      await fs.mkdir(errorsDir, { recursive: true });
-
-      if (!req.body || !req.body.filePath) {
-        return res.status(400).json({ message: "filePath gerekli" });
+      const body = req.body as { manifest?: unknown; files?: string[] };
+      const manifest = body?.manifest;
+      const files = Array.isArray(body?.files) ? body.files : [];
+      if (!manifest || files.length === 0) {
+        return res.status(400).json({ message: "manifest ve files gerekli" });
       }
 
-      const inputFile = String(req.body.filePath);
-      const dpi = Number(req.body.dpi) || 300;
+      await fs.mkdir(uploadsDir, { recursive: true });
+      const manifestPath = path.join(uploadsDir, `manifest_${Date.now()}.json`);
+      await fs.writeFile(manifestPath, JSON.stringify(manifest), "utf-8");
 
       const scriptPath = path.join(process.cwd(), "server", "optical_processor.py");
-      
-      const result = await new Promise<string>((resolve, reject) => {
-        const proc = spawn("python", [scriptPath, inputFile, String(dpi)], {
-          timeout: 120000,
-        });
-        
-        let stdout = "";
-        let stderr = "";
-        
-        proc.stdout?.on("data", (data) => { stdout += data.toString(); });
-        proc.stderr?.on("data", (data) => { stderr += data.toString(); });
-        proc.on("close", (code) => {
-          if (code !== 0) {
-            reject(new Error(stderr || `Python exited with code ${code}`));
-          } else {
-            resolve(stdout);
-          }
-        });
-        proc.on("error", (err) => reject(err));
-      });
-
-      return res.status(200).json(JSON.parse(result));
+      const args = [scriptPath, "read", manifestPath, ...files];
+      const stdout = await runPython(args, 600000);
+      return res.status(200).json(JSON.parse(stdout));
     } catch (err) {
-      console.error("Optik işleme hatası:", err);
-      return res.status(500).json({ message: "İşleme hatası", error: String(err) });
+      console.error("Optik okuma hatası:", err);
+      return res.status(500).json({ message: "Okuma hatası", error: String(err) });
     }
   });
 
@@ -486,151 +440,6 @@ const fs = await import("fs/promises");
     });
     
     req.pipe(busboy);
-  });
-
-  // Detect black-bordered answer area in a JPEG image
-  app.post("/api/optics/detect-frame", async (req, res) => {
-    try {
-      const { filePath, threshold } = req.body;
-
-      if (!filePath) {
-        return res.status(400).json({ success: false, error: "filePath gerekli" });
-      }
-
-      const thr = typeof threshold === "number" ? Math.max(0, Math.min(255, Math.round(threshold))) : 120;
-
-      await fs.mkdir(uploadsDir, { recursive: true });
-      await fs.mkdir(processedDir, { recursive: true });
-      await fs.mkdir(errorsDir, { recursive: true });
-
-      const scriptPath = path.join(process.cwd(), "server", "optical_processor.py");
-
-      const result = await new Promise<string>((resolve, reject) => {
-        const proc = spawn("python", [scriptPath, "detect_frame", filePath, String(thr)], {
-          timeout: 30000,
-        });
-
-        let stdout = "";
-        let stderr = "";
-
-        proc.stdout?.on("data", (data) => { stdout += data.toString(); });
-        proc.stderr?.on("data", (data) => { stderr += data.toString(); });
-        proc.on("close", (code) => {
-          if (code !== 0) {
-            reject(new Error(stderr || `Python exited with code ${code}`));
-          } else {
-            resolve(stdout);
-          }
-        });
-        proc.on("error", (err) => reject(err));
-      });
-
-      const parsed = JSON.parse(result);
-      return res.status(200).json(parsed);
-    } catch (err) {
-      console.error("Çerçeve tespit hatası:", err);
-      return res.status(500).json({
-        success: false,
-        error: "Çerçeve tespit edilirken bir hata oluştu: " + String(err),
-      });
-    }
-  });
-
-  // Batch: process multiple JPEG files
-  app.post("/api/optics/batch", async (req, res) => {
-    try {
-      const { files, threshold } = req.body;
-
-      if (!files || !Array.isArray(files) || files.length === 0) {
-        return res.status(400).json({ success: false, error: "files dizisi gerekli" });
-      }
-
-      const thr = typeof threshold === "number" ? Math.max(0, Math.min(255, Math.round(threshold))) : 120;
-
-      const scriptPath = path.join(process.cwd(), "server", "optical_processor.py");
-      const tmpCsv = path.join(dbDir, `optic_batch_${Date.now()}.csv`);
-
-      // Python batch komutunu hazırla: batch <dosyalar> -o <csv> -t <eşik>
-      const pyArgs = [
-        scriptPath, "batch",
-        ...files,
-        "-o", tmpCsv,
-        "-t", String(thr),
-      ];
-
-      const result = await new Promise<string>((resolve, reject) => {
-        const proc = spawn("python", pyArgs, { timeout: 120000 + files.length * 60000 });
-        let stdout = "";
-        let stderr = "";
-        proc.stdout?.on("data", (data) => { stdout += data.toString(); });
-        proc.stderr?.on("data", (data) => { stderr += data.toString(); });
-        proc.on("close", (code) => {
-          if (code !== 0) {
-            reject(new Error(stderr || `Python batch exited with code ${code}`));
-          } else {
-            resolve(stdout);
-          }
-        });
-        proc.on("error", (err) => reject(err));
-      });
-
-      const summary = JSON.parse(result);
-
-      // CSV'yi oku
-      let csvContent = "";
-      try {
-        csvContent = await fs.readFile(tmpCsv, "utf-8");
-        await fs.unlink(tmpCsv).catch(() => {});
-      } catch {
-        // CSV okunamazsa boş dön
-      }
-
-      return res.status(200).json({
-        success: true,
-        csv: csvContent,
-        summary,
-      });
-    } catch (err) {
-      console.error("Batch işlem hatası:", err);
-      return res.status(500).json({
-        success: false,
-        error: "Batch işlem hatası: " + String(err),
-      });
-    }
-  });
-
-  // Error pages endpoint
-  app.post("/api/optics/error-pages", async (req, res) => {
-    try {
-      const { originalPath, pageNum, reason } = req.body;
-      
-      const errorRecord = {
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        originalPath,
-        pageNum,
-        reason,
-      };
-      
-      // errors.json dosyasına ekle
-      const errorsFile = path.join(dbDir, "optic_errors.json");
-      const existing = await (async () => {
-        try {
-          const d = await fs.readFile(errorsFile, "utf-8");
-          return JSON.parse(d) as any[];
-        } catch {
-          return [] as any[];
-        }
-      })();
-      
-      existing.push(errorRecord);
-      await fs.writeFile(errorsFile, JSON.stringify(existing, null, 2), "utf-8");
-      
-      return res.status(201).json({ message: "Hata kaydı eklendi" });
-    } catch (err) {
-      console.error("Error pages hatası:", err);
-      return res.status(500).json({ message: "Hata kaydı başarısız" });
-    }
   });
 
   return httpServer;

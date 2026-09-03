@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,103 +6,128 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Slider } from "@/components/ui/slider";
-import { AlertCircle, CheckCircle2, FileScan, Loader2, Upload, ImageIcon, RotateCw, Crop, QrCode, XCircle, CircleDot, Circle, ListChecks, Download, Files, FileText } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertCircle, CheckCircle2, Download, FileScan, Loader2, Save, Upload, XCircle } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
 import { pdfToJpegFiles } from "@/lib/optic/pdf-renderer";
+import { downloadCsv } from "@/lib/optic/csv-export";
+import {
+  buildOpticFormManifest,
+  fetchFormDesigns,
+  type OpticFormDesign,
+  type OpticManifest,
+} from "@/lib/optic-form";
 
-interface Question {
+interface FieldRead {
+  id: string;
+  label: string;
+  type: "numeric" | "booklet";
+  value: string;
+  confidence: number;
+}
+
+interface AnswerRead {
   no: number;
-  answer: string | null;
+  answer: string;
+  confidence: number;
 }
 
-interface Bubbles {
-  detected: boolean;
-  total: number;
-  filled: number;
-  empty: number;
-  missing: number;
-  rejected: number;
-  standard_radius: number;
-  grid_rows: number;
-  questions_per_row: number[];
-  options_per_question: number;
-  questions?: Question[];
+interface GridRead {
+  subject: string;
+  questionCount: number;
+  answers: AnswerRead[];
 }
 
-interface DetectFrameResult {
+interface ReadResult {
   success: boolean;
   file_name: string;
   image_width: number;
   image_height: number;
-  area_detected: boolean;
-  skew_angle: number;
-  preview_base64: string | null;
-  cropped_base64: string | null;
-  bounding_box?: { x: number; y: number; w: number; h: number };
-  corners?: number[][];
-  area_ratio?: number;
-  crop_width?: number;
-  crop_height?: number;
-  qr_data?: string;
-  error: string | null;
-  processed_path?: string;
-  bubbles?: Bubbles;
-  bubble_overlay_base64?: string;
-  bubble_binary_base64?: string;
+  qr: string;
+  marks_detected: number;
+  fields: FieldRead[];
+  grids: GridRead[];
+  overlay_base64?: string;
+  error?: string;
+}
+
+function confidenceColor(c: number): string {
+  if (c >= 0.6) return "text-green-600";
+  if (c >= 0.3) return "text-amber-500";
+  return "text-red-500";
+}
+
+function classifyField(f: FieldRead): "tcNo" | "booklet" | "examId" {
+  if (f.type === "booklet") return "booklet";
+  const label = f.label.toLocaleUpperCase("tr-TR");
+  if (label.includes("KİMLİK") || f.id === "field-tc") return "tcNo";
+  return "examId";
+}
+
+function fieldValue(field: FieldRead): string {
+  return field.value;
+}
+
+function optionLetters(count: number): string[] {
+  return Array.from({ length: count }, (_, i) => String.fromCharCode(65 + i));
 }
 
 export default function OpticReading() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isBatching, setIsBatching] = useState(false);
+  const [designs, setDesigns] = useState<OpticFormDesign[]>([]);
+  const [designId, setDesignId] = useState<string>("");
+  const [manifest, setManifest] = useState<OpticManifest | null>(null);
+
+  const [files, setFiles] = useState<File[]>([]);
   const [isConvertingPdf, setIsConvertingPdf] = useState(false);
-  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
-  const [result, setResult] = useState<DetectFrameResult | null>(null);
-  const [batchResults, setBatchResults] = useState<DetectFrameResult[] | null>(null);
-  const [batchCsv, setBatchCsv] = useState<string | null>(null);
-  const [uploadedPaths, setUploadedPaths] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<"preview" | "cropped" | "bubbles" | "binary" | "answers">("preview");
-  const [threshold, setThreshold] = useState(120);
-  const [isReProcessing, setIsReProcessing] = useState(false);
-  const uploadedPathRef = useRef<string | null>(null);
+  const [isReading, setIsReading] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [results, setResults] = useState<ReadResult[]>([]);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const design = useMemo(() => designs.find((d) => d.id === designId) ?? null, [designs, designId]);
+
+  useEffect(() => {
+    fetchFormDesigns().then((list) => {
+      setDesigns(list);
+      if (list.length > 0) setDesignId(list[0].id);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (design) setManifest(buildOpticFormManifest(design));
+  }, [design]);
+
+  const handleDesignChange = (value: string) => {
+    setDesignId(value);
+    setResults([]);
+    setSelected(null);
+  };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
 
-    const imageFilesAccum: File[] = [];
-    let hasPdf = false;
-
-    for (let i = 0; i < fileList.length; i++) {
-      const file = fileList[i];
-      const isImage = file.type === "image/jpeg" || file.type === "image/png" || file.type === "image/tiff"
-        || file.name.toLowerCase().endsWith(".jpg") || file.name.toLowerCase().endsWith(".jpeg")
-        || file.name.toLowerCase().endsWith(".png");
-      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-
-      if (isImage) {
-        imageFilesAccum.push(file);
-      } else if (isPdf) {
-        hasPdf = true;
+    const images: File[] = [];
+    const pdfs: File[] = [];
+    for (const file of Array.from(fileList)) {
+      if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+        pdfs.push(file);
+      } else {
+        images.push(file);
       }
     }
 
-    if (hasPdf) {
+    if (pdfs.length > 0) {
       setIsConvertingPdf(true);
       try {
-        for (let i = 0; i < fileList.length; i++) {
-          const file = fileList[i];
-          if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-            const jpegs = await pdfToJpegFiles(file);
-            imageFilesAccum.push(...jpegs);
-          }
+        for (const pdf of pdfs) {
+          images.push(...(await pdfToJpegFiles(pdf)));
         }
       } catch {
         toast({ title: "PDF hatası", description: "PDF sayfaları dönüştürülemedi.", variant: "destructive" });
@@ -112,292 +137,238 @@ export default function OpticReading() {
       setIsConvertingPdf(false);
     }
 
-    if (imageFilesAccum.length === 0) {
-      toast({
-        title: "Geçersiz dosya",
-        description: "JPEG, PNG veya PDF dosyası seçin.",
-        variant: "destructive",
-      });
+    if (images.length === 0) {
+      toast({ title: "Geçersiz dosya", description: "JPEG, PNG veya PDF dosyası seçin.", variant: "destructive" });
       return;
     }
 
-    setImageFiles(imageFilesAccum);
-    setResult(null);
-    setBatchResults(null);
-    setBatchCsv(null);
-    setUploadedPaths([]);
-    uploadedPathRef.current = null;
-    setThreshold(120);
-
-    // İlk dosyanın önizlemesini göster
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreviewUrl(e.target?.result as string);
-    };
-    reader.readAsDataURL(imageFilesAccum[0]);
+    setFiles(images);
+    setResults([]);
+    setSelected(null);
+    event.target.value = "";
   };
 
   const uploadFile = useCallback(async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
-
-    const uploadRes = await fetch("/api/optics/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!uploadRes.ok) {
-      const err = await uploadRes.json().catch(() => ({}));
+    const res = await fetch("/api/optics/upload", { method: "POST", body: formData });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
       throw new Error(err.message || "Dosya yükleme başarısız");
     }
-
-    const uploadData = await uploadRes.json();
-    return uploadData.filePath;
+    const data = await res.json();
+    return data.filePath as string;
   }, []);
 
-  const detectFrame = useCallback(async (thr?: number) => {
-    if (imageFiles.length === 0) {
-      toast({ title: "Dosya seçilmedi", description: "Önce bir görsel dosyası seçin.", variant: "destructive" });
+  const readAll = useCallback(async () => {
+    if (!design) {
+      toast({ title: "Form seçilmedi", description: "Önce bir optik form tasarımı seçin.", variant: "destructive" });
+      return;
+    }
+    if (files.length === 0) {
+      toast({ title: "Dosya seçilmedi", description: "En az bir görsel seçin.", variant: "destructive" });
       return;
     }
 
-    setIsUploading(true);
-    let filePath: string;
+    setIsReading(true);
+    setProgress({ done: 0, total: files.length });
+    setResults([]);
+    setSelected(null);
 
     try {
-      filePath = await uploadFile(imageFiles[0]);
-      setUploadedPaths([filePath]);
-      uploadedPathRef.current = filePath;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Yükleme hatası";
-      toast({ title: "Yükleme hatası", description: msg, variant: "destructive" });
-      setIsUploading(false);
-      return;
-    }
+      const paths: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        paths.push(await uploadFile(files[i]));
+        setProgress({ done: i + 1, total: files.length });
+      }
 
-    setIsUploading(false);
-    setIsProcessing(true);
-
-    try {
-      const res = await fetch("/api/optics/detect-frame", {
+      const res = await fetch("/api/optics/read", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filePath, threshold: thr ?? threshold }),
+        body: JSON.stringify({ manifest: buildOpticFormManifest(design), files: paths }),
       });
-
-      const data: DetectFrameResult = await res.json();
-
       if (!res.ok) {
-        throw new Error(data.error || "Çerçeve tespiti başarısız");
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Okuma başarısız");
       }
+      const data = (await res.json()) as ReadResult[];
+      setResults(data);
 
-      setResult(data);
-      setBatchResults(null);
-      setBatchCsv(null);
+      const firstOk = data.findIndex((r) => r.success);
+      setSelected(firstOk >= 0 ? firstOk : 0);
 
-      if (data.area_detected) {
-        toast({
-          title: "Alan tespit edildi" + (data.qr_data ? " + Karekod okundu" : ""),
-          description: `Eğiklik: ${data.skew_angle}° | ${data.bounding_box?.w || 0}x${data.bounding_box?.h || 0}${data.qr_data ? ` | QR: ${data.qr_data}` : ""}`,
-        });
-      } else {
-        toast({
-          title: "Alan tespit edilemedi",
-          description: data.error || "Siyah kenarlıklı cevap alanı bulunamadı.",
-          variant: "destructive",
-        });
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "İşlem hatası";
-      toast({ title: "İşlem hatası", description: msg, variant: "destructive" });
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [imageFiles, uploadFile, toast, threshold]);
-
-  const handleThresholdChange = useCallback(async (value: number[]) => {
-    const newThr = value[0];
-    setThreshold(newThr);
-
-    const path = uploadedPathRef.current;
-    if (!path) return;
-
-    setIsReProcessing(true);
-    try {
-      const res = await fetch("/api/optics/detect-frame", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filePath: path, threshold: newThr }),
+      const okCount = data.filter((r) => r.success).length;
+      toast({
+        title: `${okCount}/${data.length} sayfa okundu`,
+        description: okCount === data.length ? "Tüm sayfalar başarıyla okundu." : "Bazı sayfalar okunamadı.",
+        variant: okCount === data.length ? "default" : "destructive",
       });
-      const data: DetectFrameResult = await res.json();
-      if (res.ok) {
-        setResult(data);
-        setActiveTab("bubbles");
-      } else {
-        toast({ title: "Eşik güncelleme hatası", description: data.error || "İşlem başarısız", variant: "destructive" });
-      }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Ağ hatası";
-      toast({ title: "Eşik güncelleme hatası", description: msg, variant: "destructive" });
+      const msg = err instanceof Error ? err.message : "Okuma hatası";
+      toast({ title: "Okuma hatası", description: msg, variant: "destructive" });
     } finally {
-      setIsReProcessing(false);
+      setIsReading(false);
+      setProgress({ done: 0, total: 0 });
     }
-  }, [toast]);
+  }, [design, files, uploadFile, toast]);
 
-  const batchProcess = useCallback(async () => {
-    if (imageFiles.length === 0) {
-      toast({ title: "Dosya seçilmedi", description: "En az bir JPEG dosyası seçin.", variant: "destructive" });
+  const updateAnswer = (fi: number, gi: number, no: number, answer: string) => {
+    setResults((prev) =>
+      prev.map((r, i) =>
+        i !== fi
+          ? r
+          : {
+              ...r,
+              grids: r.grids.map((g, j) =>
+                j !== gi
+                  ? g
+                  : { ...g, answers: g.answers.map((a) => (a.no === no ? { ...a, answer } : a)) },
+              ),
+            },
+      ),
+    );
+  };
+
+  const handleSave = async () => {
+    const ok = results.filter((r) => r.success);
+    if (ok.length === 0) {
+      toast({ title: "Kaydedilecek sonuç yok", variant: "destructive" });
       return;
     }
-
-    setIsBatching(true);
-    setBatchProgress({ current: 0, total: imageFiles.length });
-    setBatchResults(null);
-    setBatchCsv(null);
-    setResult(null);
-
-    const allResults: DetectFrameResult[] = [];
-
+    setIsSaving(true);
+    let saved = 0;
     try {
-      for (let i = 0; i < imageFiles.length; i++) {
-        setBatchProgress({ current: i + 1, total: imageFiles.length });
+      for (const r of ok) {
+        const tcField = r.fields.find((f) => classifyField(f) === "tcNo");
+        const bookletField = r.fields.find((f) => classifyField(f) === "booklet");
+        const examField = r.fields.find((f) => classifyField(f) === "examId");
+        const answersTotal = r.grids.reduce((s, g) => s + g.answers.length, 0);
+        const confSum = r.grids.reduce((s, g) => s + g.answers.reduce((a, b) => a + b.confidence, 0), 0);
 
-        // 1. Dosyayı yükle
-        const filePath = await uploadFile(imageFiles[i]);
-
-        // 2. detect-frame çağır (önizleme için)
-        const res = await fetch("/api/optics/detect-frame", {
+        const payload = {
+          fileName: r.file_name,
+          pageCount: 1,
+          qrData: r.qr,
+          tcNo: tcField?.value ?? "",
+          booklet: bookletField?.value ?? "",
+          examId: examField?.value ?? "",
+          confidence: answersTotal > 0 ? confSum / answersTotal : 0,
+          results: r.grids.map((g) => ({
+            pageIndex: 0,
+            areaId: g.subject,
+            subject: g.subject,
+            answers: g.answers.map((a) => ({
+              questionNumber: a.no,
+              answer: a.answer,
+              confidence: a.confidence,
+              scores: [],
+            })),
+          })),
+        };
+        const res = await fetch("/api/optics/scans", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filePath, threshold }),
+          body: JSON.stringify(payload),
         });
-
-        if (res.ok) {
-          const data: DetectFrameResult = await res.json();
-          allResults.push(data);
-
-          // Önizlemeyi güncelle (dinamik!)
-          setResult(data);
-          setActiveTab("preview");
-
-          if (!data.area_detected) {
-            toast({
-              title: `Uyarı: ${imageFiles[i].name}`,
-              description: "Alan tespit edilemedi, atlanıyor.",
-              variant: "destructive",
-            });
-          }
-        } else {
-          toast({
-            title: `Hata: ${imageFiles[i].name}`,
-            description: "İşlem başarısız, atlanıyor.",
-            variant: "destructive",
-          });
-        }
+        if (res.ok) saved++;
       }
-
-      setBatchResults(allResults);
-      setUploadedPaths(allResults.map(() => ""));
-      setActiveTab("answers");
-
-      // CSV'yi frontend'de oluştur
-      const maxQ = allResults.reduce((m, r) => Math.max(m, r.bubbles?.questions?.length ?? 0), 0);
-      const header = ["Dosya", "QR", "Toplam Soru", "Cevaplanan", ...Array.from({ length: maxQ }, (_, i) => `Soru ${i + 1}`)];
-      const rows = allResults.map((r) => {
-        const qs = r.bubbles?.questions ?? [];
-        const filled = qs.filter((q) => q.answer).length;
-        return [
-          r.file_name,
-          r.qr_data || "",
-          String(qs.length),
-          String(filled),
-          ...qs.map((q) => q.answer || ""),
-          ...Array.from({ length: maxQ - qs.length }, () => ""),
-        ];
-      });
-      const csvContent = [header.join(","), ...rows.map((r) => r.join(","))].join("\n");
-      setBatchCsv(csvContent);
-
       toast({
-        title: `${allResults.length} dosya işlendi`,
-        description: "CSV indirilebilir. Cevaplar sekmesini açın.",
+        title: `${saved}/${ok.length} kayıt kaydedildi`,
+        variant: saved === ok.length ? "default" : "destructive",
       });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Batch hatası";
-      toast({ title: "Batch işlem hatası", description: msg, variant: "destructive" });
-    } finally {
-      setIsBatching(false);
-      setBatchProgress({ current: 0, total: 0 });
-    }
-  }, [imageFiles, uploadFile, threshold, toast]);
-
-  const downloadCsv = useCallback(() => {
-    if (!batchCsv) return;
-    const blob = new Blob([batchCsv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `optic_sonuclar_${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [batchCsv]);
-
-  const handleSaveResults = async () => {
-    const activeResult = result || (batchResults?.[0] ?? null);
-    if (!activeResult) return;
-
-    try {
-      const payload: Record<string, unknown> = {
-        fileName: imageFiles[0]?.name || activeResult.file_name,
-        pageCount: 1,
-        qrData: activeResult.qr_data || "",
-        results: [{
-          pageIndex: 0,
-          areaId: "main",
-          subject: "Optik",
-          frameDetected: activeResult.area_detected,
-          skewAngle: activeResult.skew_angle,
-          boundingBox: activeResult.bounding_box,
-          answers: [],
-        }],
-      };
-
-      const saveRes = await fetch("/api/optics/scans", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!saveRes.ok) {
-        const err = await saveRes.json().catch(() => ({}));
-        throw new Error(err.message || "Kaydetme başarısız");
-      }
-
-      toast({ title: "Kaydedildi", description: "Sonuçlar sunucuya kaydedildi." });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Kaydetme hatası";
       toast({ title: "Kaydetme hatası", description: msg, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  const handleCsv = () => {
+    if (results.length === 0) return;
+    const ok = results.filter((r) => r.success);
+    if (ok.length === 0) return;
+    const fieldLabels = ok[0].fields.map((f) => f.label);
+    const subjects = ok[0].grids.map((g) => g.subject);
+
+    const header = ["Dosya", "QR", ...fieldLabels, ...subjects.map((s) => `${s} Cevap`), "Cevaplanan"];
+    const rows = ok.map((r) => {
+      const cells = [
+        r.file_name,
+        r.qr,
+        ...r.fields.map((f) => fieldValue(f)),
+        ...subjects.map((s) => {
+          const g = r.grids.find((gr) => gr.subject === s);
+          return g ? g.answers.map((a) => a.answer).join(",") : "";
+        }),
+        String(r.grids.reduce((sum, g) => sum + g.answers.filter((a) => a.answer).length, 0)),
+      ];
+      return cells.join(";");
+    });
+    downloadCsv("\uFEFF" + [header.join(";"), ...rows].join("\n"), `optic_okuma_${Date.now()}`);
+  };
+
+  const selectedResult = selected !== null ? results[selected] : null;
+
+  const renderAnswerCell = (fi: number, gi: number, a: AnswerRead, optionCount: number) => (
+    <Select
+      value={a.answer || "__"}
+      onValueChange={(v) => updateAnswer(fi, gi, a.no, v === "__" ? "" : v)}
+    >
+      <SelectTrigger className={`h-8 w-14 ${a.answer ? confidenceColor(a.confidence) : "text-muted-foreground"}`}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__">—</SelectItem>
+        {optionLetters(optionCount).map((l) => (
+          <SelectItem key={l} value={l}>
+            {l}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
       <div>
         <h1 className="text-3xl font-heading font-bold">Optik Okuma</h1>
         <p className="text-muted-foreground mt-1">
-          JPEG/PNG/PDF yükleyin. PDF dosyalari otomatik sayfalara ayrilir. Tek dosya tespit veya birden çok dosyayi toplu isleme.
+          JPEG/PNG/PDF yükleyin. Referans kareleriyle kesin baloncuk tespiti; TC, kitapçık, sınav ID ve cevaplar okunur.
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>İşlem Adımları</CardTitle>
-            <CardDescription>Görsel yükle, alanı tespit et, sonucu kaydet.</CardDescription>
+            <CardTitle>Okuma Ayarları</CardTitle>
+            <CardDescription>Form tasarımını seç, görselleri yükle, tümünü oku.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="file-upload">Görsel Dosyaları (JPEG/PNG/PDF — birden çok seçilebilir)</Label>
+              <Label>Optik Form Tasarımı</Label>
+              <Select value={designId} onValueChange={handleDesignChange} disabled={designs.length === 0}>
+                <SelectTrigger>
+                  <SelectValue placeholder={designs.length === 0 ? "Form bulunamadı" : "Form seçin"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {designs.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name} ({d.paperSize})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {design && (
+                <p className="text-xs text-muted-foreground">
+                  {design.grids.reduce((s, g) => s + g.questionCount, 0)} soru,{" "}
+                  {design.grids.map((g) => g.subject).join(", ")}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="file-upload">Görsel Dosyaları (JPEG/PNG/PDF — birden çok)</Label>
               <Input
                 id="file-upload"
                 ref={fileInputRef}
@@ -409,480 +380,226 @@ export default function OpticReading() {
               {isConvertingPdf && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  PDF sayfalari JPEG'e donusturuluyor...
+                  PDF sayfaları JPEG'e dönüştürülüyor...
                 </div>
               )}
-              {imageFiles.length > 0 && !isConvertingPdf && (
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">
-                    {imageFiles.length} dosya seçildi (toplam {imageFiles.reduce((s, f) => s + f.size, 0) / 1024 / 1024 < 1
-                      ? `${(imageFiles.reduce((s, f) => s + f.size, 0) / 1024).toFixed(0)} KB`
-                      : `${(imageFiles.reduce((s, f) => s + f.size, 0) / 1024 / 1024).toFixed(1)} MB`
-                    })
-                  </p>
-                  <div className="max-h-20 overflow-y-auto text-xs text-muted-foreground space-y-0.5">
-                    {imageFiles.map((f, i) => (
-                      <div key={i} className="truncate">
-                        {i + 1}. {f.name}
-                      </div>
-                    ))}
-                  </div>
+              {files.length > 0 && (
+                <div className="max-h-24 overflow-y-auto text-xs text-muted-foreground space-y-0.5 border rounded-md p-2">
+                  {files.map((f, i) => (
+                    <div key={i} className="truncate">
+                      {i + 1}. {f.name}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            {imagePreviewUrl && !result && (
-              <div className="rounded-md overflow-hidden border">
-                <img
-                  src={imagePreviewUrl}
-                  alt="Preview"
-                  className="w-full h-auto object-contain max-h-60"
-                />
-              </div>
-            )}
+            <Button className="w-full" onClick={readAll} disabled={isReading || files.length === 0 || !design}>
+              {isReading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {progress.total > 0 && progress.done > 0 ? `${progress.done}/${progress.total} yüklendi` : "Okunuyor..."}
+                </>
+              ) : (
+                <>
+                  <FileScan className="mr-2 h-4 w-4" />
+                  Tümünü Oku
+                </>
+              )}
+            </Button>
 
-            <div className="flex gap-2">
-              <Button
-                className="flex-1"
-                onClick={() => detectFrame()}
-                disabled={isUploading || isProcessing || imageFiles.length === 0}
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Yükleniyor...
-                  </>
-                ) : isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Alan tespit ediliyor...
-                  </>
-                ) : (
-                  <>
-                    <FileScan className="mr-2 h-4 w-4" />
-                    Alanı Tespit Et
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={batchProcess}
-                disabled={isBatching || isProcessing || imageFiles.length < 2}
-                title={imageFiles.length < 2 ? "En az 2 dosya seçin" : "Tüm dosyaları işle"}
-              >
-                {isBatching ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {batchProgress.current}/{batchProgress.total}
-                  </>
-                ) : (
-                  <>
-                    <Files className="mr-2 h-4 w-4" />
-                    Tümünü İşle
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {(result || batchResults) && (result?.area_detected || batchResults) && (
+            {results.length > 0 && (
               <div className="space-y-2 border rounded-lg p-3">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  Tespit Eşiği: {threshold}
-                  {isReProcessing && <Loader2 className="h-3 w-3 animate-spin" />}
-                </Label>
-                <Slider
-                  value={[threshold]}
-                  onValueChange={handleThresholdChange}
-                  min={30}
-                  max={220}
-                  step={5}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Düşük (30)</span>
-                  <span>Yüksek (220)</span>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Okunan sayfa</span>
+                  <span className="font-medium">
+                    {results.filter((r) => r.success).length}/{results.length}
+                  </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Düşük değer: daha az baloncuk dolu sayılır. Yüksek değer: daha fazla baloncuk dolu sayılır.
-                </p>
-              </div>
-            )}
-
-            {batchResults && batchResults.length > 0 && (
-              <div className="border rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Toplam Dosya</span>
-                  <span className="text-sm font-medium">{batchResults.length}</span>
-                </div>
-                {batchCsv && (
-                  <Button className="w-full" variant="outline" onClick={downloadCsv}>
-                    <Download className="mr-2 h-4 w-4" />
-                    CSV İndir
-                  </Button>
-                )}
-              </div>
-            )}
-
-            {result && (
-              <>
-                <div className="border rounded-lg p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Durum</span>
-                    {result.area_detected ? (
-                      <Badge className="bg-green-600">
-                        <CheckCircle2 className="mr-1 h-3 w-3" />
-                        Alan Bulundu
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive">
-                        <AlertCircle className="mr-1 h-3 w-3" />
-                        Bulunamadı
-                      </Badge>
-                    )}
-                  </div>
-
-                  {result.area_detected && result.bounding_box && (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Boyut</span>
-                        <span className="text-sm font-medium">{result.bounding_box.w} x {result.bounding_box.h} px</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Konum</span>
-                        <span className="text-sm font-medium">X:{result.bounding_box.x} Y:{result.bounding_box.y}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Oran</span>
-                        <span className="text-sm font-medium">%{(result.area_ratio! * 100).toFixed(1)}</span>
-                      </div>
-                      {result.crop_width && result.crop_height && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Kırpılan</span>
-                          <span className="text-sm font-medium">{result.crop_width} x {result.crop_height} px</span>
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Eğiklik</span>
-                    <span className={`text-sm font-medium flex items-center ${Math.abs(result.skew_angle) > 1 ? "text-amber-500" : "text-green-600"}`}>
-                      <RotateCw className="mr-1 h-3 w-3" />
-                      {result.skew_angle}°
-                    </span>
-                  </div>
-
-                  {result.bubbles && result.bubbles.detected && (
-                    <>
-                      <div className="border-t my-1" />
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Grid</span>
-                        <span className="text-sm font-medium">{result.bubbles.grid_rows} satır x {result.bubbles.options_per_question} şık</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Baloncuklar</span>
-                        <span className="text-sm font-medium">{result.bubbles.total}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          <CircleDot className="inline h-3 w-3 mr-1 text-green-600" />
-                          Dolu
-                        </span>
-                        <span className="text-sm font-medium text-green-600">{result.bubbles.filled}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          <Circle className="inline h-3 w-3 mr-1 text-red-500" />
-                          Boş
-                        </span>
-                        <span className="text-sm font-medium text-red-500">{result.bubbles.empty}</span>
-                      </div>
-                      {result.bubbles.missing > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Eksik</span>
-                          <span className="text-sm font-medium text-amber-500">{result.bubbles.missing}</span>
-                        </div>
-                      )}
-                      {result.bubbles.rejected > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Elenen</span>
-                          <span className="text-sm font-medium text-muted-foreground">{result.bubbles.rejected}</span>
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">QR Kod</span>
-                    {result.qr_data ? (
-                      <Badge variant="secondary" className="text-xs font-mono">
-                        <QrCode className="mr-1 h-3 w-3" />
-                        {result.qr_data}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs text-muted-foreground">
-                        <XCircle className="mr-1 h-3 w-3" />
-                        Okunamadı
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                <Button className="w-full" onClick={handleSaveResults}>
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                <Button className="w-full" variant="outline" onClick={handleCsv} disabled={!results.some((r) => r.success)}>
+                  <Download className="mr-2 h-4 w-4" />
+                  CSV İndir
+                </Button>
+                <Button className="w-full" onClick={handleSave} disabled={isSaving || !results.some((r) => r.success)}>
+                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Sonuçları Kaydet
                 </Button>
-              </>
+              </div>
             )}
           </CardContent>
         </Card>
 
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Önizleme</CardTitle>
+            <CardTitle>Sonuçlar</CardTitle>
             <CardDescription>
-              {result
-                ? result.area_detected
-                  ? batchResults ? `${batchResults.length} dosya işlendi — Cevaplar sekmesini açın` : "Yeşil çizgi ile tespit edilen cevap alanı"
-                  : "Alan tespit edilemedi"
-                : batchResults
-                  ? `${batchResults.length} dosya işlendi — Cevaplar sekmesini açın`
-                  : "Görsel yükleyip alan tespiti yapın"}
+              {results.length > 0
+                ? "Satıra tıklayarak overlay ve elle düzeltme görünümünü açın."
+                : "Görseller yükleyip \"Tümünü Oku\" butonuna tıklayın."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!result && !imagePreviewUrl && (
+            {results.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-                <ImageIcon className="h-10 w-10 mb-3 opacity-40" />
-                <p>Görsel yükleyip "Alanı Tespit Et" butonuna tıklayın.</p>
+                <Upload className="h-10 w-10 mb-3 opacity-40" />
+                <p>Henüz okuma yapılmadı.</p>
               </div>
-            )}
-
-            {!result && imagePreviewUrl && (
-              <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-                <ImageIcon className="h-10 w-10 mb-3 opacity-40" />
-                <p>Görsel yüklendi. Tespit için butona tıklayın.</p>
-              </div>
-            )}
-
-            {result && !result.area_detected && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Alan Tespit Edilemedi</AlertTitle>
-                <AlertDescription>
-                  {result.error || "Siyah kenarlıklı cevap alanı bulunamadı. Görselin düzgün yüklendiğinden ve cevap alanının görünür olduğundan emin olun."}
-                  {result.processed_path && (
-                    <p className="mt-2 text-xs opacity-70">
-                      Hatalı görsel kaydedildi: {result.processed_path}
-                    </p>
-                  )}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {result && result.preview_base64 && (
-              <div className="space-y-3">
-                <div className="flex gap-2 flex-wrap">
-                  <Button
-                    variant={activeTab === "preview" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setActiveTab("preview")}
-                  >
-                    <Crop className="mr-1 h-4 w-4" />
-                    Tespit
-                  </Button>
-                  {result.cropped_base64 && (
-                    <Button
-                      variant={activeTab === "cropped" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setActiveTab("cropped")}
-                    >
-                      <ImageIcon className="mr-1 h-4 w-4" />
-                      Kırpılmış
-                    </Button>
-                  )}
-                  {result.bubble_overlay_base64 && (
-                    <Button
-                      variant={activeTab === "bubbles" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setActiveTab("bubbles")}
-                    >
-                      <CircleDot className="mr-1 h-4 w-4" />
-                      Baloncuklar
-                    </Button>
-                  )}
-                  {result.bubble_binary_base64 && (
-                    <Button
-                      variant={activeTab === "binary" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setActiveTab("binary")}
-                    >
-                      <CircleDot className="mr-1 h-4 w-4" />
-                      Binarize
-                    </Button>
-                  )}
-                  {result.bubbles?.questions && result.bubbles.questions.length > 0 && !batchResults && (
-                    <Button
-                      variant={activeTab === "answers" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setActiveTab("answers")}
-                    >
-                      <ListChecks className="mr-1 h-4 w-4" />
-                      Cevaplar
-                    </Button>
-                  )}
-                  {batchResults && batchResults.length > 0 && (
-                    <Button
-                      variant={activeTab === "answers" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setActiveTab("answers")}
-                    >
-                      <ListChecks className="mr-1 h-4 w-4" />
-                      Cevaplar ({batchResults.length})
-                    </Button>
-                  )}
+            ) : (
+              <>
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[140px]">Dosya</TableHead>
+                        <TableHead>QR</TableHead>
+                        {results[0].fields.map((f) => (
+                          <TableHead key={f.id}>{f.label}</TableHead>
+                        ))}
+                        {results[0].grids.map((g) => (
+                          <TableHead key={g.subject} className="text-right">
+                            {g.subject}
+                          </TableHead>
+                        ))}
+                        <TableHead className="text-center">Durum</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {results.map((r, fi) => {
+                        const gridQuality = (g: GridRead) => {
+                          const answered = g.answers.filter((a) => a.answer);
+                          if (answered.length === 0) return 0;
+                          return answered.reduce((s, a) => s + a.confidence, 0) / answered.length;
+                        };
+                        return (
+                          <TableRow
+                            key={fi}
+                            className={`cursor-pointer ${selected === fi ? "bg-muted/40" : ""}`}
+                            onClick={() => setSelected(fi)}
+                          >
+                            <TableCell className="text-xs max-w-[140px] truncate">{r.file_name}</TableCell>
+                            <TableCell className="text-xs font-mono">{r.qr || "-"}</TableCell>
+                            {r.fields.map((f) => (
+                              <TableCell key={f.id} className={`text-xs font-mono ${f.value ? "" : "text-muted-foreground"}`}>
+                                {fieldValue(f)}
+                              </TableCell>
+                            ))}
+                            {r.grids.map((g) => (
+                              <TableCell key={g.subject} className="text-right">
+                                <span className={confidenceColor(gridQuality(g))}>
+                                  {g.answers.filter((a) => a.answer).length}/{g.questionCount}
+                                </span>
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-center">
+                              {r.success ? (
+                                <Badge className="bg-green-600">
+                                  <CheckCircle2 className="mr-1 h-3 w-3" />
+                                  OK
+                                </Badge>
+                              ) : (
+                                <Badge variant="destructive">
+                                  <XCircle className="mr-1 h-3 w-3" />
+                                  Hata
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
 
-                <div className="rounded-md overflow-hidden border bg-black/5">
-                  {activeTab === "preview" && (
-                    <img
-                      src={`data:image/jpeg;base64,${result.preview_base64}`}
-                      alt="Tespit edilen alan"
-                      className="w-full h-auto object-contain max-h-[600px]"
-                    />
-                  )}
-                  {activeTab === "cropped" && result.cropped_base64 && (
-                    <img
-                      src={`data:image/jpeg;base64,${result.cropped_base64}`}
-                      alt="Kırpılmış cevap alanı"
-                      className="w-full h-auto object-contain max-h-[600px]"
-                    />
-                  )}
-                  {activeTab === "bubbles" && result.bubble_overlay_base64 && (
-                    <img
-                      src={`data:image/jpeg;base64,${result.bubble_overlay_base64}`}
-                      alt="Baloncuk tespiti"
-                      className="w-full h-auto object-contain max-h-[600px]"
-                    />
-                  )}
-                  {activeTab === "binary" && result.bubble_binary_base64 && (
-                    <img
-                      src={`data:image/jpeg;base64,${result.bubble_binary_base64}`}
-                      alt="Binarize görüntü"
-                      className="w-full h-auto object-contain max-h-[600px]"
-                    />
-                  )}
-                  {activeTab === "answers" && (batchResults?.length ? (
-                    <div className="max-h-[600px] overflow-auto">
-                      <table className="w-full text-sm border-collapse">
-                        <thead>
-                          <tr className="border-b bg-muted/50 sticky top-0">
-                            <th className="text-left px-2 py-2 font-medium">Dosya</th>
-                            <th className="text-left px-2 py-2 font-medium">QR</th>
-                            <th className="text-left px-2 py-2 font-medium">Soru</th>
-                            <th className="text-left px-2 py-2 font-medium">Cevap</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {batchResults.map((br, fi) => {
-                            const qs = br.bubbles?.questions ?? [];
-                            return qs.length > 0 ? qs.map((q) => (
-                              <tr key={`${fi}-${q.no}`} className="border-b hover:bg-muted/30">
-                                <td className="px-2 py-1 text-xs text-muted-foreground max-w-[120px] truncate">
-                                  {br.file_name?.substring(0, 25) || `#${fi + 1}`}
-                                </td>
-                                <td className="px-2 py-1 text-xs font-mono text-muted-foreground">{br.qr_data || "-"}</td>
-                                <td className="px-2 py-1">{q.no}</td>
-                                <td className="px-2 py-1">
-                                  {q.answer ? (
-                                    <span className="font-mono font-bold text-green-600 text-sm">{q.answer}</span>
-                                  ) : (
-                                    <span className="text-muted-foreground">-</span>
-                                  )}
-                                </td>
-                              </tr>
-                            )) : (
-                              <tr key={fi} className="border-b hover:bg-muted/30">
-                                <td className="px-2 py-1 text-xs text-muted-foreground">{br.file_name}</td>
-                                <td className="px-2 py-1 text-xs text-muted-foreground">{br.qr_data || "-"}</td>
-                                <td colSpan={2} className="px-2 py-1 text-muted-foreground text-xs">Soru bulunamadı</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : result.bubbles?.questions ? (
-                    <div className="max-h-[600px] overflow-auto">
-                      <div className="flex items-center justify-between mb-2 text-sm text-muted-foreground">
-                        <span>QR: {result.qr_data || "-"}</span>
-                        <span>{result.file_name}</span>
-                      </div>
-                      <table className="w-full text-sm border-collapse">
-                        <thead>
-                          <tr className="border-b bg-muted/50 sticky top-0">
-                            <th className="text-left px-3 py-2 font-medium w-20">Soru No</th>
-                            <th className="text-left px-3 py-2 font-medium">Cevap</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {result.bubbles.questions.map((q) => (
-                            <tr key={q.no} className="border-b hover:bg-muted/30">
-                              <td className="px-3 py-1.5 text-muted-foreground">{q.no}</td>
-                              <td className="px-3 py-1.5">
-                                {q.answer ? (
-                                  <span className="font-mono font-bold text-green-600 text-base">{q.answer}</span>
-                                ) : (
-                                  <span className="text-muted-foreground">-</span>
-                                )}
-                              </td>
-                            </tr>
+                {selectedResult && (
+                  <div className="border rounded-lg p-4 space-y-4">
+                    {!selectedResult.success && (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Sayfa okunamadı</AlertTitle>
+                        <AlertDescription>
+                          {selectedResult.error || "Bilinmeyen hata"} (referans karesi: {selectedResult.marks_detected}/5)
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {selectedResult.success && selectedResult.overlay_base64 && (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="rounded-md overflow-hidden border bg-black/5">
+                          <img
+                            src={`data:image/jpeg;base64,${selectedResult.overlay_base64}`}
+                            alt={`${selectedResult.file_name} overlay`}
+                            className="w-full h-auto object-contain max-h-[420px]"
+                          />
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Referans karesi</span>
+                            <Badge variant={selectedResult.marks_detected >= 4 ? "secondary" : "outline"}>
+                              {selectedResult.marks_detected}/5
+                            </Badge>
+                          </div>
+                          {selectedResult.fields.map((f) => (
+                            <div key={f.id} className="flex items-center justify-between">
+                              <span className="text-muted-foreground">{f.label}</span>
+                              <span className="font-mono font-bold text-base">{fieldValue(f)}</span>
+                            </div>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : null)}
-                </div>
-              </div>
-            )}
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">QR</span>
+                            <span className="font-mono">{selectedResult.qr || "-"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-            {result && (
-              <Alert variant={result.qr_data ? "default" : "destructive"} className={result.qr_data ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20" : ""}>
-                {result.qr_data ? (
-                  <>
-                    <QrCode className="h-4 w-4 text-blue-600" />
-                    <AlertTitle className="text-blue-700 dark:text-blue-400">
-                      Karekod Okundu
-                    </AlertTitle>
-                    <AlertDescription className="text-blue-600 dark:text-blue-500">
-                      <span className="text-lg font-mono font-bold tracking-wider block mt-1">
-                        {result.qr_data}
-                      </span>
-                      <span className="text-xs mt-1 block opacity-70">
-                        Bu karekod, öğrenci/sınav bilgilerini içerir. İlerleyen aşamada cevap alanları ile eşlenecek.
-                      </span>
-                    </AlertDescription>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-4 w-4" />
-                    <AlertTitle>Karekod Okunamadı</AlertTitle>
-                    <AlertDescription>
-                      Görselde karekod tespit edilemedi. Karekodsuz sayfalar manuel olarak eşlenebilir.
-                    </AlertDescription>
-                  </>
+                    {selectedResult.success && (
+                      <div>
+                        <Label className="mb-2 block">Elle Düzeltme</Label>
+                        <div className="max-h-[380px] overflow-auto rounded-md border">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-16">Soru</TableHead>
+                                {selectedResult.grids.map((g, gi) => {
+                                  const gr = manifest?.grids.find((mg) => mg.subject === g.subject);
+                                  return (
+                                    <TableHead key={g.subject} className="text-center">
+                                      {g.subject}
+                                      <span className="block text-[10px] font-normal text-muted-foreground">
+                                        (Q{gi + 1})
+                                      </span>
+                                    </TableHead>
+                                  );
+                                })}
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {Array.from(
+                                { length: Math.max(...selectedResult.grids.map((g) => g.questionCount), 1) },
+                                (_, qi) => qi + 1,
+                              ).map((qno) => (
+                                <TableRow key={qno}>
+                                  <TableCell className="text-xs text-muted-foreground">{qno}</TableCell>
+                                  {selectedResult.grids.map((g, gi) => {
+                                    const a = g.answers.find((ans) => ans.no === qno);
+                                    const gr = manifest?.grids.find((mg) => mg.subject === g.subject);
+                                    if (!a) return <TableCell key={g.subject} />;
+                                    return (
+                                      <TableCell key={g.subject} className="text-center">
+                                        {renderAnswerCell(results.indexOf(selectedResult), gi, a, gr?.optionCount ?? 4)}
+                                      </TableCell>
+                                    );
+                                  })}
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
-              </Alert>
-            )}
-
-            {result && result.area_detected && (
-              <Alert className="border-green-500 bg-green-50 dark:bg-green-950/20">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertTitle className="text-green-700 dark:text-green-400">Alan Başarıyla Tespit Edildi</AlertTitle>
-                <AlertDescription className="text-green-600 dark:text-green-500">
-                  Siyah kenarlıklı cevap alanı bulundu
-                  {result.skew_angle !== 0 && ` ve ${result.skew_angle}° eğiklik düzeltildi`}.
-                </AlertDescription>
-              </Alert>
+              </>
             )}
           </CardContent>
         </Card>
