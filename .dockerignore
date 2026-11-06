@@ -6,3 +6,9 @@ npm-debug.log
 dist
 *.md
 .vscode
+
+# Runtime data is managed separately from the application image.
+backups
+db/*.sqlite
+db/*.sqlite-*
+db/optic_uploads
