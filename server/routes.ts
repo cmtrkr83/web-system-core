@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import Database from "better-sqlite3";
 import { randomUUID } from "crypto";
 import { createHash } from "crypto";
+import { createLocalBackup, listLocalBackups } from "./backup";
 import { storage } from "./storage";
 import { replaceRegistryPayloadSchema, insertExamSchema } from "@shared/schema";
 import { spawn, spawnSync } from "child_process";
@@ -146,8 +147,29 @@ const fs = await import("fs/promises");
     const formDesignsFile = path.join(dbDir, "optic-form-designs.json");
     const opticDbFile = path.join(dbDir, "optic-readings.sqlite");
     const uploadsDir = path.join(dbDir, "optic_uploads");
+    const backupRoot = path.resolve(process.env.BACKUP_DIR || path.join(process.cwd(), "backups"));
 
   await fs.mkdir(dbDir, { recursive: true });
+
+  app.get("/api/system/backups", async (_req, res) => {
+    return res.status(200).json(await listLocalBackups(backupRoot));
+  });
+
+  app.post("/api/system/backups", async (_req, res) => {
+    try {
+      const backup = await createLocalBackup({
+        databasePath: process.env.DATABASE_URL || path.join(dbDir, "local.db"),
+        opticDatabasePath: opticDbFile,
+        formDesignsPath: formDesignsFile,
+        uploadsPath: uploadsDir,
+        backupRoot,
+      });
+      return res.status(201).json({ message: "Yedek oluşturuldu", ...backup });
+    } catch (error) {
+      console.error("Yedek oluşturma hatası:", error);
+      return res.status(500).json({ message: "Yedek oluşturulamadı" });
+    }
+  });
 
   const opticDb = new Database(opticDbFile);
   opticDb.pragma("journal_mode = WAL");

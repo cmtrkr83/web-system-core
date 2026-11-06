@@ -13,3 +13,4 @@ attached_assets/*.XLS
 attached_assets/*.xlsx
 # Ignore local assistant/skill metadata
 .local/
+backups/
