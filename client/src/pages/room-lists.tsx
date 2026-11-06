@@ -242,7 +242,7 @@ export default function RoomLists() {
       }
 
       pdf.save(filename);
-      toast({ title: "Başarılı", description: "Salon listesi PDF olarak kaydedildi." });
+      toast({ title: "Başarılı", description: "Salon listesi PDF olarak kaydedildi.", status: "success" });
     } catch (error) {
       toast({ title: "Hata", description: "PDF oluşturulurken hata oluştu.", variant: "destructive" });
     }

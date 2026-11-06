@@ -259,7 +259,7 @@ export default function OpticCreate() {
         version: form.version ?? 1,
       };
       await apiRequest("POST", "/api/optics/form-designs", payload);
-      toast({ title: "Form kaydedildi", description: `"${form.name}" kaydedildi.` });
+      toast({ title: "Form kaydedildi", description: `"${form.name}" kaydedildi.`, status: "success" });
       await loadForms();
     } catch {
       toast({ title: "Kayıt hatası", description: "Form kaydedilemedi.", variant: "destructive" });
@@ -286,7 +286,7 @@ export default function OpticCreate() {
       a.download = `${form.name.replace(/[^\w\s-]/g, "").trim() || "optic-form"}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "PDF Oluşturuldu", description: "Optik form PDF olarak indirildi." });
+      toast({ title: "PDF Oluşturuldu", description: "Optik form PDF olarak indirildi.", status: "success" });
     } catch {
       toast({ title: "PDF hatası", description: "PDF oluşturulamadı.", variant: "destructive" });
     }

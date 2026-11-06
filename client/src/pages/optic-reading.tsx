@@ -201,7 +201,7 @@ export default function OpticReading() {
       toast({
         title: `${okCount}/${data.length} sayfa okundu`,
         description: okCount === data.length ? "Tüm sayfalar başarıyla okundu." : "Bazı sayfalar okunamadı.",
-        variant: okCount === data.length ? "default" : "destructive",
+        status: okCount === data.length ? "success" : "warning",
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Okuma hatası";
@@ -278,7 +278,7 @@ export default function OpticReading() {
       if (res.ok) saved = ok.length;
       toast({
         title: `${saved}/${ok.length} kayıt kaydedildi`,
-        variant: saved === ok.length ? "default" : "destructive",
+        status: saved === ok.length ? "success" : "warning",
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Kaydetme hatası";

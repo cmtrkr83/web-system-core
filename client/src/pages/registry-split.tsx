@@ -291,7 +291,7 @@ export default function RegistrySplit() {
     printWindow.focus();
     try {
       printWindow.print();
-      toast({ title: "Başarılı", description: `"${districtName}" yazdırılıyor.` });
+      toast({ title: "Başarılı", description: `"${districtName}" yazdırılıyor.`, status: "success" });
     } catch {
       toast({ title: "Hata", description: "Yazdırma sırasında hata oluştu.", variant: "destructive" });
     }

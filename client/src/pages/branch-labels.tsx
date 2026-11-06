@@ -288,7 +288,7 @@ export default function BranchLabels() {
 		} catch {
 			toast({ title: "Hata", description: "Yazdırma sırasında hata oluştu.", variant: "destructive" });
 		}
-		toast({ title: "Başarılı", description: "Yazdırma sayfası hazırlandı." });
+		toast({ title: "Başarılı", description: "Yazdırma sayfası hazırlandı.", status: "success" });
 	}
 
 	const currentScheme = colorSchemes.find(s => s.id === scheme) || colorSchemes[0];

@@ -3,6 +3,7 @@ import * as React from "react"
 import type {
   ToastActionElement,
   ToastProps,
+  ToastStatus,
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
@@ -13,6 +14,7 @@ type ToasterToast = ToastProps & {
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  status?: ToastStatus
 }
 
 const actionTypes = {

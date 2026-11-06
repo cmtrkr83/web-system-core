@@ -289,7 +289,7 @@ export default function Evaluation() {
     });
 
     setSonuclar(results);
-    toast({ title: "Karşılaştırma tamam", description: `${results.length} öğrenci değerlendirildi.` });
+    toast({ title: "Karşılaştırma tamam", description: `${results.length} öğrenci değerlendirildi.`, status: "success" });
   }, [students, answerKeys, toast]);
 
   const sonucToCsv = useCallback(() => {

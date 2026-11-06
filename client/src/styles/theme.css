@@ -935,6 +935,7 @@
     opacity: 0;
     transition: opacity var(--button-transition-ms) ease;
   }
+
   &:hover:not(:disabled):not([aria-disabled="true"])::before {
     opacity: 1;
   }
@@ -952,4 +953,9 @@
   &[aria-disabled="true"]::before {
     display: none;
   }
+}
+
+@keyframes toast-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
 }

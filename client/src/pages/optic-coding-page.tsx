@@ -410,7 +410,7 @@ export default function OpticCoding() {
       a.download = "optik-kodlama.pdf";
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "PDF Oluşturuldu", description: `${filteredStudents.length} öğrenci için kaydedildi.` });
+      toast({ title: "PDF Oluşturuldu", description: `${filteredStudents.length} öğrenci için kaydedildi.`, status: "success" });
     } catch {
       setExporting(null);
       toast({ title: "PDF hatası", description: "PDF oluşturulamadı.", variant: "destructive" });

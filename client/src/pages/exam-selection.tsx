@@ -305,6 +305,7 @@ export default function ExamSelection() {
       toast({
         title: "Başarılı",
         description: `"${newExam.name}" sınavı oluşturuldu. Şimdi kütük dosyasını yükleyin.`,
+        status: "success",
       });
 
       setCurrentStep(2);
@@ -578,6 +579,7 @@ export default function ExamSelection() {
       toast({
         title: "Başarılı",
         description: "Kütük verileri seçili sınav için kaydedildi.",
+        status: "success",
       });
 
       setOpen(false);
@@ -630,6 +632,7 @@ export default function ExamSelection() {
       toast({
         title: "Başarılı",
         description: `"${examName}" sınavı silindi.`,
+        status: "success",
       });
     } catch (error) {
       toast({

@@ -191,7 +191,7 @@ export default function Reports() {
     const today = new Date().toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
     await saveHtmlAsPdf(html, `Ilce_Teslim_Tutanagi_${today.replace(/\./g, "-")}.pdf`);
     setGenerated(true);
-    toast({ title: "Başarılı", description: "İlçe teslim tutanağı PDF olarak kaydedildi." });
+    toast({ title: "Başarılı", description: "İlçe teslim tutanağı PDF olarak kaydedildi.", status: "success" });
   };
 
   // Okul tutanağı oluştur
@@ -255,7 +255,7 @@ export default function Reports() {
     const filename = `Okul_Teslim_Tutanagi_${districtName.replace(/\s+/g, "_")}_${today.replace(/\./g, "-")}.pdf`;
     await saveHtmlPagesAsPdf(htmlPages, filename);
     setGenerated(true);
-    toast({ title: "Başarılı", description: "Okul teslim tutanağı PDF olarak kaydedildi." });
+    toast({ title: "Başarılı", description: "Okul teslim tutanağı PDF olarak kaydedildi.", status: "success" });
   };
 
   return (
