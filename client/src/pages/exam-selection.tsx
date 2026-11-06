@@ -9,6 +9,7 @@ import { useLocation } from "wouter";
 import { Plus, BookOpen, Calendar, Clock, Upload, FileSpreadsheet, ChevronRight, ChevronLeft, Trash2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import * as XLSX from "xlsx";
 
@@ -1011,29 +1012,30 @@ export default function ExamSelection() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-10 md:py-12">
         {/* Header */}
-        <div className="mb-12 text-center">
-          <div className="flex justify-center mb-4">
-            <BookOpen className="h-12 w-12 text-primary" />
+        <div className="mx-auto mb-10 max-w-3xl text-center">
+          <div className="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
+            <BookOpen className="h-7 w-7" />
           </div>
-          <h1 className="text-4xl font-heading font-bold text-foreground mb-3">Sınav Kütük Sistemi</h1>
-          <p className="text-lg text-muted-foreground">
+          <h1 className="mb-3 text-3xl font-heading font-semibold tracking-tight text-foreground md:text-4xl">Sınav Kütük Sistemi</h1>
+          <p className="text-base text-muted-foreground md:text-lg">
             Çalışmak istediğiniz sınavı seçin veya yeni bir sınav oluşturun.
           </p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-3 max-w-6xl mx-auto">
+        <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-3">
           {/* Create New Exam Card */}
           <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-            <Card className="lg:col-span-1 hover:shadow-lg transition-all border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-transparent cursor-pointer">
+            <Card className="group min-h-[280px] cursor-pointer border border-dashed border-primary/30 bg-primary/[0.03] transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-lg">
               <DialogTrigger asChild>
-                <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-                  <div className="bg-primary/10 p-4 rounded-full mb-4">
-                    <Plus className="h-8 w-8 text-primary" />
+                <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+                  <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-105">
+                    <Plus className="h-6 w-6" />
                   </div>
-                  <h3 className="font-semibold text-foreground mb-2">Yeni Sınav Ekle</h3>
-                  <p className="text-sm text-muted-foreground">Başlangıç yapın</p>
+                  <h3 className="mb-2 font-semibold text-foreground">Yeni Sınav Ekle</h3>
+                  <p className="max-w-[200px] text-sm text-muted-foreground">Sınav bilgilerini ve kütük dosyasını birlikte oluşturun.</p>
+                  <span className="mt-5 text-xs font-medium text-primary">Başlamak için tıklayın</span>
                 </div>
               </DialogTrigger>
             </Card>
@@ -1051,31 +1053,27 @@ export default function ExamSelection() {
           {exams.map((exam) => (
             <Card
               key={exam.id}
-              className="hover:shadow-lg transition-all cursor-pointer group overflow-hidden"
+              className="group cursor-pointer overflow-hidden border-border/80 transition-all hover:-translate-y-0.5 hover:shadow-lg"
               onClick={() => handleSelectExam(exam.id)}
             >
-              <CardHeader className="pb-3 pt-4">
+              <CardHeader className="pb-3 pt-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <CardTitle className="text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2">
                       {exam.name}
                     </CardTitle>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
-                        exam.isActive === "1"
-                          ? "text-white bg-primary"
-                          : "text-muted-foreground bg-muted"
-                      }`}>
+                      <Badge variant={exam.isActive === "1" ? "default" : "secondary"} className="rounded-full">
                         {exam.isActive === "1" ? "Aktif" : "İnaktif"}
-                      </span>
+                      </Badge>
                       {exam.sinavid && (
-                        <span className="inline-block px-2.5 py-1 text-xs font-mono font-bold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                        <Badge variant="outline" className="rounded-full font-mono">
                           #{exam.sinavid}
-                        </span>
+                        </Badge>
                       )}
-                      <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                      <Badge variant="secondary" className="rounded-full text-emerald-700">
                         Serbest
-                      </span>
+                      </Badge>
                     </div>
                   </div>
 
@@ -1095,11 +1093,11 @@ export default function ExamSelection() {
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pb-5">
                 {/* Date Info */}
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4 text-primary/60" />
-                  <span>{formatDate(exam.date)}</span>
+                  <span className="font-medium text-foreground">{formatDate(exam.date)}</span>
                 </div>
 
                 {/* Created At Info */}
