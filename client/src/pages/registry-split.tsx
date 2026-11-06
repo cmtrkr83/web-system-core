@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Download, AlertCircle, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRegistry } from "@/context/RegistryContext";
@@ -352,24 +353,31 @@ export default function RegistrySplit() {
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-      <div>
-        <h1 className="text-3xl font-heading font-bold">İl Genel Durum Bilgisi</h1>
-        <p className="text-muted-foreground mt-1">Ana kütük dosyasını ilçe bazlı alt dosyalara ayırın.</p>
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-3xl font-heading font-semibold tracking-tight">İl Genel Durum Bilgisi</h1>
+          <p className="mt-1 text-muted-foreground">Ana kütük dosyasını ilçe bazlı alt dosyalara ayırın.</p>
+        </div>
+        {isLoaded && districtList.length > 0 && (
+          <Badge variant="secondary" className="w-fit rounded-full px-3 py-1">
+            {districtList.length} ilçe hazır
+          </Badge>
+        )}
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
+        <CardHeader className="border-b border-border/60 bg-muted/10 pb-5">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>İlçe Listesi</CardTitle>
+              <CardTitle className="text-base">İlçe Listesi</CardTitle>
               <CardDescription>{isLoaded ? `${districtList.length} ilçe tespit edildi` : "Henüz Excel dosyası yüklenmemiş"}</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <Button 
                 onClick={handlePrintTable}
                 disabled={!isLoaded || districtList.length === 0}
                 variant="destructive"
-                className="w-auto whitespace-nowrap"
+                className="w-auto whitespace-nowrap rounded-xl"
               >
                 <Printer className="mr-2 h-4 w-4" />
                 İl Raporu Yazdır
@@ -377,7 +385,7 @@ export default function RegistrySplit() {
               <Button 
                 onClick={handlePrintAllDistricts}
                 disabled={bulkSaving || !isLoaded || districtList.length === 0}
-                className="w-auto whitespace-nowrap"
+                className="w-auto whitespace-nowrap rounded-xl"
               >
                 {bulkSaving ? (
                   <>
@@ -412,41 +420,53 @@ export default function RegistrySplit() {
               </p>
             </div>
           ) : (
-            <Table className="text-[10pt]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>İlçe Adı</TableHead>
-                  <TableHead>Okul Sayısı</TableHead>
-                  <TableHead>Şube Sayısı</TableHead>
-                  <TableHead>Öğrenci Sayısı</TableHead>
-                  <TableHead>Özel Öğrenci Sayısı</TableHead>
-                  <TableHead className="text-right">İşlem</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {districtList.map((district) => (
-                  <TableRow key={district.id}>
-                    <TableCell className="font-medium">{district.name}</TableCell>
-                    <TableCell>{district.schools}</TableCell>
-                    <TableCell>{district.subes}</TableCell>
-                    <TableCell>{district.students.toLocaleString()}</TableCell>
-                    <TableCell>{district.specialStudents.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+            <div className="overflow-hidden rounded-xl border border-border/70">
+              <Table className="text-sm">
+                <TableHeader className="bg-muted/40">
+                  <TableRow className="hover:bg-muted/40">
+                    <TableHead className="h-12 px-4 text-xs font-semibold uppercase tracking-wide">İlçe Adı</TableHead>
+                    <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Okul</TableHead>
+                    <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Şube</TableHead>
+                    <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Öğrenci</TableHead>
+                    <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Özel Öğrenci</TableHead>
+                    <TableHead className="h-12 px-4 text-right text-xs font-semibold uppercase tracking-wide">İşlem</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {districtList.map((district) => (
+                    <TableRow key={district.id} className="group border-border/60 hover:bg-primary/[0.03]">
+                      <TableCell className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
+                            {district.name.slice(0, 1).toLocaleUpperCase("tr-TR")}
+                          </span>
+                          <span className="font-medium text-foreground">{district.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">{district.schools.toLocaleString("tr-TR")}</TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">{district.subes.toLocaleString("tr-TR")}</TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums text-foreground">{district.students.toLocaleString("tr-TR")}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        <Badge variant={district.specialStudents > 0 ? "outline" : "secondary"} className="rounded-full">
+                          {district.specialStudents.toLocaleString("tr-TR")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 text-right">
                         <Button
                           variant="outline"
                           size="sm"
+                          className="rounded-lg opacity-80 transition-opacity group-hover:opacity-100"
                           onClick={() => handlePrintDistrictHtml(district.id, district.name)}
                         >
-                          <Printer className="h-4 w-4 mr-2" />
+                          <Printer className="mr-2 h-4 w-4" />
                           HTML Yazdır
                         </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
