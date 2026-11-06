@@ -150,6 +150,7 @@ const fs = await import("fs/promises");
 
   const opticDb = new Database(opticDbFile);
   opticDb.pragma("journal_mode = WAL");
+  opticDb.pragma("foreign_keys = ON");
   opticDb.exec(`
     CREATE TABLE IF NOT EXISTS optic_scan_sessions (
       id TEXT PRIMARY KEY,
