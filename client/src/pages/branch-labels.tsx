@@ -210,17 +210,22 @@ export default function BranchLabels() {
 								border:1px solid #d1d5db;
 								border-radius:2mm;
 								min-width:0;
+								height:100%;
+								min-height:0;
+								display:flex;
+								align-items:center;
+								justify-content:center;
 								width:100%;
 								max-width:100%;
 								box-sizing:border-box;
 							">${safe(schoolNameWithCode)}</h2>
 						</div>
 						<div style="display:grid; grid-template-columns:1fr 1fr; gap:${boxPaddingMm}mm;">
-							<div style="min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column; justify-content:center; background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
+							<div style="height:100%; min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column; justify-content:center; background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
 								<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Şube Adı</p>
 								<p style="margin:0; font-size:${branchNameFontSizeMm}mm; font-weight:700; color:#111827;">${safe(branch.branchName)}</p>
 							</div>
-							<div style="min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column; justify-content:center; background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
+							<div style="height:100%; min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column; justify-content:center; background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
 								<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Öğrenci Sayısı</p>
 								<p style="margin:0; font-size:${baseFontSizeMm}mm; font-weight:700; color:#111827;">${branch.studentCount}</p>
 							</div>
@@ -527,16 +532,16 @@ export default function BranchLabels() {
 															{headerPrefix}
 														</h3>
 													) : null}
-													<h2 className="font-black rounded etiket-branch-name" style={{ minWidth: 0, width: '100%', maxWidth: '100%', overflow: 'hidden', fontSize: `${fitLabelFontSize(`${branch.schoolCode || ""} - ${branch.schoolName}`)}mm`, padding: `${Math.max(0.5, boxPaddingMm)}mm`, margin: 0, lineHeight: `${Math.max(1.2, fitLabelFontSize(`${branch.schoolCode || ""} - ${branch.schoolName}`) * 1.12)}mm`, overflowWrap: "anywhere", wordBreak: "break-word", background: '#ffffff', color: '#111827', border: '1px solid #d1d5db' }}>
+													<h2 className="font-black rounded etiket-branch-name" style={{ minWidth: 0, width: '100%', maxWidth: '100%', height: '100%', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', fontSize: `${fitLabelFontSize(`${branch.schoolCode || ""} - ${branch.schoolName}`)}mm`, padding: `${Math.max(0.5, boxPaddingMm)}mm`, margin: 0, lineHeight: `${Math.max(1.2, fitLabelFontSize(`${branch.schoolCode || ""} - ${branch.schoolName}`) * 1.12)}mm`, overflowWrap: "anywhere", wordBreak: "break-word", background: '#ffffff', color: '#111827', border: '1px solid #d1d5db' }}>
 														{`${branch.schoolCode ? `${branch.schoolCode} - ` : ""}${branch.schoolName}`}
 													</h2>
 												</div>
 												<div className="grid grid-cols-2" style={{ gap: `${boxPaddingMm}mm` }}>
-													<div className="min-w-0 min-h-0 overflow-hidden flex flex-col justify-center bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
+													<div className="h-full min-w-0 min-h-0 overflow-hidden flex flex-col justify-center bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
 														<p className="text-muted-foreground uppercase" style={{ fontSize: `${smallFontSizeMm}mm`, margin: 0 }}>Şube Adı</p>
 													<p className="font-bold" style={{ fontSize: `${branchNameFontSizeMm}mm`, margin: 0 }}>{branch.branchName}</p>
 													</div>
-													<div className="min-w-0 min-h-0 overflow-hidden flex flex-col justify-center bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
+													<div className="h-full min-w-0 min-h-0 overflow-hidden flex flex-col justify-center bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
 														<p className="text-muted-foreground uppercase" style={{ fontSize: `${smallFontSizeMm}mm`, margin: 0 }}>Öğrenci Sayısı</p>
 														<p className="font-bold" style={{ fontSize: `${baseFontSizeMm}mm`, margin: 0 }}>{branch.studentCount}</p>
 													</div>
