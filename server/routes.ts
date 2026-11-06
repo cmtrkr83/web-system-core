@@ -40,7 +40,14 @@ export async function registerRoutes(
 
   app.put("/api/exams/:id/activate", async (req, res) => {
     const { id } = req.params;
-    await storage.setActiveExam(id);
+    try {
+      await storage.setActiveExam(id);
+    } catch (error) {
+      if (error instanceof Error && error.message === "Sınav bulunamadı") {
+        return res.status(404).json({ message: error.message });
+      }
+      throw error;
+    }
     return res.status(200).json({ message: "Sınav etkinleştirildi" });
   });
 
@@ -70,6 +77,15 @@ export async function registerRoutes(
       return res.status(400).json({
         message: "Geçersiz payload",
         issues: parsed.error.issues,
+      });
+    }
+
+    const validationErrors = storage.validateRegistryPayload(parsed.data);
+    if (validationErrors.length > 0) {
+      return res.status(422).json({
+        message: "Kütük verisi ilişkisel doğrulamadan geçemedi",
+        issues: validationErrors.slice(0, 100),
+        issueCount: validationErrors.length,
       });
     }
 

@@ -27,6 +27,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getRegistryData(examId: string): Promise<ReplaceRegistryPayload & { loadedAt: string; sourceFileName: string }>;
+  validateRegistryPayload(payload: ReplaceRegistryPayload): string[];
   replaceRegistryData(payload: ReplaceRegistryPayload, examId: string): Promise<void>;
   clearRegistryData(examId: string): Promise<void>;
   getExams(): Promise<Exam[]>;
@@ -69,6 +70,10 @@ export class MemStorage implements IStorage {
     return;
   }
 
+  validateRegistryPayload(_payload: ReplaceRegistryPayload): string[] {
+    return [];
+  }
+
   async getRegistryData(_examId: string): Promise<ReplaceRegistryPayload & { loadedAt: string; sourceFileName: string }> {
     return {
       districts: [],
@@ -107,6 +112,9 @@ export class MemStorage implements IStorage {
 
   async setActiveExam(examId: string): Promise<void> {
     const allExams = Array.from(this.exams.values());
+    if (!this.exams.has(examId)) {
+      throw new Error("Sınav bulunamadı");
+    }
     for (const exam of allExams) {
       exam.isActive = exam.id === examId ? "1" : "0";
     }
@@ -366,6 +374,7 @@ export class DrizzleStorage implements IStorage {
       for (let i = 0; i < arr.length; i += size) {
         chunks.push(arr.slice(i, i + size));
       }
+
       return chunks;
     };
 
@@ -396,6 +405,60 @@ export class DrizzleStorage implements IStorage {
       };
       tx.insert(registryMeta).values(meta).run();
     });
+  }
+
+  validateRegistryPayload(payload: ReplaceRegistryPayload): string[] {
+    const errors: string[] = [];
+    const districtIds = new Set<string>();
+    const schoolIds = new Set<string>();
+    const schoolCodes = new Set<string>();
+    const studentIds = new Set<string>();
+    const studentNumbers = new Set<string>();
+
+    for (const district of payload.districts) {
+      if (!district.id || districtIds.has(district.id)) {
+        errors.push(`İlçe kimliği eksik veya tekrar ediyor: ${district.id || "(boş)"}`);
+      }
+      if (!district.name.trim()) {
+        errors.push(`İlçe adı boş: ${district.id || "(boş)"}`);
+      }
+      if (district.id) districtIds.add(district.id);
+    }
+
+    for (const school of payload.schools) {
+      if (!school.id || schoolIds.has(school.id)) {
+        errors.push(`Okul kimliği eksik veya tekrar ediyor: ${school.id || "(boş)"}`);
+      }
+      if (!school.districtId || !districtIds.has(school.districtId)) {
+        errors.push(`Okul ilçesi bulunamadı: ${school.name || school.id || "(boş)"}`);
+      }
+      if (!school.name.trim() || !school.code.trim()) {
+        errors.push(`Okul adı veya kurum kodu boş: ${school.id || "(boş)"}`);
+      }
+      if (school.code && schoolCodes.has(school.code)) {
+        errors.push(`Kurum kodu tekrar ediyor: ${school.code}`);
+      }
+      if (school.id) schoolIds.add(school.id);
+      if (school.code) schoolCodes.add(school.code);
+    }
+
+    for (const student of payload.students) {
+      if (!student.id || studentIds.has(student.id)) {
+        errors.push(`Öğrenci kimliği eksik veya tekrar ediyor: ${student.id || "(boş)"}`);
+      }
+      if (!student.schoolId || !schoolIds.has(student.schoolId)) {
+        errors.push(`Öğrencinin okulu bulunamadı: ${student.fullName || student.id || "(boş)"}`);
+      }
+      if (!student.studentNo.trim()) {
+        errors.push(`Öğrenci numarası boş: ${student.fullName || student.id || "(boş)"}`);
+      } else if (studentNumbers.has(student.studentNo)) {
+        errors.push(`Öğrenci numarası tekrar ediyor: ${student.studentNo}`);
+      }
+      if (student.id) studentIds.add(student.id);
+      if (student.studentNo) studentNumbers.add(student.studentNo);
+    }
+
+    return errors;
   }
 
   async getRegistryData(examId: string): Promise<ReplaceRegistryPayload & { loadedAt: string; sourceFileName: string }> {
@@ -458,10 +521,14 @@ export class DrizzleStorage implements IStorage {
   }
 
   async setActiveExam(examId: string): Promise<void> {
-    // Set all to inactive
-    await this.db.update(exams).set({ isActive: "0" });
-    // Set selected exam to active
-    await this.db.update(exams).set({ isActive: "1" }).where(eq(exams.id, examId));
+    this.db.transaction((tx) => {
+      const exam = tx.select({ id: exams.id }).from(exams).where(eq(exams.id, examId)).limit(1).all();
+      if (exam.length === 0) {
+        throw new Error("Sınav bulunamadı");
+      }
+      tx.update(exams).set({ isActive: "0" }).run();
+      tx.update(exams).set({ isActive: "1" }).where(eq(exams.id, examId)).run();
+    });
   }
 
   async deleteExam(examId: string): Promise<void> {
