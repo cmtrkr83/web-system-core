@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ClipboardCheck, FileCheck, FileSignature } from "lucide-react";
+import { ClipboardCheck, FileCheck, FileSignature, MapPin, FileDown } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useRegistry } from "@/context/RegistryContext";
@@ -260,58 +260,76 @@ export default function Reports() {
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-      <div>
-        <h1 className="text-3xl font-heading font-bold">Teslim Tutanakları</h1>
-        <p className="text-muted-foreground mt-1">Sınav evrakları için ilçe ve okul teslim tutanaklarını oluşturun.</p>
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-3xl font-heading font-bold">Teslim Tutanakları</h1>
+          <p className="text-muted-foreground mt-1">Sınav evrakları için ilçe ve okul teslim tutanaklarını oluşturun.</p>
+        </div>
+        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+          <ClipboardCheck className="h-3.5 w-3.5" />
+          {generated ? "Son belge hazır" : "Belge üretmeye hazır"}
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
-        <Card>
-          <CardHeader>
-             <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center mb-2">
-                <FileSignature className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+        <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
+          <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
+             <div className="flex items-start gap-3">
+               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
+                  <FileSignature className="w-5 h-5" />
+               </div>
+               <div>
+                 <CardTitle className="text-base">İlçe Teslim Tutanağı</CardTitle>
+                 <CardDescription>İlçelerden merkeze teslim edilecek evraklar için.</CardDescription>
+               </div>
              </div>
-             <CardTitle>İlçe Teslim Tutanağı</CardTitle>
-             <CardDescription>İlçelerden merkeze teslim edilecek evraklar için.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-5">
             <p className="text-sm text-muted-foreground">
               Bu tutanak, ODM ile ilçe milli eğitim müdürlüklerinin sınav evraklarını teslim ederken ya da teslim alırken kullanacakları belgedir.
             </p>
-            <div className="bg-muted p-4 rounded-md text-sm">
-              <ul className="list-disc list-inside space-y-1">
+            <div className="rounded-xl border border-border/70 bg-muted/30 p-4 text-sm">
+              <ul className="space-y-2 text-muted-foreground">
                 <li>İlçe adı</li>
                 <li>Poşet sayısı</li>
                 <li>Teslim eden/alan bilgileri</li>
               </ul>
             </div>
           </CardContent>
-          <CardFooter>
-            <Button className="w-full" onClick={handleCreateDistrictReport} disabled={!isLoaded || districts.length === 0}>
+          <CardFooter className="border-t border-border/60 bg-muted/10 p-5">
+            <Button className="w-full rounded-xl shadow-sm" onClick={handleCreateDistrictReport} disabled={!isLoaded || districts.length === 0}>
+              <FileDown className="mr-2 h-4 w-4" />
               İlçe Tutanağı Oluştur
             </Button>
           </CardFooter>
         </Card>
 
-        <Card>
-          <CardHeader>
-             <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center mb-2">
-                <FileCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+        <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
+          <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
+             <div className="flex items-start gap-3">
+               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400">
+                    <FileCheck className="w-5 h-5" />
+               </div>
+               <div>
+                 <CardTitle className="text-base">Okul Teslim Tutanağı</CardTitle>
+                 <CardDescription>İlçe müdürlüklerinden okullara teslim edilecek evraklar için.</CardDescription>
+               </div>
              </div>
-             <CardTitle>Okul Teslim Tutanağı</CardTitle>
-             <CardDescription>İlçe Müdürlüklerinden okullara teslim edilecek evraklar için.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5 p-5">
             <p className="text-sm text-muted-foreground">
               Bu tutanak, İlçe müdürlüklerinin sınav evraklarını okul müdürlüklerine teslim ederken kullanacakları belgedir.
             </p>
-            <div className="space-y-4">
-               <div className="space-y-2">
-                <Label>İlçe Filtresi</Label>
+            <div className="space-y-4 rounded-xl border border-border/70 bg-muted/20 p-4">
+               <div className="space-y-2.5">
+                <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5 text-primary" />
+                    İlçe Filtresi
+                </Label>
                 <Select value={selectedDistrictForSchool} onValueChange={setSelectedDistrictForSchool}>
-                  <SelectTrigger>
+                    <SelectTrigger className="h-11 rounded-xl border-border/70 bg-background shadow-sm transition-colors hover:border-primary/50 focus:ring-2 focus:ring-primary/20">
                     <SelectValue placeholder="Tüm İlçeler" />
-                  </SelectTrigger>
+                    </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tüm İlçeler</SelectItem>
                     {districts.map(d => (
@@ -320,14 +338,18 @@ export default function Reports() {
                   </SelectContent>
                 </Select>
                </div>
-               <div className="flex items-center space-x-2">
-                  <Checkbox id="blank" checked={isBlankTemplate} onCheckedChange={(checked) => setIsBlankTemplate(checked === true)} />
-                  <Label htmlFor="blank">Boş Şablon Olarak İndir</Label>
+               <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-background p-3">
+                  <Checkbox id="blank" className="mt-0.5" checked={isBlankTemplate} onCheckedChange={(checked) => setIsBlankTemplate(checked === true)} />
+                  <div className="space-y-0.5">
+                    <Label htmlFor="blank" className="cursor-pointer font-medium">Boş şablon olarak indir</Label>
+                    <p className="text-xs text-muted-foreground">Okul adları olmadan boş tutanak sayfaları oluşturur.</p>
+                  </div>
                </div>
             </div>
           </CardContent>
-          <CardFooter>
-            <Button className="w-full" variant="secondary" onClick={handleCreateSchoolReport} disabled={!isBlankTemplate && (!isLoaded || schools.length === 0)}>
+          <CardFooter className="border-t border-border/60 bg-muted/10 p-5">
+            <Button className="w-full rounded-xl shadow-sm" onClick={handleCreateSchoolReport} disabled={!isBlankTemplate && (!isLoaded || schools.length === 0)}>
+              <FileDown className="mr-2 h-4 w-4" />
               Okul Tutanaklarını Oluştur
             </Button>
           </CardFooter>
