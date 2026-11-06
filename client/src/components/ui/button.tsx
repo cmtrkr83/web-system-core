@@ -18,6 +18,8 @@ const buttonVariants = cva(
           "bg-button-ghost-background text-button-ghost-foreground hover:bg-button-ghost-hover active:bg-button-ghost-active",
         secondary:
           "bg-button-ghost-background text-button-ghost-foreground hover:bg-button-ghost-hover active:bg-button-ghost-active",
+        table:
+          "border border-border-button-default bg-background-primary-default text-text-primary shadow-xs hover:bg-background-primary-hover active:bg-background-primary-active",
         ghost: "bg-button-ghost-background text-button-ghost-foreground hover:bg-button-ghost-hover active:bg-button-ghost-active",
         link: "text-button-ghost-foreground underline-offset-4 hover:underline",
       },

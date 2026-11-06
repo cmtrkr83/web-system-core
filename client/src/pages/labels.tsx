@@ -491,7 +491,7 @@ export default function Labels() {
 								<span className="truncate">Önizleme</span>
 							</CardTitle>
 							<div className="flex items-center gap-1 rounded-xl border border-border/70 bg-background p-1 shadow-sm">
-								<Button variant="ghost" size="icon"
+								<Button variant="table" size="icon"
 									className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted disabled:opacity-40"
 									onClick={handlePrevPage}
 									disabled={currentPage === 0}
@@ -500,7 +500,7 @@ export default function Labels() {
 									<ChevronLeft className="w-4 h-4" />
 								</Button>
 								<span className="min-w-[58px] text-center text-xs font-medium tabular-nums text-muted-foreground">{currentPage + 1} / {totalPages}</span>
-								<Button variant="ghost" size="icon"
+								<Button variant="table" size="icon"
 									className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted disabled:opacity-40"
 									onClick={handleNextPage}
 									disabled={currentPage === totalPages - 1}
