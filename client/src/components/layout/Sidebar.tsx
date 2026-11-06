@@ -80,7 +80,7 @@ export function Sidebar() {
 
       <div className="border-t border-sidebar-border p-3">
         <div className="rounded-xl bg-sidebar-accent/70 px-3 py-2.5 text-xs text-sidebar-foreground/60">
-          <p className="font-medium text-sidebar-foreground">Versiyon 2.1.7</p>
+          <p className="font-medium text-sidebar-foreground">Versiyon 2.2.0</p>
           <p className="mt-1">Kütük Yönetim Sistemi</p>
         </div>
       </div>
