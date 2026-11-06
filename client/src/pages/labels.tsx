@@ -200,7 +200,9 @@ export default function Labels() {
 							<h2 style="
 								margin:0;
 								font-size:${baseFontSizeMm}mm;
-								line-height:${Math.max(1, baseFontSizeMm * 1.05)}mm;
+								line-height:${Math.max(1.2, baseFontSizeMm * 1.12)}mm;
+								overflow-wrap:anywhere;
+								word-break:break-word;
 								font-weight:900;
 								padding:${Math.max(0.5, boxPaddingMm)}mm;
 								background:#ffffff;
@@ -310,10 +312,11 @@ export default function Labels() {
 	// Küçülme gerektiğinde yazı boyutlarının otomatik küçülmesi için düşük minimumlar kullanıyoruz
 	const minBaseFont = 1.5; // mm
 	const minSmallFont = 1.0; // mm
-	const baseFontSizeMm = Math.max(minBaseFont, Math.min(labelHeight, labelWidth) * 0.11);
-	const smallFontSizeMm = Math.max(minSmallFont, baseFontSizeMm * 0.6);
+	const labelMinDimension = Math.min(labelHeight, labelWidth);
+	const baseFontSizeMm = Math.max(minBaseFont, Math.min(4.8, labelMinDimension * 0.055));
+	const smallFontSizeMm = Math.max(minSmallFont, Math.min(2.8, baseFontSizeMm * 0.58));
 	const sideStripFontSizeMm = Math.max(2.2, smallFontSizeMm);
-	const boxPaddingMm = Math.max(0.6, Math.min(labelHeight, labelWidth) * 0.04);
+	const boxPaddingMm = Math.max(0.6, Math.min(2.5, labelMinDimension * 0.025));
 
 	// adaptive font-fit: küçülmeyen durumları engellemek için DOM üzerinde kontrol edip gerekirse yazıyı kademeli küçültüyoruz
 	useEffect(() => {
@@ -543,7 +546,7 @@ export default function Labels() {
 															{headerPrefix}
 														</h3>
 													) : null}
-												<h2 className="font-black rounded etiket-school-name" style={{ fontSize: `${baseFontSizeMm}mm`, padding: `${Math.max(0.5, boxPaddingMm)}mm`, margin: 0, lineHeight: `${Math.max(1, baseFontSizeMm * 1.05)}mm`, background: '#ffffff', color: '#111827', border: '1px solid #d1d5db' }}>
+												<h2 className="font-black rounded etiket-school-name" style={{ fontSize: `${baseFontSizeMm}mm`, padding: `${Math.max(0.5, boxPaddingMm)}mm`, margin: 0, lineHeight: `${Math.max(1.2, baseFontSizeMm * 1.12)}mm`, overflowWrap: "anywhere", wordBreak: "break-word", background: '#ffffff', color: '#111827', border: '1px solid #d1d5db' }}>
 													{`${school.code ? `${school.code} - ` : ""}${formatSchoolName(school.name)}`}
 													</h2>
 												</div>
@@ -571,4 +574,3 @@ export default function Labels() {
 		</div>
 	);
 }
-
