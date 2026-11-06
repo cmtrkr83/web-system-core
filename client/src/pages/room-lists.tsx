@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Printer, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Printer, Eye, ChevronLeft, ChevronRight, MapPin, School, ListChecks } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useRegistry, type Student } from "@/context/RegistryContext";
@@ -250,22 +250,38 @@ export default function RoomLists() {
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-      <div>
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
         <h1 className="text-3xl font-heading font-bold">Salon Listesi Hazırlama</h1>
         <p className="text-muted-foreground mt-1">Sınav salonları için yoklama listeleri oluşturun.</p>
+        </div>
+        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+          <ListChecks className="h-3.5 w-3.5" />
+          {previewPages.length > 0 ? `${previewPages.length} sayfa hazır` : "Önizleme bekleniyor"}
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-1 h-fit">
-          <CardHeader>
-            <CardTitle>Ayarlar</CardTitle>
+        <Card className="lg:col-span-1 h-fit overflow-hidden rounded-2xl border-border/70 shadow-sm">
+          <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <ListChecks className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Liste Ayarları</CardTitle>
             <CardDescription>Liste formatını belirleyin.</CardDescription>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>İlçe Seçimi</Label>
+          <CardContent className="space-y-5 p-5">
+            <div className="space-y-2.5">
+              <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5 text-primary" />
+                İlçe Seçimi
+              </Label>
               <Select value={selectedDistrict} onValueChange={(val) => { setSelectedDistrict(val); setSelectedSchool("all"); }}>
-                <SelectTrigger>
+                <SelectTrigger className="h-11 rounded-xl border-border/70 bg-background shadow-sm transition-colors hover:border-primary/50 focus:ring-2 focus:ring-primary/20">
                   <SelectValue placeholder="İlçe Seçin" />
                 </SelectTrigger>
                 <SelectContent>
@@ -277,10 +293,13 @@ export default function RoomLists() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Okul Seçimi</Label>
+            <div className="space-y-2.5">
+              <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <School className="h-3.5 w-3.5 text-primary" />
+                Okul Seçimi
+              </Label>
               <Select value={selectedSchool} onValueChange={setSelectedSchool} disabled={selectedDistrict === "all" && isLoaded}>
-                <SelectTrigger>
+                <SelectTrigger className="h-11 rounded-xl border-border/70 bg-background shadow-sm transition-colors hover:border-primary/50 focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60">
                   <SelectValue placeholder="Okul Seçin" />
                 </SelectTrigger>
                 <SelectContent>
@@ -294,43 +313,56 @@ export default function RoomLists() {
 
             {/* Sıralama, fotoğraflı liste ve imza sütunu kaldırıldı */}
           </CardContent>
-          <CardFooter>
-            <Button className="w-full" size="lg" disabled={!isLoaded || students.length === 0} onClick={handleCreatePdf}>
+          <CardFooter className="border-t border-border/60 bg-muted/10 p-5">
+            <Button className="w-full rounded-xl shadow-sm" size="lg" disabled={!isLoaded || students.length === 0} onClick={handleCreatePdf}>
               <Printer className="mr-2 h-4 w-4" />
               PDF Oluştur
             </Button>
           </CardFooter>
         </Card>
 
-        <Card className="lg:col-span-2 bg-muted/30 border-dashed">
-          <CardHeader>
+        <Card className="lg:col-span-2 overflow-hidden rounded-2xl border-border/70 bg-muted/20 shadow-sm">
+          <CardHeader className="border-b border-border/60 pb-4">
             <div className="w-full flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
-                <Eye className="w-4 h-4" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Eye className="w-4 h-4" />
+                </span>
                 Önizleme
               </CardTitle>
-              <div className="flex items-center gap-2">
-                <button
+              <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-background p-1 shadow-sm">
+                <Button
                   type="button"
                   onClick={() => setPreviewIndex((p) => Math.max(0, p - 1))}
                   disabled={previewPages.length === 0 || previewIndex === 0}
-                  className="inline-flex items-center justify-center p-2 rounded border bg-white hover:bg-gray-50 disabled:opacity-40"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+                  aria-label="Önceki sayfa"
+                  title="Önceki sayfa"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
+                </Button>
+                <span className="min-w-[58px] text-center text-xs font-medium tabular-nums text-muted-foreground">
+                  {previewPages.length > 0 ? `${previewIndex + 1} / ${previewPages.length}` : "—"}
+                </span>
+                <Button
                   type="button"
                   onClick={() => setPreviewIndex((p) => Math.min(previewPages.length - 1, p + 1))}
                   disabled={previewPages.length === 0 || previewIndex >= previewPages.length - 1}
-                  className="inline-flex items-center justify-center p-2 rounded border bg-white hover:bg-gray-50 disabled:opacity-40"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+                  aria-label="Sonraki sayfa"
+                  title="Sonraki sayfa"
                 >
                   <ChevronRight className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex items-center justify-center min-h-[500px]">
-            <div className="bg-white shadow-xl w-[210mm] min-h-[297mm] pt-[5mm] pb-[10mm] px-[10mm] text-[10px] origin-top scale-75 md:scale-90 transition-transform">
+          <CardContent className="flex min-h-[500px] items-start justify-center overflow-auto bg-muted/30 p-6">
+            <div className="w-[210mm] min-h-[297mm] origin-top scale-75 bg-white px-[10mm] pb-[10mm] pt-[8mm] text-[10px] shadow-xl transition-transform md:scale-90">
               {/* Per-page headers are rendered inside pages to avoid duplicate titles */}
               
                 {previewPages.length > 0 ? (
