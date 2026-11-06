@@ -96,38 +96,38 @@ export default function RegistrySplit() {
       const totalSubes = districtList.reduce((sum, d) => sum + d.subes, 0);
       
       const htmlContent = `
-        <div style="font-family: Arial, sans-serif; font-size: 10pt; padding: 1px 10px 1px 10px; background: white;">
-          <h2 style="text-align: center; margin: 0 0 3px 0; font-size: 14px;">İlçe Bazlı Kütük Listesi</h2>
-          <p style="text-align: center; font-size: 10px; margin: 0 0 8px 0; color: #666;">
+        <div style="box-sizing: border-box; width: 760px; min-height: 1040px; font-family: Arial, sans-serif; font-size: 9px; padding: 42px 30px 28px; background: white; color: #111;">
+          <h2 style="text-align: center; margin: 0 0 6px; font-size: 15px; font-weight: 700;">İlçe Bazlı Kütük Listesi</h2>
+          <p style="text-align: center; font-size: 9px; margin: 0 0 14px; color: #555;">
             Toplam İlçe: ${districtList.length} | Toplam Okul: ${totalSchools} | Toplam Şube: ${totalSubes}
           </p>
-          <table style="width: 100%; border-collapse: collapse; font-size: 10pt; line-height: 1.2;">
+          <table style="width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 9px; line-height: 1.25;">
             <thead>
-              <tr style="background-color: #f0f0f0; border: 0.5px solid #333;">
-                <th style="border: 0.5px solid #333; padding: 2px 3px 4px 3px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:flex-start; min-height:14px;">İlçe Adı</div></th>
-                <th style="border: 0.5px solid #333; padding: 2px 3px 4px 3px; vertical-align: middle; width: 12%;"><div style="display:flex; align-items:center; justify-content:center; min-height:14px;">Okul Sayısı</div></th>
-                <th style="border: 0.5px solid #333; padding: 2px 3px 4px 3px; vertical-align: middle; width: 12%;"><div style="display:flex; align-items:center; justify-content:center; min-height:14px;">Şube Sayısı</div></th>
-                <th style="border: 0.5px solid #333; padding: 2px 3px 4px 3px; vertical-align: middle; width: 15%;"><div style="display:flex; align-items:center; justify-content:center; min-height:14px;">Öğrenci Sayısı</div></th>
-                <th style="border: 0.5px solid #333; padding: 2px 3px 4px 3px; vertical-align: middle; width: 18%;"><div style="display:flex; align-items:center; justify-content:center; min-height:14px;">Özel Öğrenci Sayısı</div></th>
+              <tr style="background-color: #e9ecef; border: 1px solid #555;">
+                <th style="border: 1px solid #555; padding: 6px 5px; text-align:left; width: 40%;">İlçe Adı</th>
+                <th style="border: 1px solid #555; padding: 6px 4px; text-align:center; width: 15%;">Okul Sayısı</th>
+                <th style="border: 1px solid #555; padding: 6px 4px; text-align:center; width: 15%;">Şube Sayısı</th>
+                <th style="border: 1px solid #555; padding: 6px 4px; text-align:center; width: 15%;">Öğrenci Sayısı</th>
+                <th style="border: 1px solid #555; padding: 6px 4px; text-align:center; width: 15%;">Özel Öğrenci Sayısı</th>
               </tr>
             </thead>
             <tbody>
               ${districtList
                 .map(
                   (district, idx) => `
-                <tr style="border: 0.5px solid #ccc; ${idx % 2 === 0 ? 'background-color: #fafafa;' : ''}">
-                  <td style="border: 0.5px solid #ccc; padding: 1px 1px 2px 1px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:flex-start; min-height:13px;">${district.name}</div></td>
-                  <td style="border: 0.5px solid #ccc; padding: 1px 1px 2px 1px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:13px;">${district.schools}</div></td>
-                  <td style="border: 0.5px solid #ccc; padding: 1px 1px 2px 1px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:13px;">${district.subes}</div></td>
-                  <td style="border: 0.5px solid #ccc; padding: 1px 1px 2px 1px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:13px;">${district.students.toLocaleString()}</div></td>
-                  <td style="border: 0.5px solid #ccc; padding: 1px 1px 2px 1px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:13px;">${district.specialStudents.toLocaleString()}</div></td>
+                <tr style="border: 1px solid #aaa; ${idx % 2 === 0 ? 'background-color: #fafafa;' : ''}">
+                  <td style="border: 1px solid #aaa; padding: 5px; text-align:left; vertical-align: middle; overflow-wrap:anywhere; word-break:break-word;">${district.name}</td>
+                  <td style="border: 1px solid #aaa; padding: 5px 4px; text-align:center; vertical-align: middle;">${district.schools}</td>
+                  <td style="border: 1px solid #aaa; padding: 5px 4px; text-align:center; vertical-align: middle;">${district.subes}</td>
+                  <td style="border: 1px solid #aaa; padding: 5px 4px; text-align:center; vertical-align: middle;">${district.students.toLocaleString()}</td>
+                  <td style="border: 1px solid #aaa; padding: 5px 4px; text-align:center; vertical-align: middle;">${district.specialStudents.toLocaleString()}</td>
                 </tr>
               `
                 )
                 .join('')}
             </tbody>
           </table>
-          <p style="margin-top: 8px; font-size: 9px; color: #999; text-align: right;">
+          <p style="margin-top: 14px; font-size: 8px; color: #666; text-align: right;">
             ${new Date().toLocaleDateString('tr-TR')}
           </p>
         </div>
@@ -207,7 +207,7 @@ export default function RegistrySplit() {
     const totalStudents = schoolData.reduce((sum, s) => sum + s.students, 0);
     const totalClasses = schoolData.reduce((sum, s) => sum + s.classes, 0);
     return `
-      <div style="box-sizing: border-box; width: 760px; min-height: 1040px; font-family: Arial, sans-serif; font-size: 9px; padding: 28px 30px; background: white; color: #111;">
+      <div style="box-sizing: border-box; width: 760px; min-height: 1040px; font-family: Arial, sans-serif; font-size: 9px; padding: 42px 30px 28px; background: white; color: #111;">
         <h2 style="text-align: center; margin: 0 0 6px; font-size: 15px; font-weight: 700;">${districtName} İlçesi - Kütük Listesi</h2>
         <p style="text-align: center; font-size: 9px; margin: 0 0 14px; color: #555;">
           Toplam Okul: ${schoolData.length} | Toplam Şube: ${totalClasses} | Toplam Öğrenci: ${totalStudents}
