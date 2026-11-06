@@ -121,8 +121,27 @@ export async function registerRoutes(
       });
     }
 
+    let safetyBackup: { id: string; path: string };
+    try {
+      safetyBackup = await createLocalBackup({
+        databasePath: process.env.DATABASE_URL || path.join(dbDir, "local.db"),
+        opticDatabasePath: opticDbFile,
+        formDesignsPath: formDesignsFile,
+        uploadsPath: uploadsDir,
+        backupRoot,
+      });
+    } catch (error) {
+      console.error("Kütük güncellemesi öncesi yedek oluşturulamadı:", error);
+      return res.status(503).json({
+        message: "Güvenlik yedeği oluşturulamadığı için kütük güncellenmedi",
+      });
+    }
+
     await storage.replaceRegistryData(parsed.data, activeExam.id);
-    return res.status(200).json({ message: "Registry verisi güncellendi" });
+    return res.status(200).json({
+      message: "Registry verisi güncellendi",
+      safetyBackupId: safetyBackup.id,
+    });
   });
 
   app.post("/api/registry/clear", async (_req, res) => {
