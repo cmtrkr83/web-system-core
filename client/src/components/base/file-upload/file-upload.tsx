@@ -303,9 +303,9 @@ export function FileUpload({
 
       <div
         className={cx(
-          "absolute inset-0 flex flex-col items-center justify-center gap-3.5",
+          "absolute inset-0 flex flex-col items-center justify-center gap-3.5 transition-opacity duration-200",
           staggerContainer(idleReveal),
-          busy && "pointer-events-none",
+          busy ? "pointer-events-none opacity-0" : "opacity-100",
         )}
       >
         <span className="t-stagger-line t-stagger-line--1 flex size-10 items-center justify-center rounded-full bg-file-upload-icon-background p-2.5">
@@ -335,9 +335,9 @@ export function FileUpload({
 
       <div
         className={cx(
-          "absolute inset-0 flex flex-col items-center justify-center",
+          "absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-200",
           staggerContainer(busyReveal),
-          !busy && "pointer-events-none",
+          busy ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       >
         <span className="t-stagger-line t-stagger-line--1 flex size-10 items-center justify-center rounded-full border border-border-button-default bg-background-primary-default p-2">
