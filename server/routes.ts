@@ -392,58 +392,6 @@ const fs = await import("fs/promises");
           manifest_hash: String(body.manifestHash || ""),
         });
 
-        app.post("/api/optics/scans/batch", async (req, res) => {
-          try {
-            const scans = Array.isArray(req.body?.scans) ? req.body.scans : [];
-            if (scans.length === 0) {
-              return res.status(400).json({ message: "En az bir tarama sonucu gerekli" });
-            }
-            const scanIds = opticDb.transaction((rows: Array<Record<string, unknown>>) => {
-              const ids: string[] = [];
-              for (const body of rows) {
-                const sessionId = randomUUID();
-                const results = Array.isArray(body.results) ? body.results : [];
-                insertScanSession.run({
-                  id: sessionId,
-                  created_at: new Date().toISOString(),
-                  file_name: String(body.fileName || ""),
-                  page_count: Number(body.pageCount) || 0,
-                  qr: String(body.qrData || ""),
-                  tc_no: String(body.tcNo || ""),
-                  booklet: String(body.booklet || ""),
-                  exam_id: String(body.examId || ""),
-                  confidence: Number(body.confidence) || 0,
-                  results_json: JSON.stringify(results),
-                  form_design_id: String(body.formDesignId || ""),
-                  form_version: Number(body.formVersion) || 1,
-                  manifest_hash: String(body.manifestHash || ""),
-                });
-                ids.push(sessionId);
-                for (const result of results as Array<Record<string, unknown>>) {
-                  for (const answer of (Array.isArray(result.answers) ? result.answers : []) as Array<Record<string, unknown>>) {
-                    insertScanAnswer.run({
-                      id: randomUUID(),
-                      session_id: sessionId,
-                      page_index: Number(result.pageIndex) || 0,
-                      area_id: String(result.areaId || ""),
-                      subject: String(result.subject || ""),
-                      question_number: Number(answer.questionNumber) || 0,
-                      answer: String(answer.answer || ""),
-                      confidence: Number(answer.confidence) || 0,
-                      scores_json: JSON.stringify(Array.isArray(answer.scores) ? answer.scores : []),
-                    });
-                  }
-                }
-              }
-              return ids;
-            })(scans as Array<Record<string, unknown>>);
-            return res.status(201).json({ message: "Kaydedildi", scanIds, count: scanIds.length });
-          } catch (err) {
-            console.error("Optik tarama batch kaydı başarısız:", err);
-            return res.status(500).json({ message: "Kaydetme hatası" });
-          }
-        });
-
         for (const result of rows) {
           const answers = Array.isArray(result.answers) ? result.answers : [];
           for (const answer of answers) {
@@ -471,6 +419,58 @@ const fs = await import("fs/promises");
       });
     } catch (err) {
       console.error("Optik tarama kaydı başarısız:", err);
+      return res.status(500).json({ message: "Kaydetme hatası" });
+    }
+  });
+
+  app.post("/api/optics/scans/batch", async (req, res) => {
+    try {
+      const scans = Array.isArray(req.body?.scans) ? req.body.scans : [];
+      if (scans.length === 0) {
+        return res.status(400).json({ message: "En az bir tarama sonucu gerekli" });
+      }
+      const scanIds = opticDb.transaction((rows: Array<Record<string, unknown>>) => {
+        const ids: string[] = [];
+        for (const body of rows) {
+          const sessionId = randomUUID();
+          const results = Array.isArray(body.results) ? body.results : [];
+          insertScanSession.run({
+            id: sessionId,
+            created_at: new Date().toISOString(),
+            file_name: String(body.fileName || ""),
+            page_count: Number(body.pageCount) || 0,
+            qr: String(body.qrData || ""),
+            tc_no: String(body.tcNo || ""),
+            booklet: String(body.booklet || ""),
+            exam_id: String(body.examId || ""),
+            confidence: Number(body.confidence) || 0,
+            results_json: JSON.stringify(results),
+            form_design_id: String(body.formDesignId || ""),
+            form_version: Number(body.formVersion) || 1,
+            manifest_hash: String(body.manifestHash || ""),
+          });
+          ids.push(sessionId);
+          for (const result of results as Array<Record<string, unknown>>) {
+            for (const answer of (Array.isArray(result.answers) ? result.answers : []) as Array<Record<string, unknown>>) {
+              insertScanAnswer.run({
+                id: randomUUID(),
+                session_id: sessionId,
+                page_index: Number(result.pageIndex) || 0,
+                area_id: String(result.areaId || ""),
+                subject: String(result.subject || ""),
+                question_number: Number(answer.questionNumber) || 0,
+                answer: String(answer.answer || ""),
+                confidence: Number(answer.confidence) || 0,
+                scores_json: JSON.stringify(Array.isArray(answer.scores) ? answer.scores : []),
+              });
+            }
+          }
+        }
+        return ids;
+      })(scans as Array<Record<string, unknown>>);
+      return res.status(201).json({ message: "Kaydedildi", scanIds, count: scanIds.length });
+    } catch (err) {
+      console.error("Optik tarama batch kaydı başarısız:", err);
       return res.status(500).json({ message: "Kaydetme hatası" });
     }
   });
