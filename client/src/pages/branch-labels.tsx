@@ -198,7 +198,7 @@ export default function BranchLabels() {
 							${branchHeader ? `<h3 style="margin:0; font-size:${smallFontSizeMm}mm; font-weight:700; text-transform:uppercase; color:${labelTextColor};">${safe(branchHeader)}</h3>` : ""}
 							<h2 style="
 								margin:0;
-								font-size:${baseFontSizeMm}mm;
+								font-size:${fitLabelFontSize(schoolNameWithCode)}mm;
 								line-height:${Math.max(1.2, baseFontSizeMm * 1.12)}mm;
 								overflow-wrap:anywhere;
 								word-break:break-word;
@@ -306,11 +306,23 @@ export default function BranchLabels() {
 	const minBaseFont = 1.5;
 	const minSmallFont = 1.0;
 	const labelMinDimension = Math.min(labelHeight, labelWidth);
-	const baseFontSizeMm = Math.max(minBaseFont, Math.min(4.8, labelMinDimension * 0.055));
-	const smallFontSizeMm = Math.max(minSmallFont, Math.min(2.8, baseFontSizeMm * 0.58));
+	const baseFontSizeMm = Math.max(minBaseFont, Math.min(6.5, labelMinDimension * 0.11));
+	const smallFontSizeMm = Math.max(minSmallFont, Math.min(3.2, baseFontSizeMm * 0.58));
 	const sideStripFontSizeMm = Math.max(2.2, smallFontSizeMm);
-	const branchNameFontSizeMm = Math.max(1.0, Math.min(3.2, baseFontSizeMm - 0.7));
+	const branchNameFontSizeMm = Math.max(1.0, Math.min(3.8, baseFontSizeMm - 0.7));
 	const boxPaddingMm = Math.max(0.6, Math.min(2.5, labelMinDimension * 0.025));
+	const fitLabelFontSize = (text: string) => {
+		const availableWidth = Math.max(20, labelWidth - 14);
+		const availableHeight = Math.max(12, labelHeight * 0.36);
+		let fontSize = baseFontSizeMm;
+		while (fontSize > minBaseFont) {
+			const charsPerLine = Math.max(1, Math.floor(availableWidth / (fontSize * 0.52)));
+			const lineCount = Math.ceil(text.length / charsPerLine);
+			if (lineCount <= 3 && lineCount * fontSize * 1.12 <= availableHeight) break;
+			fontSize = Math.max(minBaseFont, fontSize - 0.2);
+		}
+		return fontSize;
+	};
 
 	useEffect(() => {
 		const t = setTimeout(() => {
@@ -511,7 +523,7 @@ export default function BranchLabels() {
 															{headerPrefix}
 														</h3>
 													) : null}
-													<h2 className="font-black rounded etiket-branch-name" style={{ fontSize: `${baseFontSizeMm}mm`, padding: `${Math.max(0.5, boxPaddingMm)}mm`, margin: 0, lineHeight: `${Math.max(1.2, baseFontSizeMm * 1.12)}mm`, overflowWrap: "anywhere", wordBreak: "break-word", background: '#ffffff', color: '#111827', border: '1px solid #d1d5db' }}>
+													<h2 className="font-black rounded etiket-branch-name" style={{ fontSize: `${fitLabelFontSize(`${branch.schoolCode || ""} - ${branch.schoolName}`)}mm`, padding: `${Math.max(0.5, boxPaddingMm)}mm`, margin: 0, lineHeight: `${Math.max(1.2, fitLabelFontSize(`${branch.schoolCode || ""} - ${branch.schoolName}`) * 1.12)}mm`, overflowWrap: "anywhere", wordBreak: "break-word", background: '#ffffff', color: '#111827', border: '1px solid #d1d5db' }}>
 														{`${branch.schoolCode ? `${branch.schoolCode} - ` : ""}${branch.schoolName}`}
 													</h2>
 												</div>
