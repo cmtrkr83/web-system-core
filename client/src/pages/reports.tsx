@@ -272,7 +272,7 @@ export default function Reports() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
-        <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
+        <Card className="flex h-full flex-col overflow-hidden rounded-2xl border-border/70 shadow-sm">
           <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
              <div className="flex items-start gap-3">
                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
@@ -284,7 +284,7 @@ export default function Reports() {
                </div>
              </div>
           </CardHeader>
-          <CardContent className="space-y-4 p-5">
+          <CardContent className="flex-1 space-y-4 p-5">
             <p className="text-sm text-muted-foreground">
               Bu tutanak, ODM ile ilçe milli eğitim müdürlüklerinin sınav evraklarını teslim ederken ya da teslim alırken kullanacakları belgedir.
             </p>
@@ -296,7 +296,7 @@ export default function Reports() {
               </ul>
             </div>
           </CardContent>
-          <CardFooter className="border-t border-border/60 bg-muted/10 p-5">
+          <CardFooter className="mt-auto border-t border-border/60 bg-muted/10 p-5">
             <Button className="w-full rounded-xl shadow-sm" onClick={handleCreateDistrictReport} disabled={!isLoaded || districts.length === 0}>
               <FileDown className="mr-2 h-4 w-4" />
               İlçe Tutanağı Oluştur
@@ -304,7 +304,7 @@ export default function Reports() {
           </CardFooter>
         </Card>
 
-        <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
+        <Card className="flex h-full flex-col overflow-hidden rounded-2xl border-border/70 shadow-sm">
           <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
              <div className="flex items-start gap-3">
                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400">
@@ -316,7 +316,7 @@ export default function Reports() {
                </div>
              </div>
           </CardHeader>
-          <CardContent className="space-y-5 p-5">
+          <CardContent className="flex-1 space-y-5 p-5">
             <p className="text-sm text-muted-foreground">
               Bu tutanak, İlçe müdürlüklerinin sınav evraklarını okul müdürlüklerine teslim ederken kullanacakları belgedir.
             </p>
@@ -347,7 +347,7 @@ export default function Reports() {
                </div>
             </div>
           </CardContent>
-          <CardFooter className="border-t border-border/60 bg-muted/10 p-5">
+          <CardFooter className="mt-auto border-t border-border/60 bg-muted/10 p-5">
             <Button className="w-full rounded-xl shadow-sm" onClick={handleCreateSchoolReport} disabled={!isBlankTemplate && (!isLoaded || schools.length === 0)}>
               <FileDown className="mr-2 h-4 w-4" />
               Okul Tutanaklarını Oluştur
