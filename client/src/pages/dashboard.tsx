@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, School, Map, FileText, Tags, Package, ClipboardCheck, BookOpen } from "lucide-react";
-import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import heroIllustration from "@/assets/hero-illustration.png";
 import { useRegistry } from "@/context/RegistryContext";
 import { useLocation } from "wouter";
@@ -12,19 +12,6 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
 
   const selectedExam = exams.find((e) => e.id === selectedExamId);
-
-  const districtColors = [
-    "#6881D8",
-    "#22C55E",
-    "#F59E0B",
-    "#EF4444",
-    "#14B8A6",
-    "#8B5CF6",
-    "#EC4899",
-    "#0EA5E9",
-    "#F97316",
-    "#84CC16",
-  ];
 
   const loadedAtText = meta.loadedAt
     ? new Date(meta.loadedAt).toLocaleDateString("tr-TR")
@@ -94,43 +81,72 @@ export default function Dashboard() {
       <StatCards stats={statCards} columns={4} />
 
       <div className="grid gap-6 md:grid-cols-7">
-        <Card className="md:col-span-4">
-          <CardHeader>
-            <CardTitle>İlçelere Göre Öğrenci Dağılımı</CardTitle>
-            <CardDescription>İlçelerdeki öğrenci yoğunluğu.</CardDescription>
+        <Card className="md:col-span-4 overflow-hidden rounded-2xl border-border/70 shadow-sm">
+          <CardHeader className="flex-row items-start justify-between space-y-0 border-b border-border/60 pb-4">
+            <div className="space-y-1">
+              <CardTitle className="text-base">İlçelere Göre Öğrenci Dağılımı</CardTitle>
+              <CardDescription>İlçelerdeki öğrenci yoğunluğu.</CardDescription>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+              <span className="size-2 rounded-full bg-blue-500" />
+              Öğrenci
+            </div>
           </CardHeader>
-          <CardContent className="pl-2">
-            <div className="h-[400px] w-full">
+          <CardContent className="px-4 pb-5 pt-5 sm:px-6">
+            <div className="h-[360px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
+                  <defs>
+                    <linearGradient id="districtBarGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#5B8DEF" />
+                      <stop offset="100%" stopColor="#356AE6" />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="4 4" />
                   <XAxis 
                     dataKey="name" 
-                    stroke="#888888" 
-                    fontSize={12} 
+                    stroke="hsl(var(--muted-foreground))" 
+                    fontSize={11} 
                     tickLine={false} 
                     axisLine={false}
                     angle={-45}
                     textAnchor="end"
-                    height={100}
+                    height={85}
+                    tickMargin={8}
                   />
                   <YAxis 
-                    stroke="#888888" 
-                    fontSize={12} 
+                    stroke="hsl(var(--muted-foreground))" 
+                    fontSize={11} 
                     tickLine={false} 
                     axisLine={false} 
+                    tickMargin={8}
                   />
-                  <Tooltip 
-                    cursor={{fill: 'rgba(59, 130, 246, 0.1)'}}
-                    contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }}
-                    separator=": "
-                    formatter={(value) => [value, "Öğrenci Sayısı"]}
+                  <Tooltip
+                    cursor={{ fill: "rgba(91, 141, 239, 0.08)" }}
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      return (
+                        <div className="rounded-xl border border-border/70 bg-background/95 px-3 py-2.5 shadow-lg backdrop-blur-sm">
+                          <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="size-2 rounded-full bg-blue-500" />
+                            <span className="text-sm font-semibold text-foreground">
+                              {Number(payload[0].value ?? 0).toLocaleString("tr-TR")}
+                            </span>
+                            <span className="text-xs text-muted-foreground">öğrenci</span>
+                          </div>
+                        </div>
+                      );
+                    }}
                   />
                   <Bar 
                     dataKey="students"
-                    radius={[4, 4, 0, 0]}
+                    fill="url(#districtBarGradient)"
+                    radius={[7, 7, 2, 2]}
+                    maxBarSize={42}
                   >
-                    {chartData.map((_, index) => (
-                      <Cell key={`district-bar-${index}`} fill={districtColors[index % districtColors.length]} />
+                    {chartData.map((entry, index) => (
+                      <Cell key={`district-bar-${entry.name}-${index}`} />
                     ))}
                   </Bar>
                 </BarChart>
