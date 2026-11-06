@@ -138,7 +138,16 @@ APP_PORT=8080 docker compose up --build -d
 
 The `db/` folder is mounted as a volume, so data survives container restarts.
 
-**Portainer (recommended):** Stacks → Add stack → Repository → select this repo and `portainer-stack.yml`. For an image-based deploy, push `cmtrkr83/web-system-core:latest` to a registry first and use the same stack file.
+**Portainer (recommended):** Stacks → Add stack → Repository → select this repo and `portainer-stack.yml`.
+
+GitHub Actions builds and publishes `cmtrkr83/web-system-core:latest` to Docker Hub
+after every push to `main`. Configure these GitHub repository secrets:
+
+- `DOCKERHUB_USERNAME`: Docker Hub username
+- `DOCKERHUB_TOKEN`: Docker Hub access token
+
+The Portainer stack uses the published image instead of building on the server.
+After the workflow completes, use **Pull and redeploy** in Portainer.
 
 ## 🔌 API overview
 
