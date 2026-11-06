@@ -424,7 +424,7 @@ export default function RegistrySplit() {
               <Button
                 onClick={handlePrintTable}
                 disabled={!isLoaded || districtList.length === 0}
-                variant="ghost"
+                variant="table"
                 className="h-9 rounded-lg px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <Printer className="mr-2 h-4 w-4" />
@@ -434,7 +434,7 @@ export default function RegistrySplit() {
               <Button
                 onClick={handlePrintAllDistricts}
                 disabled={bulkSaving || !isLoaded || districtList.length === 0}
-                variant="ghost"
+                variant="table"
                 className="h-9 rounded-lg px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 {bulkSaving ? (
