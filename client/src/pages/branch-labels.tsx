@@ -194,8 +194,8 @@ export default function BranchLabels() {
 						<div style="position:absolute; left:0; top:0; bottom:0; width:${sideStripWidthMm}mm; border-right:1px solid #d1d5db; display:flex; align-items:center; justify-content:center; background:${active.primary};">
 									<span style="writing-mode:vertical-rl; transform:rotate(180deg); text-transform:uppercase; font-weight:700; font-size:${Math.max(2.2, smallFontSizeMm)}mm; color:${active.text}; line-height:1; letter-spacing:0.2mm;">${safe(branch.districtName)}</span>
 						</div>
-						<div style="min-width:0; width:100%; max-width:100%; padding-left:${contentLeftPadMm}mm; height:100%; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between;">
-						<div style="text-align:center; margin-top:${boxPaddingMm}mm; display:flex; flex-direction:column; align-items:center; gap:${Math.max(0.5, boxPaddingMm / 2)}mm;">
+						<div style="min-width:0; width:100%; max-width:100%; padding-left:${contentLeftPadMm}mm; height:100%; box-sizing:border-box; display:grid; grid-template-rows:minmax(0,1fr) auto; gap:${boxPaddingMm}mm;">
+						<div style="min-height:0; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:${Math.max(0.5, boxPaddingMm / 2)}mm;">
 							${branchHeader ? `<h3 style="margin:0; font-size:${smallFontSizeMm}mm; font-weight:700; text-transform:uppercase; color:${labelTextColor};">${safe(branchHeader)}</h3>` : ""}
 							<h2 style="
 								margin:0;
@@ -215,12 +215,12 @@ export default function BranchLabels() {
 								box-sizing:border-box;
 							">${safe(schoolNameWithCode)}</h2>
 						</div>
-						<div style="display:grid; grid-template-columns:1fr 1fr; gap:${boxPaddingMm}mm; margin-top:${boxPaddingMm}mm;">
-							<div style="background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
+						<div style="display:grid; grid-template-columns:1fr 1fr; gap:${boxPaddingMm}mm;">
+							<div style="min-width:0; background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
 								<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Şube Adı</p>
 								<p style="margin:0; font-size:${branchNameFontSizeMm}mm; font-weight:700; color:#111827;">${safe(branch.branchName)}</p>
 							</div>
-							<div style="background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
+							<div style="min-width:0; background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
 								<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Öğrenci Sayısı</p>
 								<p style="margin:0; font-size:${baseFontSizeMm}mm; font-weight:700; color:#111827;">${branch.studentCount}</p>
 							</div>
@@ -519,8 +519,8 @@ export default function BranchLabels() {
 														{branch.districtName}
 													</span>
 												</div>
-												<div style={{ minWidth: 0, width: '100%', maxWidth: '100%', paddingLeft: '7mm', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-												<div style={{ textAlign: 'center', marginTop: `${boxPaddingMm}mm`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: `${Math.max(0.5, boxPaddingMm / 2)}mm` }}>
+												<div style={{ minWidth: 0, width: '100%', maxWidth: '100%', paddingLeft: '7mm', height: '100%', boxSizing: 'border-box', display: 'grid', gridTemplateRows: 'minmax(0, 1fr) auto', gap: `${boxPaddingMm}mm` }}>
+												<div style={{ minHeight: 0, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${Math.max(0.5, boxPaddingMm / 2)}mm` }}>
 													{headerPrefix ? (
 														<h3 className="font-bold uppercase" style={{ fontSize: `${smallFontSizeMm}mm`, margin: 0, color: scheme === "black" ? "#ffffff" : "#111827" }}>
 															{headerPrefix}
@@ -530,12 +530,12 @@ export default function BranchLabels() {
 														{`${branch.schoolCode ? `${branch.schoolCode} - ` : ""}${branch.schoolName}`}
 													</h2>
 												</div>
-												<div className="grid grid-cols-2" style={{ gap: `${boxPaddingMm}mm`, marginTop: `${boxPaddingMm}mm` }}>
-													<div className="bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
+												<div className="grid grid-cols-2" style={{ gap: `${boxPaddingMm}mm` }}>
+													<div className="min-w-0 bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
 														<p className="text-muted-foreground uppercase" style={{ fontSize: `${smallFontSizeMm}mm`, margin: 0 }}>Şube Adı</p>
 													<p className="font-bold" style={{ fontSize: `${branchNameFontSizeMm}mm`, margin: 0 }}>{branch.branchName}</p>
 													</div>
-													<div className="bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
+													<div className="min-w-0 bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
 														<p className="text-muted-foreground uppercase" style={{ fontSize: `${smallFontSizeMm}mm`, margin: 0 }}>Öğrenci Sayısı</p>
 														<p className="font-bold" style={{ fontSize: `${baseFontSizeMm}mm`, margin: 0 }}>{branch.studentCount}</p>
 													</div>
