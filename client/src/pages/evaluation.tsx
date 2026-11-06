@@ -312,12 +312,12 @@ export default function Evaluation() {
   }, [sonuclar, numQuestions]);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Başlık */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-heading font-bold tracking-tight">Değerlendirme</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-title-1-semibold tracking-tight text-text-primary">Değerlendirme</h1>
+          <p className="mt-1 text-body-regular text-text-secondary">
             Optik okuma CSV dosyasını yükleyin, cevap anahtarlarını girin, sonuçları karşılaştırın.
           </p>
         </div>

@@ -315,7 +315,7 @@ export default function OpticCreate() {
     return (
       <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
         <div>
-          <h1 className="text-3xl font-heading font-bold">Optik Oluşturma</h1>
+          <h1 className="text-title-1-semibold text-text-primary">Optik Oluşturma</h1>
           <p className="text-muted-foreground mt-1">Yeni bir optik form oluşturun veya kayıtlı bir formu düzenleyin.</p>
         </div>
 

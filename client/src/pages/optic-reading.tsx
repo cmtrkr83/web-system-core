@@ -332,8 +332,8 @@ export default function OpticReading() {
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
       <div>
-        <h1 className="text-3xl font-heading font-bold">Optik Okuma</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-title-1-semibold text-text-primary">Optik Okuma</h1>
+        <p className="mt-1 text-body-regular text-text-secondary">
           JPEG/PNG/PDF yükleyin. Referans kareleriyle kesin baloncuk tespiti; TC, kitapçık, sınav ID ve cevaplar okunur.
         </p>
       </div>

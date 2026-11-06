@@ -1018,8 +1018,8 @@ export default function ExamSelection() {
           <div className="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
             <BookOpen className="h-7 w-7" />
           </div>
-          <h1 className="mb-3 text-3xl font-heading font-semibold tracking-tight text-foreground md:text-4xl">Sınav Kütük Sistemi</h1>
-          <p className="text-base text-muted-foreground md:text-lg">
+          <h1 className="mb-3 text-title-1-semibold tracking-tight text-text-primary md:text-display-2">Sınav Kütük Sistemi</h1>
+          <p className="text-body-large text-text-secondary">
             Çalışmak istediğiniz sınavı seçin veya yeni bir sınav oluşturun.
           </p>
         </div>

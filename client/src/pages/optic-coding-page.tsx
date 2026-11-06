@@ -449,8 +449,8 @@ export default function OpticCoding() {
     <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-heading font-bold">Optik Kodlama</h1>
-          <p className="text-muted-foreground mt-1">Excel sütunlarını seçip optik form üzerine yerleştirin.</p>
+          <h1 className="text-title-1-semibold text-text-primary">Optik Kodlama</h1>
+          <p className="mt-1 text-body-regular text-text-secondary">Excel sütunlarını seçip optik form üzerine yerleştirin.</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={printAll} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting}>

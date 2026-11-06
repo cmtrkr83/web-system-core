@@ -403,8 +403,8 @@ export default function RegistrySplit() {
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-3xl font-heading font-semibold tracking-tight">İl Genel Durum Bilgisi</h1>
-          <p className="mt-1 text-muted-foreground">Ana kütük dosyasını ilçe bazlı alt dosyalara ayırın.</p>
+          <h1 className="text-title-1-semibold tracking-tight text-text-primary">İl Genel Durum Bilgisi</h1>
+          <p className="mt-1 text-body-regular text-text-secondary">Ana kütük dosyasını ilçe bazlı alt dosyalara ayırın.</p>
         </div>
         {isLoaded && districtList.length > 0 && (
           <Badge variant="secondary" className="w-fit rounded-full px-3 py-1">
