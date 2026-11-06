@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useRegistry, District, School, Student } from "@/context/RegistryContext";
 import { useLocation } from "wouter";
-import { Plus, BookOpen, Calendar, Clock, FileSpreadsheet, ChevronRight, ChevronLeft, Trash2, Download } from "lucide-react";
+import { Plus, BookOpen, Calendar, Clock, FileSpreadsheet, ChevronRight, ChevronLeft, Trash2, Download, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -736,10 +736,10 @@ export default function ExamSelection() {
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <Button variant="outline" onClick={() => handleDialogOpenChange(false)} disabled={loading}>
+              <Button variant="outline" leadingIcon={<ChevronLeft />} onClick={() => handleDialogOpenChange(false)} disabled={loading}>
                 İptal
               </Button>
-              <Button onClick={handleCreateExam} disabled={loading}>
+              <Button leadingIcon={<ChevronRight />} onClick={handleCreateExam} disabled={loading}>
                 {loading ? "Oluşturuluyor..." : "Devam Et"}
               </Button>
             </div>
@@ -765,8 +765,7 @@ export default function ExamSelection() {
                 <p className="text-caption-2-regular text-text-tertiary">
                   XLS, XLSX · En fazla 20 MB
                 </p>
-                <Button type="button" variant="secondary" onClick={downloadRegistryTemplate} disabled={analyzing}>
-                  <Download className="mr-2 h-4 w-4" />
+                <Button type="button" variant="secondary" leadingIcon={<Download />} onClick={downloadRegistryTemplate} disabled={analyzing}>
                   Standart Şablonu İndir
                 </Button>
               </div>
@@ -784,7 +783,7 @@ export default function ExamSelection() {
                 <ChevronLeft className="mr-2 h-4 w-4" />
                 Geri
               </Button>
-              <Button variant="ghost" onClick={() => handleDialogOpenChange(false)} disabled={loading || analyzing}>
+              <Button variant="ghost" leadingIcon={<X />} onClick={() => handleDialogOpenChange(false)} disabled={loading || analyzing}>
                 Vazgeç
               </Button>
             </div>

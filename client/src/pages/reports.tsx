@@ -297,8 +297,7 @@ export default function Reports() {
             </div>
           </CardContent>
           <CardFooter className="mt-auto border-t border-border/60 bg-muted/10 p-5">
-            <Button className="w-full rounded-xl shadow-sm" onClick={handleCreateDistrictReport} disabled={!isLoaded || districts.length === 0}>
-              <FileDown className="mr-2 h-4 w-4" />
+            <Button className="w-full rounded-xl shadow-sm" leadingIcon={<FileDown />} onClick={handleCreateDistrictReport} disabled={!isLoaded || districts.length === 0}>
               İlçe Tutanağı Oluştur
             </Button>
           </CardFooter>
@@ -348,8 +347,7 @@ export default function Reports() {
             </div>
           </CardContent>
           <CardFooter className="mt-auto border-t border-border/60 bg-muted/10 p-5">
-            <Button className="w-full rounded-xl shadow-sm" onClick={handleCreateSchoolReport} disabled={!isBlankTemplate && (!isLoaded || schools.length === 0)}>
-              <FileDown className="mr-2 h-4 w-4" />
+            <Button className="w-full rounded-xl shadow-sm" leadingIcon={<FileDown />} onClick={handleCreateSchoolReport} disabled={!isBlankTemplate && (!isLoaded || schools.length === 0)}>
               Okul Tutanaklarını Oluştur
             </Button>
           </CardFooter>

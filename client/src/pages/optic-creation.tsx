@@ -418,19 +418,16 @@ export default function OpticCreate() {
           </div>
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap">
-          <Button size="sm" variant="outline" onClick={() => setForm(null)}>
+          <Button size="sm" variant="outline" leadingIcon={<Move />} onClick={() => setForm(null)}>
             ← Form Listesi
           </Button>
-          <Button size="sm" onClick={printForm}>
-            <Printer className="mr-1.5 h-4 w-4" />
+          <Button size="sm" leadingIcon={<Printer />} onClick={printForm}>
             Yazdır
           </Button>
-          <Button size="sm" variant="outline" onClick={exportPdf}>
-            <FileDown className="mr-1.5 h-4 w-4" />
+          <Button size="sm" variant="outline" leadingIcon={<FileDown />} onClick={exportPdf}>
             PDF
           </Button>
-          <Button size="sm" variant="secondary" onClick={saveForm} disabled={saving}>
-            <Save className="mr-1.5 h-4 w-4" />
+          <Button size="sm" variant="secondary" leadingIcon={<Save />} onClick={saveForm} disabled={saving}>
             {saving ? "Kaydediliyor..." : "Kaydet"}
           </Button>
         </div>

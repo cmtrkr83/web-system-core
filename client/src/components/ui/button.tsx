@@ -3,6 +3,7 @@ import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
+import type { ReactNode } from "react"
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-sans select-none transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-border-focus-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -10,13 +11,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-button-primary text-text-white shadow-xs hover:brightness-105 active:brightness-95",
+          "bg-button-ghost-background text-button-ghost-foreground hover:bg-button-ghost-hover active:bg-button-ghost-active",
         destructive:
           "bg-button-danger text-text-white shadow-xs hover:brightness-105 active:brightness-95",
         outline:
-          "bg-background-primary-default text-text-primary border border-border-button-default shadow-xs hover:bg-background-primary-hover hover:border-border-button-hover active:bg-background-primary-active",
+          "bg-button-ghost-background text-button-ghost-foreground hover:bg-button-ghost-hover active:bg-button-ghost-active",
         secondary:
-          "bg-background-primary-default text-text-primary border border-border-button-default shadow-xs hover:bg-background-primary-hover hover:border-border-button-hover active:bg-background-primary-active",
+          "bg-button-ghost-background text-button-ghost-foreground hover:bg-button-ghost-hover active:bg-button-ghost-active",
         ghost: "bg-button-ghost-background text-button-ghost-foreground hover:bg-button-ghost-hover active:bg-button-ghost-active",
         link: "text-button-ghost-foreground underline-offset-4 hover:underline",
       },
@@ -39,17 +40,21 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  leadingIcon?: ReactNode
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, leadingIcon, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}
-      />
+      >
+        {!asChild && leadingIcon}
+        {children}
+      </Comp>
     )
   }
 )
