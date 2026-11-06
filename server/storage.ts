@@ -15,7 +15,7 @@ import {
 import { randomUUID } from "crypto";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import Database from "better-sqlite3";
-import { eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { existsSync, mkdirSync } from "fs";
 import { dirname } from "path";
 
@@ -27,6 +27,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getRegistryData(examId: string): Promise<ReplaceRegistryPayload & { loadedAt: string; sourceFileName: string }>;
+  getRegistrySummary(examId: string): Promise<{ districts: number; schools: number; students: number; sourceFileName: string; loadedAt: string }>;
+  getRegistryStudents(examId: string, schoolId: string | undefined, page: number, pageSize: number): Promise<{ students: Array<typeof registryStudents.$inferSelect>; total: number }>;
   validateRegistryPayload(payload: ReplaceRegistryPayload): string[];
   replaceRegistryData(payload: ReplaceRegistryPayload, examId: string): Promise<void>;
   clearRegistryData(examId: string): Promise<void>;
@@ -82,6 +84,14 @@ export class MemStorage implements IStorage {
       sourceFileName: "",
       loadedAt: "",
     };
+  }
+
+  async getRegistrySummary(_examId: string) {
+    return { districts: 0, schools: 0, students: 0, sourceFileName: "", loadedAt: "" };
+  }
+
+  async getRegistryStudents(_examId: string, _schoolId: string | undefined, _page: number, _pageSize: number) {
+    return { students: [], total: 0 };
   }
 
   async clearRegistryData(_examId: string): Promise<void> {
@@ -474,6 +484,33 @@ export class DrizzleStorage implements IStorage {
       sourceFileName: meta[0]?.sourceFileName || "",
       loadedAt: meta[0]?.loadedAt || "",
     };
+  }
+
+  async getRegistrySummary(examId: string) {
+    const [districts, schools, students] = await Promise.all([
+      this.db.select({ value: count() }).from(registryDistricts).where(eq(registryDistricts.examId, examId)),
+      this.db.select({ value: count() }).from(registrySchools).where(eq(registrySchools.examId, examId)),
+      this.db.select({ value: count() }).from(registryStudents).where(eq(registryStudents.examId, examId)),
+    ]);
+    const meta = await this.db.select().from(registryMeta).where(eq(registryMeta.examId, examId)).limit(1);
+    return {
+      districts: districts[0]?.value ?? 0,
+      schools: schools[0]?.value ?? 0,
+      students: students[0]?.value ?? 0,
+      sourceFileName: meta[0]?.sourceFileName || "",
+      loadedAt: meta[0]?.loadedAt || "",
+    };
+  }
+
+  async getRegistryStudents(examId: string, schoolId: string | undefined, page: number, pageSize: number) {
+    const condition = schoolId
+      ? and(eq(registryStudents.examId, examId), eq(registryStudents.schoolId, schoolId))
+      : eq(registryStudents.examId, examId);
+    const [students, total] = await Promise.all([
+      this.db.select().from(registryStudents).where(condition).limit(pageSize).offset((page - 1) * pageSize),
+      this.db.select({ value: count() }).from(registryStudents).where(condition),
+    ]);
+    return { students, total: total[0]?.value ?? 0 };
   }
 
   async clearRegistryData(examId: string): Promise<void> {

@@ -70,6 +70,26 @@ export async function registerRoutes(
     return res.status(200).json(data);
   });
 
+  app.get("/api/registry/summary", async (req, res) => {
+    const examId = typeof req.query.examId === "string" ? req.query.examId : undefined;
+    if (!examId) {
+      return res.status(400).json({ message: "examId gerekli" });
+    }
+    return res.status(200).json(await storage.getRegistrySummary(examId));
+  });
+
+  app.get("/api/registry/students", async (req, res) => {
+    const examId = typeof req.query.examId === "string" ? req.query.examId : undefined;
+    if (!examId) {
+      return res.status(400).json({ message: "examId gerekli" });
+    }
+    const page = Math.max(1, Number.parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = Math.min(500, Math.max(1, Number.parseInt(String(req.query.pageSize || "100"), 10) || 100));
+    const schoolId = typeof req.query.schoolId === "string" ? req.query.schoolId : undefined;
+    const result = await storage.getRegistryStudents(examId, schoolId, page, pageSize);
+    return res.status(200).json({ ...result, page, pageSize });
+  });
+
   app.post("/api/registry/replace", async (req, res) => {
     const parsed = replaceRegistryPayloadSchema.safeParse(req.body);
 
