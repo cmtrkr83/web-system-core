@@ -180,54 +180,59 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-3 bg-primary/5 overflow-hidden border-primary/10 relative">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary via-background to-background"></div>
-          <CardHeader className="relative z-10">
-            <CardTitle>Hızlı İşlemler</CardTitle>
-            <CardDescription>Sık kullanılan araçlara hızlı erişim.</CardDescription>
+        <Card className="relative md:col-span-3 overflow-hidden rounded-2xl border-border/70 bg-background shadow-sm">
+          <div className="pointer-events-none absolute -right-20 -top-20 size-48 rounded-full bg-primary/10 blur-3xl" />
+          <CardHeader className="relative z-10 flex-row items-start justify-between space-y-0 border-b border-border/60 pb-4">
+            <div className="space-y-1">
+              <CardTitle className="text-base">Hızlı İşlemler</CardTitle>
+              <CardDescription>Sık kullanılan araçlara hızlı erişim.</CardDescription>
+            </div>
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+              Kısayollar
+            </span>
           </CardHeader>
-          <CardContent className="relative z-10 flex flex-col gap-4">
+          <CardContent className="relative z-10 flex flex-col gap-4 pt-5">
             <img 
               src={heroIllustration} 
               alt="Illustration" 
-              className="w-full h-32 object-cover rounded-lg mb-2 opacity-90 mix-blend-multiply dark:mix-blend-normal"
+              className="mb-1 h-28 w-full rounded-xl object-cover opacity-80 mix-blend-multiply dark:mix-blend-normal"
             />
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
                <button
-                 className="flex flex-col items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100 transition-all text-center gap-2 group cursor-pointer"
+                 className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-border/70 bg-muted/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.04] hover:shadow-sm"
                  onClick={() => setLocation("/room-lists")}
                >
-                 <div className="p-2 bg-primary/10 rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                   <FileText className="w-5 h-5" />
+                 <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white dark:bg-blue-950/40 dark:text-blue-300">
+                   <FileText className="h-4 w-4" />
                  </div>
-                 <span className="text-xs font-medium">Salon Listesi</span>
+                 <span className="text-xs font-medium text-foreground">Salon Listesi</span>
                </button>
                <button
-                 className="flex flex-col items-center justify-center p-4 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-100 transition-all text-center gap-2 group cursor-pointer"
+                 className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-border/70 bg-muted/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.04] hover:shadow-sm"
                  onClick={() => setLocation("/branch-labels")}
                >
-                 <div className="p-2 bg-primary/10 rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                   <Package className="w-5 h-5" />
+                 <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-600 group-hover:text-white dark:bg-emerald-950/40 dark:text-emerald-300">
+                   <Package className="h-4 w-4" />
                  </div>
-                 <span className="text-xs font-medium">Şube Etiketi Bas</span>
+                 <span className="text-xs font-medium text-foreground">Şube Etiketi Bas</span>
                </button>
                <button
-                 className="flex flex-col items-center justify-center p-4 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-100 transition-all text-center gap-2 group cursor-pointer"
+                 className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-border/70 bg-muted/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.04] hover:shadow-sm"
                  onClick={() => setLocation("/labels")}
                >
-                 <div className="p-2 bg-primary/10 rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                   <Tags className="w-5 h-5" />
+                 <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-500 group-hover:text-white dark:bg-amber-950/40 dark:text-amber-300">
+                   <Tags className="h-4 w-4" />
                  </div>
-                 <span className="text-xs font-medium">Okul Etiketi Bas</span>
+                 <span className="text-xs font-medium text-foreground">Okul Etiketi Bas</span>
                </button>
                <button
-                 className="flex flex-col items-center justify-center p-4 bg-violet-50 hover:bg-violet-100 rounded-lg border border-violet-100 transition-all text-center gap-2 group cursor-pointer"
+                 className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-border/70 bg-muted/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.04] hover:shadow-sm"
                  onClick={() => setLocation("/reports")}
                >
-                 <div className="p-2 bg-primary/10 rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                   <ClipboardCheck className="w-5 h-5" />
+                 <div className="flex size-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600 transition-colors group-hover:bg-violet-600 group-hover:text-white dark:bg-violet-950/40 dark:text-violet-300">
+                   <ClipboardCheck className="h-4 w-4" />
                  </div>
-                 <span className="text-xs font-medium">Teslim Tutanağı Bas</span>
+                 <span className="text-xs font-medium text-foreground">Teslim Tutanağı Bas</span>
                </button>
             </div>
           </CardContent>
