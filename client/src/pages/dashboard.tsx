@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Users, School, Map, FileText, Tags, Package, ClipboardCheck, BookOpen } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import heroIllustration from "@/assets/hero-illustration.png";
+import { useMemo, useState } from "react";
 import { useRegistry } from "@/context/RegistryContext";
 import { useLocation } from "wouter";
 import { StatCards, type Stat } from "@/components/application/dashboard/stat-cards";
@@ -10,6 +11,7 @@ import { StatCards, type Stat } from "@/components/application/dashboard/stat-ca
 export default function Dashboard() {
   const { districts, schools, students, isLoaded, meta, exams, selectedExamId } = useRegistry();
   const [, setLocation] = useLocation();
+  const [chartMetric, setChartMetric] = useState<"students" | "schools">("students");
 
   const selectedExam = exams.find((e) => e.id === selectedExamId);
 
@@ -31,13 +33,19 @@ export default function Dashboard() {
     subes: subeCount
   };
 
-  const chartData = districts.map(d => ({
-    name: d.name,
-    students: students.filter(s => {
-      const school = schools.find(sch => sch.id === s.schoolId);
-      return school?.districtId === d.id;
-    }).length
-  }));
+  const chartData = useMemo(() => districts.map((district) => {
+    const districtSchools = schools.filter((school) => school.districtId === district.id);
+    const value = chartMetric === "students"
+      ? students.filter((student) => districtSchools.some((school) => school.id === student.schoolId)).length
+      : districtSchools.length;
+
+    return {
+      name: district.name,
+      value,
+    };
+  }), [chartMetric, districts, schools, students]);
+
+  const chartLabel = chartMetric === "students" ? "Öğrenci" : "Okul";
 
   const statCards: Stat[] = [
     { icon: Users, label: "Toplam Öğrenci", value: stats.students.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral" },
@@ -84,12 +92,29 @@ export default function Dashboard() {
         <Card className="md:col-span-4 overflow-hidden rounded-2xl border-border/70 shadow-sm">
           <CardHeader className="flex-row items-start justify-between space-y-0 border-b border-border/60 pb-4">
             <div className="space-y-1">
-              <CardTitle className="text-base">İlçelere Göre Öğrenci Dağılımı</CardTitle>
-              <CardDescription>İlçelerdeki öğrenci yoğunluğu.</CardDescription>
+              <CardTitle className="text-base">İlçelere Göre {chartLabel} Dağılımı</CardTitle>
+              <CardDescription>İlçelerdeki {chartLabel.toLocaleLowerCase("tr-TR")} dağılımı.</CardDescription>
             </div>
-            <div className="flex items-center gap-2 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-              <span className="size-2 rounded-full bg-blue-500" />
-              Öğrenci
+            <div className="flex items-center rounded-xl border border-border/70 bg-muted/40 p-0.5">
+              {(["students", "schools"] as const).map((metric) => {
+                const isActive = chartMetric === metric;
+                const label = metric === "students" ? "Öğrenci" : "Okul";
+                return (
+                  <button
+                    key={metric}
+                    type="button"
+                    onClick={() => setChartMetric(metric)}
+                    className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                      isActive
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    aria-pressed={isActive}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </CardHeader>
           <CardContent className="px-4 pb-5 pt-5 sm:px-6">
@@ -133,14 +158,14 @@ export default function Dashboard() {
                             <span className="text-sm font-semibold text-foreground">
                               {Number(payload[0].value ?? 0).toLocaleString("tr-TR")}
                             </span>
-                            <span className="text-xs text-muted-foreground">öğrenci</span>
+                            <span className="text-xs text-muted-foreground">{chartLabel.toLocaleLowerCase("tr-TR")}</span>
                           </div>
                         </div>
                       );
                     }}
                   />
                   <Bar 
-                    dataKey="students"
+                    dataKey="value"
                     fill="url(#districtBarGradient)"
                     radius={[7, 7, 2, 2]}
                     maxBarSize={42}
