@@ -223,12 +223,12 @@ export default function Labels() {
 						</div>
 						<div style="display:grid; grid-template-columns:1fr 1fr; gap:${boxPaddingMm}mm;">
 							<div style="height:100%; min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column; justify-content:center; background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
-								<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Şube Sayısı</p>
-								<p style="margin:0; font-size:${baseFontSizeMm}mm; font-weight:700; color:#111827;">${branchCount}</p>
+								<p style="margin:0; font-size:${infoLabelFontSizeMm}mm; line-height:1.1; text-transform:uppercase; color:${active.muted};">Şube Sayısı</p>
+								<p style="margin:0; font-size:${infoValueFontSizeMm}mm; line-height:1.1; font-weight:700; color:#111827;">${branchCount}</p>
 							</div>
 							<div style="height:100%; min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column; justify-content:center; background:#ffffff; border:1px solid #d1d5db; border-radius:2mm; text-align:center; padding:${boxPaddingMm}mm; box-sizing:border-box;">
-								<p style="margin:0; font-size:${smallFontSizeMm}mm; text-transform:uppercase; color:${active.muted};">Öğrenci Sayısı</p>
-								<p style="margin:0; font-size:${baseFontSizeMm}mm; font-weight:700; color:#111827;">${studentCount}</p>
+								<p style="margin:0; font-size:${infoLabelFontSizeMm}mm; line-height:1.1; text-transform:uppercase; color:${active.muted};">Öğrenci Sayısı</p>
+								<p style="margin:0; font-size:${infoValueFontSizeMm}mm; line-height:1.1; font-weight:700; color:#111827;">${studentCount}</p>
 							</div>
 						</div>
 						</div>
@@ -326,6 +326,9 @@ export default function Labels() {
 	const sideStripFontSizeMm = Math.max(2.2, smallFontSizeMm);
 	const boxPaddingMm = Math.max(0.6, Math.min(2.5, labelMinDimension * 0.025));
 	const innerHeightMm = Math.max(1, labelHeight - boxPaddingMm * 2);
+	const infoCellHeightMm = Math.max(1, innerHeightMm * 0.28);
+	const infoLabelFontSizeMm = Math.max(smallFontSizeMm, Math.min(4.5, infoCellHeightMm * 0.16));
+	const infoValueFontSizeMm = Math.max(baseFontSizeMm, Math.min(10, infoCellHeightMm * 0.34));
 	const fitLabelFontSize = (text: string) => {
 		const availableWidth = Math.max(20, labelWidth - 14);
 		const availableHeight = Math.max(12, labelHeight * 0.36);
@@ -573,12 +576,12 @@ export default function Labels() {
 												</div>
 												<div className="grid grid-cols-2" style={{ gap: `${boxPaddingMm}mm` }}>
 													<div className="h-full min-w-0 min-h-0 overflow-hidden flex flex-col justify-center bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
-														<p className="text-muted-foreground uppercase" style={{ fontSize: `${smallFontSizeMm}mm`, margin: 0 }}>Şube Sayısı</p>
-														<p className="font-bold" style={{ fontSize: `${baseFontSizeMm}mm`, margin: 0 }}>{branchCount}</p>
+														<p className="text-muted-foreground uppercase" style={{ fontSize: `${infoLabelFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>Şube Sayısı</p>
+														<p className="font-bold" style={{ fontSize: `${infoValueFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>{branchCount}</p>
 													</div>
 													<div className="h-full min-w-0 min-h-0 overflow-hidden flex flex-col justify-center bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
-														<p className="text-muted-foreground uppercase" style={{ fontSize: `${smallFontSizeMm}mm`, margin: 0 }}>Öğrenci Sayısı</p>
-														<p className="font-bold" style={{ fontSize: `${baseFontSizeMm}mm`, margin: 0 }}>{studentCount}</p>
+														<p className="text-muted-foreground uppercase" style={{ fontSize: `${infoLabelFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>Öğrenci Sayısı</p>
+														<p className="font-bold" style={{ fontSize: `${infoValueFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>{studentCount}</p>
 													</div>
 												</div>
 													</div>
