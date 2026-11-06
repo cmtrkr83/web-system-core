@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useRegistry, District, School, Student } from "@/context/RegistryContext";
 import { useLocation } from "wouter";
-import { Plus, BookOpen, Calendar, Clock, Upload, FileSpreadsheet, ChevronRight, ChevronLeft, Trash2, Download } from "lucide-react";
+import { Plus, BookOpen, Calendar, Clock, FileSpreadsheet, ChevronRight, ChevronLeft, Trash2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { FileUpload } from "@/components/base/file-upload/file-upload";
 import { apiRequest } from "@/lib/queryClient";
 import * as XLSX from "xlsx";
 
@@ -329,8 +330,8 @@ export default function ExamSelection() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
+  const handleFileChange = (source: File | React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = source instanceof File ? source : source.target.files?.[0];
 
     if (!selectedFile) {
       return;
@@ -744,43 +745,35 @@ export default function ExamSelection() {
 
         {currentStep === 2 && (
           <div className="space-y-6">
-            <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-6 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Upload className="h-6 w-6" />
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-title-3-semibold text-text-primary">Excel dosyasını yükleyin</h3>
+                <p className="mt-1 text-body-regular text-text-secondary">
+                  Standart şablonu kullanabilir veya farklı bir Excel dosyası yükleyip sütunları sonraki adımda eşleştirebilirsiniz.
+                </p>
               </div>
-              <h3 className="text-lg font-semibold text-foreground">Excel dosyasını yükleyin</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                En sorunsuz içe aktarma için sistemin standart şablonunu kullanın. Farklı Excel dosyalarında zorunlu alanlar eşleştirilmelidir.
-              </p>
-
-              <div className="mt-6 flex items-center justify-center gap-3">
+              <FileUpload
+                allowedExtensions={["xls", "xlsx"]}
+                maxBytes={8 * 1024 * 1024}
+                onUploadComplete={handleFileChange}
+                className={analyzing ? "pointer-events-none opacity-60" : undefined}
+              />
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-caption-2-regular text-text-tertiary">
+                  XLS, XLSX · En fazla 8 MB
+                </p>
                 <Button type="button" variant="secondary" onClick={downloadRegistryTemplate} disabled={analyzing}>
                   <Download className="mr-2 h-4 w-4" />
                   Standart Şablonu İndir
                 </Button>
-                <Button asChild variant="outline" disabled={analyzing}>
-                  <label htmlFor="exam-registry-file" className="cursor-pointer">
-                    Dosya Seç
-                  </label>
-                </Button>
-                <input
-                  id="exam-registry-file"
-                  type="file"
-                  accept=".xls,.xlsx"
-                  className="hidden"
-                  onChange={handleFileChange}
-                  disabled={analyzing}
-                />
               </div>
-
               {file && (
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full border bg-background px-4 py-2 text-sm text-foreground">
-                  <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                <div className="inline-flex items-center gap-2 rounded-xl border border-border-button-default bg-background-secondary-default px-4 py-2 text-body-regular text-text-primary">
+                  <FileSpreadsheet className="h-4 w-4 text-text-success-primary" />
                   <span className="max-w-[280px] truncate">{file.name}</span>
                 </div>
               )}
-
-              {analyzing && <p className="mt-4 text-sm text-muted-foreground">Excel okunuyor...</p>}
+              {analyzing && <p className="text-body-regular text-text-secondary">Excel okunuyor...</p>}
             </div>
 
             <div className="flex justify-between gap-3 pt-2">
