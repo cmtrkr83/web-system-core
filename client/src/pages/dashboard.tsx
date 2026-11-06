@@ -5,6 +5,7 @@ import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from 
 import heroIllustration from "@/assets/hero-illustration.png";
 import { useRegistry } from "@/context/RegistryContext";
 import { useLocation } from "wouter";
+import { StatCards, type Stat } from "@/components/application/dashboard/stat-cards";
 
 export default function Dashboard() {
   const { districts, schools, students, isLoaded, meta, exams, selectedExamId } = useRegistry();
@@ -51,6 +52,13 @@ export default function Dashboard() {
     }).length
   }));
 
+  const statCards: Stat[] = [
+    { icon: Users, label: "Toplam Öğrenci", value: stats.students.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral" },
+    { icon: School, label: "Aktif Okullar", value: stats.schools.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral" },
+    { icon: Map, label: "İlçe Sayısı", value: stats.districts.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral" },
+    { icon: Tags, label: "Toplam Şube", value: stats.subes.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral" },
+  ];
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -83,48 +91,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover:shadow-md transition-shadow bg-blue-50 border-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Öğrenci</CardTitle>
-            <Users className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono">{stats.students.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">Sistemdeki kayıtlı öğrenci</p>
-          </CardContent>
-        </Card>
-        <Card className="hover:shadow-md transition-shadow bg-emerald-50 border-emerald-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aktif Okullar</CardTitle>
-            <School className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono">{stats.schools}</div>
-            <p className="text-xs text-muted-foreground mt-1">Tespit edilen okul sayısı</p>
-          </CardContent>
-        </Card>
-        <Card className="hover:shadow-md transition-shadow bg-amber-50 border-amber-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">İlçe Sayısı</CardTitle>
-            <Map className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono">{stats.districts}</div>
-            <p className="text-xs text-muted-foreground mt-1">İlçe dağılımı</p>
-          </CardContent>
-        </Card>
-        <Card className="hover:shadow-md transition-shadow bg-violet-50 border-violet-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Şube</CardTitle>
-            <Tags className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono">{stats.subes}</div>
-            <p className="text-xs text-muted-foreground mt-1">Benzersiz şube sayısı</p>
-          </CardContent>
-        </Card>
-      </div>
+      <StatCards stats={statCards} columns={4} />
 
       <div className="grid gap-6 md:grid-cols-7">
         <Card className="md:col-span-4">
