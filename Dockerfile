@@ -3,9 +3,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies (npm cache is reused across builds)
 COPY package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit --no-fund
 
 # Build application
 COPY . .
@@ -19,9 +20,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=5050
 
-# Install production dependencies only
+# Install production dependencies only (same npm cache as the builder stage)
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev --prefer-offline --no-audit --no-fund
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
