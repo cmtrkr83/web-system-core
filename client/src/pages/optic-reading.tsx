@@ -238,7 +238,7 @@ export default function OpticReading() {
     setIsSaving(true);
     let saved = 0;
     try {
-      for (const r of ok) {
+      const scans = ok.map((r) => {
         const tcField = r.fields.find((f) => classifyField(f) === "tcNo");
         const bookletField = r.fields.find((f) => classifyField(f) === "booklet");
         const examField = r.fields.find((f) => classifyField(f) === "examId");
@@ -268,13 +268,14 @@ export default function OpticReading() {
             })),
           })),
         };
-        const res = await fetch("/api/optics/scans", {
+        return payload;
+      });
+      const res = await fetch("/api/optics/scans/batch", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ scans }),
         });
-        if (res.ok) saved++;
-      }
+      if (res.ok) saved = ok.length;
       toast({
         title: `${saved}/${ok.length} kayıt kaydedildi`,
         variant: saved === ok.length ? "default" : "destructive",
