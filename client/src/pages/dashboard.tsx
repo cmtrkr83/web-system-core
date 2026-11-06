@@ -48,10 +48,10 @@ export default function Dashboard() {
   const chartLabel = chartMetric === "students" ? "Öğrenci" : "Okul";
 
   const statCards: Stat[] = [
-    { icon: Users, label: "Toplam Öğrenci", value: stats.students.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral" },
-    { icon: School, label: "Aktif Okullar", value: stats.schools.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral" },
-    { icon: Map, label: "İlçe Sayısı", value: stats.districts.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral" },
-    { icon: Tags, label: "Toplam Şube", value: stats.subes.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral" },
+    { icon: Users, label: "Toplam Öğrenci", value: stats.students.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral", tone: "blue" },
+    { icon: School, label: "Aktif Okullar", value: stats.schools.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral", tone: "emerald" },
+    { icon: Map, label: "İlçe Sayısı", value: stats.districts.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral", tone: "purple" },
+    { icon: Tags, label: "Toplam Şube", value: stats.subes.toLocaleString("tr-TR"), delta: "Hazır", deltaColor: "neutral", tone: "orange" },
   ];
 
   return (

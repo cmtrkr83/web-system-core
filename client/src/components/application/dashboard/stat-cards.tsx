@@ -115,6 +115,15 @@ const TILE_TONES: Record<StatTone, string> = {
   emerald: "from-emerald-500 to-emerald-600",
 };
 
+const PLAIN_TONES: Record<StatTone, { card: string; icon: string; iconText: string }> = {
+  blue: { card: "bg-blue-50", icon: "bg-blue-100", iconText: "text-blue-600" },
+  orange: { card: "bg-orange-50", icon: "bg-orange-100", iconText: "text-orange-600" },
+  purple: { card: "bg-purple-50", icon: "bg-purple-100", iconText: "text-purple-600" },
+  pink: { card: "bg-pink-50", icon: "bg-pink-100", iconText: "text-pink-600" },
+  sky: { card: "bg-sky-50", icon: "bg-sky-100", iconText: "text-sky-600" },
+  emerald: { card: "bg-emerald-50", icon: "bg-emerald-100", iconText: "text-emerald-600" },
+};
+
 const DELTA_STYLES: Record<
   Stat["deltaColor"],
   { icon: IconComponent; className: string; pill: string }
@@ -181,10 +190,11 @@ function StatHint({ label, hint }: { label: string; hint: string }) {
 
 function PlainStatCard({ stat }: { stat: Stat }) {
   const localize = useTemplateCopy();
+  const tone = PLAIN_TONES[stat.tone ?? "blue"];
   return localize((
-    <section className="flex h-[132px] min-w-0 flex-col items-start justify-between rounded-2xl bg-background-secondary-default p-4">
-      <span className="flex items-center rounded-md bg-stat-card-icon-background p-1.5">
-        <stat.icon className="size-5 shrink-0 text-foreground-icon-primary" aria-hidden />
+    <section className={cx("flex h-[132px] min-w-0 flex-col items-start justify-between rounded-2xl p-4", tone.card)}>
+      <span className={cx("flex items-center rounded-md p-1.5", tone.icon)}>
+        <stat.icon className={cx("size-5 shrink-0", tone.iconText)} aria-hidden />
       </span>
       <div className="flex w-full flex-col gap-0.5">
         <p className="w-full text-body-medium text-text-secondary">{stat.label}</p>
