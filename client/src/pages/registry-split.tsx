@@ -96,7 +96,7 @@ export default function RegistrySplit() {
       const totalSubes = districtList.reduce((sum, d) => sum + d.subes, 0);
       
       const htmlContent = `
-        <div style="box-sizing: border-box; width: 760px; min-height: 1040px; font-family: Arial, sans-serif; font-size: 9px; padding: 42px 30px 28px; background: white; color: #111;">
+        <div style="box-sizing: border-box; width: 100%; min-height: 1040px; font-family: Arial, sans-serif; font-size: 9px; padding: 48px 36px 40px; background: white; color: #111;">
           <h2 style="text-align: center; margin: 0 0 6px; font-size: 15px; font-weight: 700;">İlçe Bazlı Kütük Listesi</h2>
           <p style="text-align: center; font-size: 9px; margin: 0 0 14px; color: #555;">
             Toplam İlçe: ${districtList.length} | Toplam Okul: ${totalSchools} | Toplam Şube: ${totalSubes}
@@ -151,9 +151,10 @@ export default function RegistrySplit() {
           <meta charset="utf-8" />
           <title>İlçe Bazlı Kütük Listesi</title>
           <style>
-            @page { size: A4 portrait; margin: 12mm; }
+            @page { size: A4 portrait; margin: 18mm; }
             * { box-sizing: border-box; }
-            body { margin: 0; background: #fff; color: #111; font-family: Arial, sans-serif; }
+            html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, sans-serif; }
+            body { max-width: 100%; }
             table { width: 100%; table-layout: fixed; border-collapse: collapse; }
             th, td { overflow-wrap: anywhere; word-break: break-word; }
           </style>
@@ -207,7 +208,7 @@ export default function RegistrySplit() {
     const totalStudents = schoolData.reduce((sum, s) => sum + s.students, 0);
     const totalClasses = schoolData.reduce((sum, s) => sum + s.classes, 0);
     return `
-      <div style="box-sizing: border-box; width: 760px; min-height: 1040px; font-family: Arial, sans-serif; font-size: 9px; padding: 42px 30px 28px; background: white; color: #111;">
+      <div style="box-sizing: border-box; width: 100%; min-height: 1040px; font-family: Arial, sans-serif; font-size: 9px; padding: 48px 36px 40px; background: white; color: #111;">
         <h2 style="text-align: center; margin: 0 0 6px; font-size: 15px; font-weight: 700;">${districtName} İlçesi - Kütük Listesi</h2>
         <p style="text-align: center; font-size: 9px; margin: 0 0 14px; color: #555;">
           Toplam Okul: ${schoolData.length} | Toplam Şube: ${totalClasses} | Toplam Öğrenci: ${totalStudents}
@@ -275,9 +276,10 @@ export default function RegistrySplit() {
         <meta charset="utf-8" />
         <title>${districtName} - Kütük Listesi</title>
         <style>
-          @page { size: A4 portrait; margin: 12mm; }
+          @page { size: A4 portrait; margin: 18mm; }
           * { box-sizing: border-box; }
-          body { margin: 0; background: #fff; color: #111; font-family: Arial, sans-serif; }
+          html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, sans-serif; }
+          body { max-width: 100%; }
           table { width: 100%; table-layout: fixed; border-collapse: collapse; }
           th, td { overflow-wrap: anywhere; word-break: break-word; }
         </style>
@@ -306,7 +308,7 @@ export default function RegistrySplit() {
     tempDiv.style.position = "absolute";
     tempDiv.style.left = "-10000px";
     tempDiv.style.top = "0";
-    tempDiv.style.width = "760px";
+    tempDiv.style.width = "680px";
     document.body.appendChild(tempDiv);
 
     try {
@@ -320,7 +322,7 @@ export default function RegistrySplit() {
       const imgData = canvas.toDataURL("image/png");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 8;
+      const margin = 14;
       const imgWidth = pageWidth - margin * 2;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
