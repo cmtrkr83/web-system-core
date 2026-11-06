@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRegistry } from "@/context/RegistryContext";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import JSZip from "jszip";
 
 export default function RegistrySplit() {
   const [bulkSaving, setBulkSaving] = useState(false);
@@ -37,19 +38,47 @@ export default function RegistrySplit() {
     }
 
     setBulkSaving(true);
-    let successCount = 0;
+    try {
+      const zip = new JSZip();
+      let successCount = 0;
 
-    for (const district of districtList) {
-      const ok = await handleDownload(district.id, district.name, false);
-      if (ok) successCount += 1;
+      for (const district of districtList) {
+        const pdfBlob = await generateDistrictPdf(district.id, district.name);
+        zip.file(`${toSafeFileName(district.name)}-Kutuk.pdf`, pdfBlob);
+        successCount += 1;
+      }
+
+      const zipBlob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+      const downloadUrl = URL.createObjectURL(zipBlob);
+      const anchor = document.createElement("a");
+      anchor.href = downloadUrl;
+      anchor.download = "ilce-kutuk-raporlari.zip";
+      anchor.click();
+      URL.revokeObjectURL(downloadUrl);
+
+      toast({
+        title: "ZIP indirildi",
+        description: `${successCount} ilçe raporu tek ZIP dosyasında hazırlandı.`,
+      });
+    } catch (error) {
+      console.error("Toplu ilçe raporu oluşturma hatası:", error);
+      toast({
+        title: "Hata",
+        description: "İlçe raporları ZIP dosyası oluşturulurken bir hata oluştu.",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkSaving(false);
     }
-
-    setBulkSaving(false);
-    toast({
-      title: "Toplu Kaydetme Tamamlandı",
-      description: `${successCount}/${districtList.length} ilçe ayrı dosya olarak kaydedildi.`,
-    });
   };
+
+  const toSafeFileName = (value: string) =>
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLocaleLowerCase("en-US") || "ilce";
 
   const handlePrintTable = () => {
     try {
@@ -121,8 +150,15 @@ export default function RegistrySplit() {
         <head>
           <meta charset="utf-8" />
           <title>İlçe Bazlı Kütük Listesi</title>
+          <style>
+            @page { size: A4 portrait; margin: 12mm; }
+            * { box-sizing: border-box; }
+            body { margin: 0; background: #fff; color: #111; font-family: Arial, sans-serif; }
+            table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+            th, td { overflow-wrap: anywhere; word-break: break-word; }
+          </style>
         </head>
-        <body style="margin:0; padding:12px; background:#fff; font-size:10pt;">${htmlContent}</body>
+        <body style="font-size:9pt;">${htmlContent}</body>
         </html>
       `);
       printWindow.document.close();
@@ -170,42 +206,39 @@ export default function RegistrySplit() {
   const buildDistrictHtmlTable = (districtName: string, schoolData: Array<{ sira: number; name: string; code: string; classes: number; students: number }>) => {
     const totalStudents = schoolData.reduce((sum, s) => sum + s.students, 0);
     const totalClasses = schoolData.reduce((sum, s) => sum + s.classes, 0);
-    const headerRowHeight = 21; // ~14px * 1.5
-    const bodyRowHeight = 20;   // ~13px * 1.5
-
     return `
-      <div style="font-family: Arial, sans-serif; font-size: 10pt; padding: 1px 10px 1px 10px; background: white;">
-        <h2 style="text-align: center; margin: 0 0 3px 0; font-size: 14px;">${districtName} İlçesi - Kütük Listesi</h2>
-        <p style="text-align: center; font-size: 10px; margin: 0 0 8px 0; color: #666;">
+      <div style="box-sizing: border-box; width: 760px; min-height: 1040px; font-family: Arial, sans-serif; font-size: 9px; padding: 28px 30px; background: white; color: #111;">
+        <h2 style="text-align: center; margin: 0 0 6px; font-size: 15px; font-weight: 700;">${districtName} İlçesi - Kütük Listesi</h2>
+        <p style="text-align: center; font-size: 9px; margin: 0 0 14px; color: #555;">
           Toplam Okul: ${schoolData.length} | Toplam Şube: ${totalClasses} | Toplam Öğrenci: ${totalStudents}
         </p>
-        <table style="width: 100%; border-collapse: collapse; font-size: 10pt; line-height: 1.2;">
+        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 9px; line-height: 1.25;">
           <thead>
-            <tr style="background-color: #f0f0f0; border: 0.5px solid #333;">
-              <th style="border: 0.5px solid #333; padding: 3px 4px 5px 4px; vertical-align: middle; width: 5%;"><div style="display:flex; align-items:center; justify-content:center; min-height:${headerRowHeight}px;">Sıra</div></th>
-              <th style="border: 0.5px solid #333; padding: 3px 4px 5px 4px; vertical-align: middle; width: 18%;"><div style="display:flex; align-items:center; justify-content:center; min-height:${headerRowHeight}px;">Kurum Kodu</div></th>
-              <th style="border: 0.5px solid #333; padding: 3px 4px 5px 4px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:flex-start; min-height:${headerRowHeight}px;">Okul Adı</div></th>
-              <th style="border: 0.5px solid #333; padding: 3px 4px 5px 4px; vertical-align: middle; width: 12%;"><div style="display:flex; align-items:center; justify-content:center; min-height:${headerRowHeight}px;">Şube Sayısı</div></th>
-              <th style="border: 0.5px solid #333; padding: 3px 4px 5px 4px; vertical-align: middle; width: 15%;"><div style="display:flex; align-items:center; justify-content:center; min-height:${headerRowHeight}px;">Öğrenci Sayısı</div></th>
+            <tr style="background-color: #e9ecef; border: 1px solid #555;">
+              <th style="border: 1px solid #555; padding: 6px 4px; text-align:center; width: 6%;">Sıra</th>
+              <th style="border: 1px solid #555; padding: 6px 4px; text-align:center; width: 18%;">Kurum Kodu</th>
+              <th style="border: 1px solid #555; padding: 6px 5px; text-align:left; width: 46%;">Okul Adı</th>
+              <th style="border: 1px solid #555; padding: 6px 4px; text-align:center; width: 15%;">Şube Sayısı</th>
+              <th style="border: 1px solid #555; padding: 6px 4px; text-align:center; width: 15%;">Öğrenci Sayısı</th>
             </tr>
           </thead>
           <tbody>
             ${schoolData
               .map(
                 (school, idx) => `
-              <tr style="border: 0.5px solid #ccc; ${idx % 2 === 0 ? 'background-color: #fafafa;' : ''}">
-                <td style="border: 0.5px solid #ccc; padding: 2px 2px 3px 2px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:${bodyRowHeight}px;">${school.sira}</div></td>
-                <td style="border: 0.5px solid #ccc; padding: 2px 2px 3px 2px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:${bodyRowHeight}px;">${school.code}</div></td>
-                <td style="border: 0.5px solid #ccc; padding: 2px 2px 3px 2px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:flex-start; min-height:${bodyRowHeight}px;">${school.name}</div></td>
-                <td style="border: 0.5px solid #ccc; padding: 2px 2px 3px 2px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:${bodyRowHeight}px;">${school.classes}</div></td>
-                <td style="border: 0.5px solid #ccc; padding: 2px 2px 3px 2px; vertical-align: middle;"><div style="display:flex; align-items:center; justify-content:center; min-height:${bodyRowHeight}px;">${school.students}</div></td>
+              <tr style="border: 1px solid #aaa; ${idx % 2 === 0 ? 'background-color: #fafafa;' : ''}">
+                <td style="border: 1px solid #aaa; padding: 5px 4px; text-align:center; vertical-align: middle;">${school.sira}</td>
+                <td style="border: 1px solid #aaa; padding: 5px 4px; text-align:center; vertical-align: middle; overflow-wrap:anywhere;">${school.code}</td>
+                <td style="border: 1px solid #aaa; padding: 5px; text-align:left; vertical-align: middle; overflow-wrap:anywhere; word-break:break-word;">${school.name}</td>
+                <td style="border: 1px solid #aaa; padding: 5px 4px; text-align:center; vertical-align: middle;">${school.classes}</td>
+                <td style="border: 1px solid #aaa; padding: 5px 4px; text-align:center; vertical-align: middle;">${school.students}</td>
               </tr>
             `
               )
               .join('')}
           </tbody>
         </table>
-        <p style="margin-top: 8px; font-size: 9px; color: #999; text-align: right;">
+        <p style="margin-top: 14px; font-size: 8px; color: #666; text-align: right;">
           ${new Date().toLocaleDateString('tr-TR')}
         </p>
       </div>
@@ -241,8 +274,15 @@ export default function RegistrySplit() {
       <head>
         <meta charset="utf-8" />
         <title>${districtName} - Kütük Listesi</title>
+        <style>
+          @page { size: A4 portrait; margin: 12mm; }
+          * { box-sizing: border-box; }
+          body { margin: 0; background: #fff; color: #111; font-family: Arial, sans-serif; }
+          table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+          th, td { overflow-wrap: anywhere; word-break: break-word; }
+        </style>
       </head>
-      <body style="margin:0; padding:12px; background:#fff; font-size:10pt;">${htmlContent}</body>
+      <body style="font-size:9pt;">${htmlContent}</body>
       </html>
     `);
     printWindow.document.close();
@@ -255,67 +295,73 @@ export default function RegistrySplit() {
     }
   };
 
-  const handleDownload = async (districtId: string, districtName: string, showToast = true) => {
+  const generateDistrictPdf = async (districtId: string, districtName: string): Promise<Blob> => {
+    const schoolData = getDistrictSchoolData(districtId);
+    if (schoolData.length === 0) {
+      throw new Error("Yazdırılacak okul verisi bulunamadı.");
+    }
+
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = buildDistrictHtmlTable(districtName, schoolData);
+    tempDiv.style.position = "absolute";
+    tempDiv.style.left = "-10000px";
+    tempDiv.style.top = "0";
+    tempDiv.style.width = "760px";
+    document.body.appendChild(tempDiv);
+
     try {
-      const schoolData = getDistrictSchoolData(districtId);
-      const htmlContent = buildDistrictHtmlTable(districtName, schoolData);
-
-      // Create temporary div
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = htmlContent;
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.width = '800px';
-      document.body.appendChild(tempDiv);
-
-      // Convert to canvas
       const canvas = await html2canvas(tempDiv, {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: "#ffffff",
       });
-
-      // Create PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgData = canvas.toDataURL('image/png');
-      const imgWidth = pdf.internal.pageSize.getWidth() - 10;
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgData = canvas.toDataURL("image/png");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const imgWidth = pageWidth - margin * 2;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
-      let position = 3;
+      let position = margin;
 
-      pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight);
-      heightLeft -= pdf.internal.pageSize.getHeight() - 10;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
+      pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight - margin * 2;
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + margin;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight() - 10;
+        pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight - margin * 2;
       }
 
-      pdf.save(`${districtName}-Kutuk.pdf`);
+      return pdf.output("blob");
+    } finally {
+      tempDiv.remove();
+    }
+  };
 
-      // Cleanup
-      document.body.removeChild(tempDiv);
-
-      if (showToast) {
-        toast({
-          title: "PDF İndirildi",
-          description: `${districtName} ilçesi kütüğü başarıyla indirildi.`,
-        });
-      }
-
+  const handleDownload = async (districtId: string, districtName: string) => {
+    try {
+      const pdfBlob = await generateDistrictPdf(districtId, districtName);
+      const downloadUrl = URL.createObjectURL(pdfBlob);
+      const anchor = document.createElement("a");
+      anchor.href = downloadUrl;
+      anchor.download = `${toSafeFileName(districtName)}-Kutuk.pdf`;
+      anchor.click();
+      URL.revokeObjectURL(downloadUrl);
+      toast({
+        title: "PDF indirildi",
+        description: `${districtName} ilçesi kütüğü başarıyla indirildi.`,
+      });
       return true;
     } catch (error) {
-      if (showToast) {
-        toast({
-          title: "Hata",
-          description: "PDF oluşturulurken bir hata oluştu.",
-          variant: "destructive"
-        });
-      }
-
+      console.error("İlçe PDF oluşturma hatası:", error);
+      toast({
+        title: "Hata",
+        description: error instanceof Error ? error.message : "PDF oluşturulurken bir hata oluştu.",
+        variant: "destructive",
+      });
       return false;
     }
   };
