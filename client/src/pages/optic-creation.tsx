@@ -256,6 +256,7 @@ export default function OpticCreate() {
         grids: form.grids,
         manifest: buildOpticFormManifest(form),
         createdAt: form.createdAt,
+        version: form.version ?? 1,
       };
       await apiRequest("POST", "/api/optics/form-designs", payload);
       toast({ title: "Form kaydedildi", description: `"${form.name}" kaydedildi.` });

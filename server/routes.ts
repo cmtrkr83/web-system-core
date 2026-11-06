@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import Database from "better-sqlite3";
 import { randomUUID } from "crypto";
+import { createHash } from "crypto";
 import { storage } from "./storage";
 import { replaceRegistryPayloadSchema, insertExamSchema } from "@shared/schema";
 import { spawn, spawnSync } from "child_process";
@@ -162,7 +163,10 @@ const fs = await import("fs/promises");
       booklet TEXT NOT NULL DEFAULT '',
       exam_id TEXT NOT NULL DEFAULT '',
       confidence REAL NOT NULL DEFAULT 0,
-      results_json TEXT NOT NULL DEFAULT '[]'
+      results_json TEXT NOT NULL DEFAULT '[]',
+      form_design_id TEXT NOT NULL DEFAULT '',
+      form_version INTEGER NOT NULL DEFAULT 1,
+      manifest_hash TEXT NOT NULL DEFAULT ''
     );
 
     CREATE TABLE IF NOT EXISTS optic_scan_answers (
@@ -189,12 +193,17 @@ const fs = await import("fs/promises");
   if (!hasSessionCol("booklet")) opticDb.exec("ALTER TABLE optic_scan_sessions ADD COLUMN booklet TEXT NOT NULL DEFAULT ''");
   if (!hasSessionCol("exam_id")) opticDb.exec("ALTER TABLE optic_scan_sessions ADD COLUMN exam_id TEXT NOT NULL DEFAULT ''");
   if (!hasSessionCol("confidence")) opticDb.exec("ALTER TABLE optic_scan_sessions ADD COLUMN confidence REAL NOT NULL DEFAULT 0");
+  if (!hasSessionCol("form_design_id")) opticDb.exec("ALTER TABLE optic_scan_sessions ADD COLUMN form_design_id TEXT NOT NULL DEFAULT ''");
+  if (!hasSessionCol("form_version")) opticDb.exec("ALTER TABLE optic_scan_sessions ADD COLUMN form_version INTEGER NOT NULL DEFAULT 1");
+  if (!hasSessionCol("manifest_hash")) opticDb.exec("ALTER TABLE optic_scan_sessions ADD COLUMN manifest_hash TEXT NOT NULL DEFAULT ''");
 
   const insertScanSession = opticDb.prepare(`
     INSERT INTO optic_scan_sessions (
       id, created_at, file_name, page_count, qr, tc_no, booklet, exam_id, confidence, results_json
+      , form_design_id, form_version, manifest_hash
     ) VALUES (
-      @id, @created_at, @file_name, @page_count, @qr, @tc_no, @booklet, @exam_id, @confidence, @results_json
+      @id, @created_at, @file_name, @page_count, @qr, @tc_no, @booklet, @exam_id, @confidence, @results_json,
+      @form_design_id, @form_version, @manifest_hash
     )
   `);
 
@@ -275,11 +284,16 @@ const fs = await import("fs/promises");
         }
       })();
 
+      const manifestHash = createHash("sha256")
+        .update(JSON.stringify(body.manifest ?? {}))
+        .digest("hex");
       const index = existing.findIndex((item) => item.id === body.id);
       if (index >= 0) {
-        existing[index] = { ...existing[index], ...body };
+        const previous = existing[index];
+        const version = previous.manifestHash === manifestHash ? Number(previous.version || 1) : Number(previous.version || 1) + 1;
+        existing[index] = { ...previous, ...body, version, manifestHash };
       } else {
-        existing.push(body);
+        existing.push({ ...body, version: 1, manifestHash });
       }
       await fs.writeFile(formDesignsFile, JSON.stringify(existing, null, 2), "utf-8");
       return res.status(201).json({ message: "Kaydedildi" });
@@ -318,6 +332,9 @@ const fs = await import("fs/promises");
         booklet?: string;
         examId?: string;
         confidence?: number;
+        formDesignId?: string;
+        formVersion?: number;
+        manifestHash?: string;
         results?: Array<{
           areaId?: string;
           pageIndex?: number;
@@ -348,6 +365,9 @@ const fs = await import("fs/promises");
           exam_id: String(body.examId || ""),
           confidence: Number(body.confidence) || 0,
           results_json: JSON.stringify(rows),
+          form_design_id: String(body.formDesignId || ""),
+          form_version: Number(body.formVersion) || 1,
+          manifest_hash: String(body.manifestHash || ""),
         });
 
         for (const result of rows) {
@@ -395,6 +415,9 @@ const fs = await import("fs/promises");
             s.booklet AS booklet,
             s.exam_id AS examId,
             s.confidence AS confidence,
+            s.form_design_id AS formDesignId,
+            s.form_version AS formVersion,
+            s.manifest_hash AS manifestHash,
             COUNT(a.id) AS answerCount
           FROM optic_scan_sessions s
           LEFT JOIN optic_scan_answers a ON a.session_id = s.id

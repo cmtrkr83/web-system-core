@@ -100,7 +100,7 @@ export default function OpticReading() {
   }, []);
 
   useEffect(() => {
-    if (design) setManifest(buildOpticFormManifest(design));
+    if (design) setManifest(design.manifest ?? buildOpticFormManifest(design));
   }, [design]);
 
   const handleDesignChange = (value: string) => {
@@ -249,6 +249,9 @@ export default function OpticReading() {
           fileName: r.file_name,
           pageCount: 1,
           qrData: r.qr,
+          formDesignId: design?.id ?? "",
+          formVersion: design?.version ?? 1,
+          manifestHash: design?.manifestHash ?? "",
           tcNo: tcField?.value ?? "",
           booklet: bookletField?.value ?? "",
           examId: examField?.value ?? "",

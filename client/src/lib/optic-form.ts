@@ -320,6 +320,9 @@ export interface OpticFormDesign {
   fields: FormTextField[];
   grids: AnswerGrid[];
   createdAt: string;
+  version?: number;
+  manifest?: OpticManifest;
+  manifestHash?: string;
 }
 
 export type OpticFormFill = Record<string, string>;
