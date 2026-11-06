@@ -356,9 +356,7 @@ export default function Labels() {
 				let fontPx = fontMm * pxPerMm;
 				el.style.whiteSpace = 'normal';
 				el.style.overflow = 'hidden';
-				el.style.display = '-webkit-box';
-				el.style.webkitLineClamp = '3';
-				el.style.webkitBoxOrient = 'vertical';
+				el.style.maxHeight = `${availableH}px`;
 				// kademeli küçült
 				while (el.scrollHeight > availableH && fontMm > 0.5) {
 					fontMm = Math.max(0.5, fontMm * 0.9);

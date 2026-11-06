@@ -194,7 +194,7 @@ export default function BranchLabels() {
 						<div style="position:absolute; left:0; top:0; bottom:0; width:${sideStripWidthMm}mm; border-right:1px solid #d1d5db; display:flex; align-items:center; justify-content:center; background:${active.primary};">
 									<span style="writing-mode:vertical-rl; transform:rotate(180deg); text-transform:uppercase; font-weight:700; font-size:${Math.max(2.2, smallFontSizeMm)}mm; color:${active.text}; line-height:1; letter-spacing:0.2mm;">${safe(branch.districtName)}</span>
 						</div>
-						<div style="min-width:0; width:100%; max-width:100%; padding-left:${contentLeftPadMm}mm; height:100%; box-sizing:border-box; display:grid; grid-template-rows:minmax(0,1fr) minmax(${Math.max(8, innerHeightMm * 0.28)}mm, 28%); gap:${boxPaddingMm}mm;">
+						<div style="min-width:0; width:100%; max-width:100%; padding-left:${contentLeftPadMm}mm; height:100%; box-sizing:border-box; display:grid; grid-template-rows:minmax(0,1fr) minmax(${Math.max(10, innerHeightMm * 0.36)}mm, 36%); gap:${boxPaddingMm}mm;">
 						<div style="min-height:0; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:${Math.max(0.5, boxPaddingMm / 2)}mm;">
 							${branchHeader ? `<h3 style="margin:0; font-size:${smallFontSizeMm}mm; font-weight:700; text-transform:uppercase; color:${labelTextColor};">${safe(branchHeader)}</h3>` : ""}
 							<h2 style="
@@ -320,7 +320,7 @@ export default function BranchLabels() {
 	const branchNameFontSizeMm = Math.max(1.0, Math.min(3.8, baseFontSizeMm - 0.7));
 	const boxPaddingMm = Math.max(0.6, Math.min(2.5, labelMinDimension * 0.025));
 	const innerHeightMm = Math.max(1, labelHeight - boxPaddingMm * 2);
-	const infoCellHeightMm = Math.max(1, innerHeightMm * 0.28);
+	const infoCellHeightMm = Math.max(1, innerHeightMm * 0.36);
 	const infoLabelFontSizeMm = Math.max(smallFontSizeMm, Math.min(4.5, infoCellHeightMm * 0.16));
 	const infoValueFontSizeMm = Math.max(baseFontSizeMm, Math.min(10, infoCellHeightMm * 0.34));
 	const branchValueFontSizeMm = Math.max(branchNameFontSizeMm, Math.min(6, infoCellHeightMm * 0.22));
@@ -349,9 +349,7 @@ export default function BranchLabels() {
 				let fontPx = fontMm * pxPerMm;
 				el.style.whiteSpace = 'normal';
 				el.style.overflow = 'hidden';
-				el.style.display = '-webkit-box';
-				el.style.webkitLineClamp = '3';
-				el.style.webkitBoxOrient = 'vertical';
+				el.style.maxHeight = `${availableH}px`;
 				while (el.scrollHeight > availableH && fontMm > 0.5) {
 					fontMm = Math.max(0.5, fontMm * 0.9);
 					el.style.fontSize = `${fontMm}mm`;
@@ -529,7 +527,7 @@ export default function BranchLabels() {
 														{branch.districtName}
 													</span>
 												</div>
-												<div style={{ minWidth: 0, width: '100%', maxWidth: '100%', paddingLeft: '7mm', height: '100%', boxSizing: 'border-box', display: 'grid', gridTemplateRows: `minmax(0, 1fr) minmax(${Math.max(8, innerHeightMm * 0.28)}mm, 28%)`, gap: `${boxPaddingMm}mm` }}>
+												<div style={{ minWidth: 0, width: '100%', maxWidth: '100%', paddingLeft: '7mm', height: '100%', boxSizing: 'border-box', display: 'grid', gridTemplateRows: `minmax(0, 1fr) minmax(${Math.max(10, innerHeightMm * 0.36)}mm, 36%)`, gap: `${boxPaddingMm}mm` }}>
 												<div style={{ minHeight: 0, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${Math.max(0.5, boxPaddingMm / 2)}mm` }}>
 													{headerPrefix ? (
 														<h3 className="font-bold uppercase" style={{ fontSize: `${smallFontSizeMm}mm`, margin: 0, color: scheme === "black" ? "#ffffff" : "#111827" }}>
