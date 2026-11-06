@@ -399,17 +399,23 @@ const fs = await import("fs/promises");
         return res.status(400).json({ message: "manifest ve files gerekli" });
       }
 
+      const uploadRoot = `${path.resolve(uploadsDir)}${path.sep}`;
+      const safeFiles = files.map((file) => path.resolve(file));
+      if (safeFiles.some((file) => !file.startsWith(uploadRoot))) {
+        return res.status(400).json({ message: "Geçersiz optik dosya yolu" });
+      }
+
       await fs.mkdir(uploadsDir, { recursive: true });
       const manifestPath = path.join(uploadsDir, `manifest_${Date.now()}.json`);
       await fs.writeFile(manifestPath, JSON.stringify(manifest), "utf-8");
 
       const scriptPath = path.join(process.cwd(), "server", "optical_processor.py");
-      const args = [scriptPath, "read", manifestPath, ...files];
+      const args = [scriptPath, "read", manifestPath, ...safeFiles];
       const stdout = await runPython(args, 600000);
       return res.status(200).json(JSON.parse(stdout));
     } catch (err) {
       console.error("Optik okuma hatası:", err);
-      return res.status(500).json({ message: "Okuma hatası", error: String(err) });
+      return res.status(500).json({ message: "Okuma hatası" });
     }
   });
 
@@ -417,16 +423,29 @@ const fs = await import("fs/promises");
   app.post("/api/optics/upload", (req, res) => {
     const uploadDir = path.join(dbDir, "optic_uploads");
     
-    const busboy = Busboy({ headers: req.headers as Record<string, string> });
+    const busboy = Busboy({
+      headers: req.headers as Record<string, string>,
+      limits: { files: 1, fileSize: 20 * 1024 * 1024 },
+    });
     
     let fileName = "upload.pdf";
+    let uploadTooLarge = false;
     const chunks: Buffer[] = [];
     
     busboy.on("file", (fieldname: string, file: NodeJS.ReadableStream, filename: string, encoding: string, mimetype: string) => {
-      fileName = typeof filename === "string" ? filename : (filename as any).filename || "upload.pdf";
+      const originalName = typeof filename === "string" ? filename : "upload.pdf";
+      const extension = path.extname(originalName).toLowerCase();
+      if (![".pdf", ".jpg", ".jpeg", ".png"].includes(extension)) {
+        file.resume();
+        return;
+      }
+      fileName = path.basename(originalName);
       const stream = file as unknown as NodeJS.ReadableStream;
       stream.on("data", (data: Buffer) => {
         chunks.push(data);
+      });
+      stream.on("limit", () => {
+        uploadTooLarge = true;
       });
     });
     
@@ -439,8 +458,11 @@ const fs = await import("fs/promises");
         if (fileBuffer.length === 0) {
           return res.status(400).json({ message: "Dosya verisi bulunamadı" });
         }
+        if (uploadTooLarge) {
+          return res.status(413).json({ message: "Dosya boyutu 20 MB sınırını aşıyor" });
+        }
         
-        const filePath = path.join(uploadDir, `${Date.now()}_${fileName}`);
+        const filePath = path.join(uploadDir, `${Date.now()}_${randomUUID()}${path.extname(fileName).toLowerCase()}`);
         await fs.writeFile(filePath, fileBuffer);
         
         return res.status(200).json({ filePath, fileName });
