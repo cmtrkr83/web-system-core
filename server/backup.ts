@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { cp, mkdir, readdir, stat } from "fs/promises";
+import { cp, mkdir, readdir, rm, stat } from "fs/promises";
 import path from "path";
 
 export async function createLocalBackup(options: {
@@ -50,4 +50,29 @@ export async function listLocalBackups(backupRoot: string): Promise<Array<{ id: 
   );
   return backups.filter((backup): backup is { id: string; createdAt: string } => backup !== null)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function restoreLocalBackup(options: {
+  backupPath: string;
+  databasePath: string;
+  opticDatabasePath: string;
+  formDesignsPath: string;
+  uploadsPath: string;
+}): Promise<void> {
+  const requiredFiles = ["local.db", "optic-readings.sqlite", "optic-form-designs.json", "optic_uploads"];
+  for (const file of requiredFiles) {
+    const info = await stat(path.join(options.backupPath, file));
+    if (file !== "optic_uploads" && !info.isFile()) {
+      throw new Error(`Geçersiz yedek öğesi: ${file}`);
+    }
+    if (file === "optic_uploads" && !info.isDirectory()) {
+      throw new Error(`Geçersiz yedek öğesi: ${file}`);
+    }
+  }
+
+  await cp(path.join(options.backupPath, "local.db"), options.databasePath, { force: true });
+  await cp(path.join(options.backupPath, "optic-readings.sqlite"), options.opticDatabasePath, { force: true });
+  await cp(path.join(options.backupPath, "optic-form-designs.json"), options.formDesignsPath, { force: true });
+  await rm(options.uploadsPath, { recursive: true, force: true });
+  await cp(path.join(options.backupPath, "optic_uploads"), options.uploadsPath, { recursive: true, force: true });
 }

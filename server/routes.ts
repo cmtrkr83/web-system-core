@@ -151,6 +151,12 @@ const fs = await import("fs/promises");
 
   await fs.mkdir(dbDir, { recursive: true });
 
+  const writeJsonAtomically = async (filePath: string, value: unknown) => {
+    const temporaryPath = `${filePath}.${randomUUID()}.tmp`;
+    await fs.writeFile(temporaryPath, JSON.stringify(value, null, 2), "utf-8");
+    await fs.rename(temporaryPath, filePath);
+  };
+
   app.get("/api/system/backups", async (_req, res) => {
     return res.status(200).json(await listLocalBackups(backupRoot));
   });
@@ -317,7 +323,7 @@ const fs = await import("fs/promises");
       } else {
         existing.push({ ...body, version: 1, manifestHash });
       }
-      await fs.writeFile(formDesignsFile, JSON.stringify(existing, null, 2), "utf-8");
+      await writeJsonAtomically(formDesignsFile, existing);
       return res.status(201).json({ message: "Kaydedildi" });
     } catch (err) {
       return res.status(500).json({ message: "Kaydetme hatası" });
@@ -335,7 +341,7 @@ const fs = await import("fs/promises");
         }
       })();
       const next = existing.filter((item) => item.id !== req.params.id);
-      await fs.writeFile(formDesignsFile, JSON.stringify(next, null, 2), "utf-8");
+      await writeJsonAtomically(formDesignsFile, next);
       return res.status(200).json({ message: "Silindi" });
     } catch (err) {
       return res.status(500).json({ message: "Silme hatası" });

@@ -12,7 +12,8 @@
     "analyze:unused": "npx depcheck --json && npx ts-prune --print",
     "start": "node dist/index.cjs",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "db:restore": "tsx script/restore-backup.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
