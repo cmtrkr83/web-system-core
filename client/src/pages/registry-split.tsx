@@ -437,21 +437,12 @@ export default function RegistrySplit() {
                 {districtList.map((district) => (
                   <TableRow key={district.id} className="group border-border/60 hover:bg-primary/[0.03]">
                       <TableCell className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
-                            {district.name.slice(0, 1).toLocaleUpperCase("tr-TR")}
-                          </span>
-                          <span className="font-medium text-foreground">{district.name}</span>
-                        </div>
+                        <span className="font-medium text-foreground">{district.name}</span>
                       </TableCell>
                       <TableCell className="text-right font-medium tabular-nums">{district.schools.toLocaleString("tr-TR")}</TableCell>
                       <TableCell className="text-right font-medium tabular-nums">{district.subes.toLocaleString("tr-TR")}</TableCell>
                       <TableCell className="text-right font-semibold tabular-nums text-foreground">{district.students.toLocaleString("tr-TR")}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        <Badge variant={district.specialStudents > 0 ? "outline" : "secondary"} className="rounded-full">
-                          {district.specialStudents.toLocaleString("tr-TR")}
-                        </Badge>
-                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{district.specialStudents.toLocaleString("tr-TR")}</TableCell>
                       <TableCell className="px-4 text-right">
                         <Button
                           variant="outline"
