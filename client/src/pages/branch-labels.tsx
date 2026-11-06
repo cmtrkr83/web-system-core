@@ -363,7 +363,7 @@ export default function BranchLabels() {
 		<div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
 			<div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
 				<div>
-				<h1 className="text-3xl font-heading font-bold">Şube Etiketi Hazırlama</h1>
+				<h1 className="text-title-1-semibold text-text-primary">Şube Etiketi Hazırlama</h1>
 				<p className="text-muted-foreground mt-1">Sınav evrak poşetleri için şube etiketleri oluşturun.</p>
 				</div>
 				<div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary"><Tags className="h-3.5 w-3.5" />{totalPages} sayfa</div>

@@ -252,7 +252,7 @@ export default function RoomLists() {
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-        <h1 className="text-3xl font-heading font-bold">Salon Listesi Hazırlama</h1>
+        <h1 className="text-title-1-semibold text-text-primary">Salon Listesi Hazırlama</h1>
         <p className="text-muted-foreground mt-1">Sınav salonları için yoklama listeleri oluşturun.</p>
         </div>
         <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
