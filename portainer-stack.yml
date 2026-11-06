@@ -2,8 +2,10 @@ version: "3.9"
 
 services:
   web-system-core:
-    image: cmtrkr83/web-system-core:latest
-    pull_policy: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
     container_name: web-system-core
     ports:
       - "${APP_PORT:-5050}:5050"
