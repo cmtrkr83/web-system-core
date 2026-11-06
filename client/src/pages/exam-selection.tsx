@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useRegistry, District, School, Student } from "@/context/RegistryContext";
 import { useLocation } from "wouter";
-import { Plus, BookOpen, Calendar, Clock, Upload, FileSpreadsheet, ChevronRight, ChevronLeft, Trash2 } from "lucide-react";
+import { Plus, BookOpen, Calendar, Clock, Upload, FileSpreadsheet, ChevronRight, ChevronLeft, Trash2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
@@ -91,6 +91,8 @@ const RAW_LOOKUP: Record<string, keyof ColumnMapping> = {
   "studentid": "studentNumber",
   "student no": "studentNumber",
   "student number": "studentNumber",
+  "ogrenci id": "studentNumber",
+  "student identifier": "studentNumber",
   "id": "studentNumber",
   "no": "studentNumber",
   "tc kimlik no": "studentNumber",
@@ -127,6 +129,45 @@ const detectColumnMapping = (columns: string[]): ColumnMapping => {
     }
   }
   return result;
+};
+
+const createSafeKey = (value: string, fallback: string): string => {
+  const key = normalizeHeader(value)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return key || fallback;
+};
+
+const downloadRegistryTemplate = () => {
+  const headers = [
+    "İlçe",
+    "Kurum Kodu",
+    "Okul Adı",
+    "Öğrenci ID",
+    "Öğrenci Adı",
+    "Öğrenci Soyadı",
+    "Sınıf",
+    "Şube",
+    "Okul Numarası",
+    "İl",
+  ];
+  const example = [
+    "Örnek İlçe",
+    "123456",
+    "Örnek Anadolu Lisesi",
+    "OGR-0001",
+    "Ayşe",
+    "Yılmaz",
+    "12",
+    "A",
+    "101",
+    "Örnek İl",
+  ];
+  const worksheet = XLSX.utils.aoa_to_sheet([headers, example]);
+  worksheet["!cols"] = headers.map(() => ({ wch: 20 }));
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Kütük");
+  XLSX.writeFile(workbook, "web-system-kutuk-sablonu.xlsx");
 };
 
 export default function ExamSelection() {
@@ -368,10 +409,53 @@ export default function ExamSelection() {
   };
 
   const handlePrepareRegistryUpload = () => {
-    if (!columnMapping.studentNumber) {
+    const requiredMappings: Array<[keyof ColumnMapping, string]> = [
+      ["district", "İlçe"],
+      ["schoolCode", "Kurum/Okul Kodu"],
+      ["studentNumber", "Öğrenci ID"],
+      ["studentFirstName", "Öğrenci Adı"],
+    ];
+    const missingMapping = requiredMappings.find(([key]) => !columnMapping[key]);
+
+    if (missingMapping) {
       toast({
         title: "Eksik Eşleştirme",
-        description: "Öğrenci numarası sütununu seçmelisiniz.",
+        description: `${missingMapping[1]} sütununu seçmelisiniz. Eksik alanlar için standart şablonu kullanın.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const studentIdColumn = columnMapping.studentNumber;
+    const districtColumn = columnMapping.district;
+    const schoolCodeColumn = columnMapping.schoolCode;
+    const nameColumn = columnMapping.studentFirstName;
+    const invalidRows: number[] = [];
+    const duplicateIds = new Set<string>();
+    const seenIds = new Set<string>();
+
+    rawData.forEach((row, index) => {
+      const studentId = String(row[studentIdColumn] ?? "").trim();
+      const district = String(row[districtColumn] ?? "").trim();
+      const schoolCode = String(row[schoolCodeColumn] ?? "").trim();
+      const firstName = String(row[nameColumn] ?? "").trim();
+      if (!studentId || !district || !schoolCode || !firstName) {
+        invalidRows.push(index + 2);
+      }
+      if (studentId && seenIds.has(studentId)) {
+        duplicateIds.add(studentId);
+      }
+      if (studentId) seenIds.add(studentId);
+    });
+
+    if (invalidRows.length > 0 || duplicateIds.size > 0) {
+      const details = [
+        invalidRows.length > 0 ? `${invalidRows.length} satırda ilçe, kurum kodu, öğrenci ID veya ad eksik` : "",
+        duplicateIds.size > 0 ? `${duplicateIds.size} tekrarlı öğrenci ID` : "",
+      ].filter(Boolean).join("; ");
+      toast({
+        title: "Excel doğrulaması başarısız",
+        description: `${details}. Standart şablonu indirip eksik verileri tamamlayın.`,
         variant: "destructive",
       });
       return;
@@ -384,18 +468,18 @@ export default function ExamSelection() {
   const handleApplyFiltersAndProceed = () => {
     const studentIdCol = columnMapping.studentNumber!;
     const districtSet = new Set<string>();
-    const schoolMap = new Map<string, { name: string; district: string }>();
+    const schoolMap = new Map<string, { id: string; code: string; name: string; district: string }>();
     const students: Student[] = [];
 
     rawData.forEach((row, index) => {
-      const studentId = String(row[studentIdCol] || `student-${index}`).trim();
+      const studentId = String(row[studentIdCol] ?? "").trim();
       if (!studentId) return;
 
-      const district = columnMapping.district ? String(row[columnMapping.district] || "").trim() : "";
-      const schoolName = columnMapping.schoolName ? String(row[columnMapping.schoolName] || "").trim() : "";
-      const schoolCode = columnMapping.schoolCode ? String(row[columnMapping.schoolCode] || "").trim() : `school-${index}`;
-      const studentFirstName = columnMapping.studentFirstName ? String(row[columnMapping.studentFirstName] || "").trim() : "";
-      const studentLastName = columnMapping.studentLastName ? String(row[columnMapping.studentLastName] || "").trim() : "";
+      const district = String(row[columnMapping.district!] ?? "").trim();
+      const schoolName = columnMapping.schoolName ? String(row[columnMapping.schoolName] ?? "").trim() : "";
+      const schoolCode = String(row[columnMapping.schoolCode!] ?? "").trim();
+      const studentFirstName = String(row[columnMapping.studentFirstName!] ?? "").trim();
+      const studentLastName = columnMapping.studentLastName ? String(row[columnMapping.studentLastName] ?? "").trim() : "";
       const hasLastName = !!columnMapping.studentLastName;
       const studentName = hasLastName ? `${studentFirstName} ${studentLastName}`.trim() : (studentFirstName || studentId);
       const schoolNo = columnMapping.schoolNumber ? String(row[columnMapping.schoolNumber] || "").trim() : "";
@@ -422,14 +506,22 @@ export default function ExamSelection() {
       if (excludeSpecialNeeds && isExcludedSchool(schoolName)) return;
       if (excludeSpecialNeeds && isExcludedBranch(classInfo)) return;
 
-      if (district) districtSet.add(district);
-      if (schoolName) schoolMap.set(schoolCode, { name: schoolName, district });
+      districtSet.add(district);
+      const schoolKey = `${createSafeKey(district, "district")}-${createSafeKey(schoolCode, `row-${index + 1}`)}`;
+      if (!schoolMap.has(schoolKey)) {
+        schoolMap.set(schoolKey, {
+          id: `school-${schoolKey}`,
+          code: schoolCode,
+          name: schoolName || `Kurum ${schoolCode}`,
+          district,
+        });
+      }
 
       students.push({
-        id: `st-${studentId}-${index}`,
+        id: `student-${createSafeKey(studentId, `row-${index + 1}`)}-${index + 1}`,
         fullName: studentName,
         studentNo: studentId,
-        schoolId: schoolCode || "free",
+        schoolId: `school-${schoolKey}`,
         grade: gradeInfo,
         class: classInfo,
         schoolNo,
@@ -441,13 +533,13 @@ export default function ExamSelection() {
     let schools: School[];
 
     if (schoolMap.size > 0) {
-      districts = Array.from(districtSet).map((name, index) => ({
-        id: `d${index + 1}`,
+      districts = Array.from(districtSet).map((name) => ({
+        id: `district-${createSafeKey(name, "unknown")}`,
         name,
       }));
-      schools = Array.from(schoolMap.entries()).map(([code, info]) => {
+      schools = Array.from(schoolMap.values()).map((info) => {
         const district = districts.find((item) => item.name === info.district);
-        return { id: code, name: info.name, districtId: district?.id || "d1", code };
+        return { id: info.id, name: info.name, districtId: district?.id || "", code: info.code };
       });
     } else {
       districts = [{ id: "d1", name: "Genel" }];
@@ -565,12 +657,12 @@ export default function ExamSelection() {
   ];
 
   const mappingFields = [
-    { key: "studentNumber" as const, label: "Öğrenci Numarası / TC", required: true },
-    { key: "studentFirstName" as const, label: "Öğrenci Adı" },
+    { key: "studentNumber" as const, label: "Öğrenci ID", required: true },
+    { key: "studentFirstName" as const, label: "Öğrenci Adı", required: true },
     { key: "studentLastName" as const, label: "Öğrenci Soyadı" },
-    { key: "schoolCode" as const, label: "Okul Kodu" },
+    { key: "schoolCode" as const, label: "Kurum/Okul Kodu", required: true },
     { key: "schoolName" as const, label: "Okul Adı" },
-    { key: "district" as const, label: "İlçe Adı" },
+    { key: "district" as const, label: "İlçe Adı", required: true },
     { key: "province" as const, label: "İl Adı" },
     { key: "grade" as const, label: "Sınıf Seviyesi" },
     { key: "class" as const, label: "Şube" },
@@ -657,10 +749,14 @@ export default function ExamSelection() {
               </div>
               <h3 className="text-lg font-semibold text-foreground">Excel dosyasını yükleyin</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Excel dosyasını seçin. Sütunları bir sonraki adımda eşleştireceksiniz.
+                En sorunsuz içe aktarma için sistemin standart şablonunu kullanın. Farklı Excel dosyalarında zorunlu alanlar eşleştirilmelidir.
               </p>
 
               <div className="mt-6 flex items-center justify-center gap-3">
+                <Button type="button" variant="secondary" onClick={downloadRegistryTemplate} disabled={analyzing}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Standart Şablonu İndir
+                </Button>
                 <Button asChild variant="outline" disabled={analyzing}>
                   <label htmlFor="exam-registry-file" className="cursor-pointer">
                     Dosya Seç
@@ -790,7 +886,7 @@ export default function ExamSelection() {
             </div>
 
             <div className="rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground">
-              {rawData.length} satır yüklendi. Öğrenci Numarası zorunludur, diğer alanlar isteğe bağlıdır.
+              {rawData.length} satır yüklendi. Zorunlu alanlar: İlçe, Kurum/Okul Kodu, Öğrenci ID ve Öğrenci Adı. Okul adı boşsa kurum koduyla gösterilir.
             </div>
 
             <div className="flex justify-between gap-3 pt-2">

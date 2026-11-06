@@ -11,8 +11,10 @@ Sınav kütük yönetimi, optik okuma/kodlama, etiket/tutanak üretimi ve öğre
 
 ### Kütük Yükleme (İki Mod)
 - **Şablon Kütük (Varsayılan):** Yapılandırılmış Excel dosyalarından ilçe, okul ve öğrenci verilerini otomatik sütun tanıma ile içe aktarır
-- **Serbest Excel:** Herhangi bir formattaki Excel dosyasını esnek sütun eşleştirme ile yükler. Yalnızca öğrenci adı/soyadı zorunludur; ilçe/okul alanları otomatik varsayılan değerlerle doldurulur
+- **Serbest Excel:** Herhangi bir formattaki Excel dosyasını esnek sütun eşleştirme ile yükler. İçe aktarma için minimum zorunlu alanlar eşleştirilmelidir; eksik ilçe veya kurum kodu ile kayıt oluşturulmaz.
 - İsteğe bağlı özel gereksinimli filtreleme
+- Yeni kütük yükleme ekranında indirilebilen standart Excel şablonu; **İlçe**, **Kurum Kodu**, **Öğrenci ID** ve **Öğrenci Adı** alanlarını zorunlu tutar. Okul adı, sınıf, şube ve okul numarası gibi alanlar ek bilgi olarak kullanılabilir.
+- İçe aktarma öncesinde zorunlu alan eksikleri ve tekrarlanan öğrenci ID değerleri doğrulanır; okul iç kimliği ilçe ve kurum kodundan bağımsız olarak güvenli şekilde üretilir.
 
 ### Kütük Bölme
 - İlçe bazlı okul/şube/öğrenci dağılımını tablo ve PDF olarak görüntüleme
