@@ -372,20 +372,22 @@ export default function RegistrySplit() {
               <CardTitle className="text-base">İlçe Listesi</CardTitle>
               <CardDescription>{isLoaded ? `${districtList.length} ilçe tespit edildi` : "Henüz Excel dosyası yüklenmemiş"}</CardDescription>
             </div>
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button 
+            <div className="inline-flex items-center rounded-xl border border-border/70 bg-background p-1 shadow-sm">
+              <Button
                 onClick={handlePrintTable}
                 disabled={!isLoaded || districtList.length === 0}
-                variant="destructive"
-                className="w-auto whitespace-nowrap rounded-xl"
+                variant="ghost"
+                className="h-9 rounded-lg px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <Printer className="mr-2 h-4 w-4" />
-                İl Raporu Yazdır
+                İl Raporu
               </Button>
-              <Button 
+              <span className="h-5 w-px bg-border" aria-hidden="true" />
+              <Button
                 onClick={handlePrintAllDistricts}
                 disabled={bulkSaving || !isLoaded || districtList.length === 0}
-                className="w-auto whitespace-nowrap rounded-xl"
+                variant="ghost"
+                className="h-9 rounded-lg px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 {bulkSaving ? (
                   <>
@@ -395,7 +397,7 @@ export default function RegistrySplit() {
                 ) : (
                   <>
                     <Printer className="mr-2 h-4 w-4" />
-                    Tüm İlçeleri PDF Kaydet
+                    Tüm İlçeler
                   </>
                 )}
               </Button>
@@ -420,21 +422,20 @@ export default function RegistrySplit() {
               </p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-border/70">
-              <Table className="text-sm">
-                <TableHeader className="bg-muted/40">
-                  <TableRow className="hover:bg-muted/40">
-                    <TableHead className="h-12 px-4 text-xs font-semibold uppercase tracking-wide">İlçe Adı</TableHead>
-                    <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Okul</TableHead>
-                    <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Şube</TableHead>
-                    <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Öğrenci</TableHead>
-                    <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Özel Öğrenci</TableHead>
-                    <TableHead className="h-12 px-4 text-right text-xs font-semibold uppercase tracking-wide">İşlem</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {districtList.map((district) => (
-                    <TableRow key={district.id} className="group border-border/60 hover:bg-primary/[0.03]">
+            <Table className="text-sm">
+              <TableHeader className="bg-muted/40">
+                <TableRow className="hover:bg-muted/40">
+                  <TableHead className="h-12 px-4 text-xs font-semibold uppercase tracking-wide">İlçe Adı</TableHead>
+                  <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Okul</TableHead>
+                  <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Şube</TableHead>
+                  <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Öğrenci</TableHead>
+                  <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Özel Öğrenci</TableHead>
+                  <TableHead className="h-12 px-4 text-right text-xs font-semibold uppercase tracking-wide">İşlem</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {districtList.map((district) => (
+                  <TableRow key={district.id} className="group border-border/60 hover:bg-primary/[0.03]">
                       <TableCell className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
@@ -462,11 +463,10 @@ export default function RegistrySplit() {
                           HTML Yazdır
                         </Button>
                       </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
