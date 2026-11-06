@@ -757,13 +757,13 @@ export default function ExamSelection() {
               </div>
               <FileUpload
                 allowedExtensions={["xls", "xlsx"]}
-                maxBytes={8 * 1024 * 1024}
+                maxBytes={20 * 1024 * 1024}
                 onUploadComplete={handleFileChange}
                 className={analyzing ? "pointer-events-none opacity-60" : undefined}
               />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-caption-2-regular text-text-tertiary">
-                  XLS, XLSX · En fazla 8 MB
+                  XLS, XLSX · En fazla 20 MB
                 </p>
                 <Button type="button" variant="secondary" onClick={downloadRegistryTemplate} disabled={analyzing}>
                   <Download className="mr-2 h-4 w-4" />

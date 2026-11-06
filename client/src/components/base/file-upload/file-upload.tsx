@@ -22,7 +22,7 @@ import { cx } from "@/utils/cx";
  * `onUploadComplete` to the application's upload/storage layer.
  */
 
-const DEFAULT_MAX_BYTES = 8 * 1024 * 1024;
+const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
 const DEFAULT_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "xlsx"] as const;
 
 type UploadPhase = "idle" | "uploading" | "complete";
