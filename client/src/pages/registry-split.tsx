@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/base/buttons/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -424,18 +424,18 @@ export default function RegistrySplit() {
               <Button
                 onClick={handlePrintTable}
                 disabled={!isLoaded || districtList.length === 0}
-                variant="table"
-                className="h-9 rounded-lg px-3 text-xs font-medium text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary"
+                variant="secondary"
+                className="h-9 rounded-lg px-3 text-xs font-medium text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary" size="small" leadingIcon={Printer}
               >
-                <Printer className="mr-2 h-4 w-4" />
+                
                 İl Raporu
               </Button>
               <span className="h-5 w-px bg-separator-border" aria-hidden="true" />
               <Button
                 onClick={handlePrintAllDistricts}
                 disabled={bulkSaving || !isLoaded || districtList.length === 0}
-                variant="table"
-                className="h-9 rounded-lg px-3 text-xs font-medium text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary"
+                variant="secondary"
+                className="h-9 rounded-lg px-3 text-xs font-medium text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary" size="small"
               >
                 {bulkSaving ? (
                   <>
@@ -493,12 +493,12 @@ export default function RegistrySplit() {
                       <TableCell className="text-right tabular-nums">{district.specialStudents.toLocaleString("tr-TR")}</TableCell>
                       <TableCell className="px-4 text-right">
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="secondary"
+                          size="small"
                           className="rounded-lg opacity-80 transition-opacity group-hover:opacity-100"
-                          onClick={() => handlePrintDistrictHtml(district.id, district.name)}
+                          onClick={() => handlePrintDistrictHtml(district.id, district.name)} leadingIcon={Printer}
                         >
-                          <Printer className="mr-2 h-4 w-4" />
+                          
                           HTML Yazdır
                         </Button>
                       </TableCell>

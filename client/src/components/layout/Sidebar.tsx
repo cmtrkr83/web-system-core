@@ -14,7 +14,7 @@ import {
   FilePlus2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/base/buttons/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/application/theme/theme-toggle";
 import { useState } from "react";
@@ -99,9 +99,7 @@ export function MobileNav() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-text-secondary md:hidden">
-          <Menu className="w-5 h-5" />
-        </Button>
+        <Button variant="ghost" className="text-text-secondary md:hidden" iconOnly leadingIcon={Menu} aria-label="Menüyü aç" />
       </SheetTrigger>
       <SheetContent side="left" className="w-64 border-separator-border bg-background-primary-default p-0 text-text-primary">
         <div className="border-b border-separator-border px-5 py-5">

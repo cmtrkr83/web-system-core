@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/base/buttons/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -476,8 +476,8 @@ export default function Labels() {
 						</div>
 					</CardContent>
 					<CardFooter className="flex-col gap-2 border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
-						<Button className="w-full rounded-xl shadow-sm" size="lg" onClick={handleHtmlPrint}>
-							<Printer className="mr-2 h-4 w-4" />
+						<Button className="w-full rounded-xl shadow-sm" size="medium" onClick={handleHtmlPrint} variant="primary" leadingIcon={Printer}>
+							
 							Etiketleri HTML Yazdır
 						</Button>
 					</CardFooter>
@@ -491,23 +491,19 @@ export default function Labels() {
 								<span className="truncate">Önizleme</span>
 							</CardTitle>
 							<div className="flex items-center gap-1 rounded-xl border border-separator-border/70 bg-background-full p-1 shadow-sm">
-								<Button variant="table" size="icon"
-									className="h-8 w-8 rounded-lg text-text-tertiary hover:bg-background-secondary-default disabled:opacity-40"
+								<Button variant="secondary"
+									className="rounded-lg text-text-tertiary hover:bg-background-secondary-default disabled:opacity-40"
 									onClick={handlePrevPage}
 									disabled={currentPage === 0}
-									aria-label="Önceki Sayfa"
-								>
-									<ChevronLeft className="w-4 h-4" />
-								</Button>
+									aria-label="Önceki Sayfa" iconOnly leadingIcon={ChevronLeft}
+								></Button>
 								<span className="min-w-[58px] text-center text-xs font-medium tabular-nums text-text-tertiary">{currentPage + 1} / {totalPages}</span>
-								<Button variant="table" size="icon"
-									className="h-8 w-8 rounded-lg text-text-tertiary hover:bg-background-secondary-default disabled:opacity-40"
+								<Button variant="secondary"
+									className="rounded-lg text-text-tertiary hover:bg-background-secondary-default disabled:opacity-40"
 									onClick={handleNextPage}
 									disabled={currentPage === totalPages - 1}
-									aria-label="Sonraki Sayfa"
-								>
-									<ChevronRight className="w-4 h-4" />
-								</Button>
+									aria-label="Sonraki Sayfa" iconOnly leadingIcon={ChevronRight}
+								></Button>
 							</div>
 						</CardHeader>
 						<CardContent className="flex min-h-[500px] items-start justify-center overflow-auto bg-background-secondary-default/30 p-6">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -736,10 +736,10 @@ export default function ExamSelection() {
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <Button variant="outline" leadingIcon={<ChevronLeft />} onClick={() => handleDialogOpenChange(false)} disabled={loading}>
+              <Button variant="secondary" leadingIcon={ChevronLeft} onClick={() => handleDialogOpenChange(false)} disabled={loading}>
                 İptal
               </Button>
-              <Button leadingIcon={<ChevronRight />} onClick={handleCreateExam} disabled={loading}>
+              <Button leadingIcon={ChevronRight} onClick={handleCreateExam} disabled={loading} variant="primary">
                 {loading ? "Oluşturuluyor..." : "Devam Et"}
               </Button>
             </div>
@@ -765,7 +765,7 @@ export default function ExamSelection() {
                 <p className="text-caption-2-regular text-text-tertiary">
                   XLS, XLSX · En fazla 20 MB
                 </p>
-                <Button type="button" variant="secondary" leadingIcon={<Download />} onClick={downloadRegistryTemplate} disabled={analyzing}>
+                <Button type="button" variant="secondary" leadingIcon={Download} onClick={downloadRegistryTemplate} disabled={analyzing}>
                   Standart Şablonu İndir
                 </Button>
               </div>
@@ -779,11 +779,11 @@ export default function ExamSelection() {
             </div>
 
             <div className="flex justify-between gap-3 pt-2">
-              <Button variant="outline" onClick={() => setCurrentStep(1)} disabled={loading || analyzing}>
-                <ChevronLeft className="mr-2 h-4 w-4" />
+              <Button variant="secondary" onClick={() => setCurrentStep(1)} disabled={loading || analyzing} leadingIcon={ChevronLeft}>
+                
                 Geri
               </Button>
-              <Button variant="ghost" leadingIcon={<X />} onClick={() => handleDialogOpenChange(false)} disabled={loading || analyzing}>
+              <Button variant="ghost" leadingIcon={X} onClick={() => handleDialogOpenChange(false)} disabled={loading || analyzing}>
                 Vazgeç
               </Button>
             </div>
@@ -886,13 +886,13 @@ export default function ExamSelection() {
             </div>
 
             <div className="flex justify-between gap-3 pt-2">
-              <Button variant="outline" onClick={() => setCurrentStep(2)} disabled={loading || analyzing}>
-                <ChevronLeft className="mr-2 h-4 w-4" />
+              <Button variant="secondary" onClick={() => setCurrentStep(2)} disabled={loading || analyzing} leadingIcon={ChevronLeft}>
+                
                 Geri
               </Button>
-              <Button onClick={handlePrepareRegistryUpload} disabled={loading || analyzing}>
+              <Button onClick={handlePrepareRegistryUpload} disabled={loading || analyzing} variant="primary" trailingIcon={ChevronRight}>
                 Filtrelemeye Geç
-                <ChevronRight className="ml-2 h-4 w-4" />
+                
               </Button>
             </div>
           </div>
@@ -928,13 +928,13 @@ export default function ExamSelection() {
             </div>
 
             <div className="flex justify-between gap-3 pt-2">
-              <Button variant="outline" onClick={() => setCurrentStep(3)} disabled={loading || analyzing}>
-                <ChevronLeft className="mr-2 h-4 w-4" />
+              <Button variant="secondary" onClick={() => setCurrentStep(3)} disabled={loading || analyzing} leadingIcon={ChevronLeft}>
+                
                 Geri
               </Button>
-              <Button onClick={handleApplyFiltersAndProceed} disabled={loading || analyzing}>
+              <Button onClick={handleApplyFiltersAndProceed} disabled={loading || analyzing} variant="primary" trailingIcon={ChevronRight}>
                 Önizlemeye Geç
-                <ChevronRight className="ml-2 h-4 w-4" />
+                
               </Button>
             </div>
           </div>
@@ -990,13 +990,13 @@ export default function ExamSelection() {
             )}
 
             <div className="flex justify-between gap-3 pt-2">
-              <Button variant="outline" onClick={() => setCurrentStep(4)} disabled={loading || analyzing}>
-                <ChevronLeft className="mr-2 h-4 w-4" />
+              <Button variant="secondary" onClick={() => setCurrentStep(4)} disabled={loading || analyzing} leadingIcon={ChevronLeft}>
+                
                 Geri
               </Button>
-              <Button onClick={handleFinalizeRegistryUpload} disabled={loading || analyzing}>
+              <Button onClick={handleFinalizeRegistryUpload} disabled={loading || analyzing} variant="primary" trailingIcon={ChevronRight}>
                 {analyzing ? "Yükleniyor..." : "Kütüğü Yükle"}
-                <ChevronRight className="ml-2 h-4 w-4" />
+                
               </Button>
             </div>
           </div>
@@ -1074,17 +1074,15 @@ export default function ExamSelection() {
 
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="shrink-0 h-8 w-8 text-text-tertiary hover:bg-border-error-default/10 hover:text-text-error-primary"
+
+                    className="shrink-0 text-text-tertiary hover:bg-border-error-default/10 hover:text-text-error-primary"
                     onClick={(event) => {
                       event.stopPropagation();
                       void handleDeleteExam(exam.id, exam.name);
                     }}
                     disabled={loading}
-                    aria-label={`${exam.name} sınavını sil`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                    aria-label={`${exam.name} sınavını sil`} iconOnly leadingIcon={Trash2}
+                  ></Button>
                 </div>
               </CardHeader>
 
@@ -1104,7 +1102,7 @@ export default function ExamSelection() {
                 {/* Select Button */}
                 <Button
                   className="w-full mt-4"
-                  variant={exam.isActive === "1" ? "default" : "outline"}
+                  variant={exam.isActive === "1" ? "primary" : "secondary"}
                   disabled={loading}
                 >
                   {exam.isActive === "1" ? "Devam Et" : "Seç"}
@@ -1122,8 +1120,8 @@ export default function ExamSelection() {
             <p className="text-text-tertiary mb-6">Başlamak için yeni bir sınav oluşturun.</p>
             <Dialog open={open} onOpenChange={handleDialogOpenChange}>
               <DialogTrigger asChild>
-                <Button size="lg">
-                  <Plus className="mr-2 h-5 w-5" />
+                <Button size="medium" variant="primary" leadingIcon={Plus}>
+                  
                   İlk Sınavı Oluştur
                 </Button>
               </DialogTrigger>

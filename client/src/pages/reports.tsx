@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/base/buttons/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -297,7 +297,7 @@ export default function Reports() {
             </div>
           </CardContent>
           <CardFooter className="mt-auto border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
-            <Button className="w-full rounded-xl shadow-sm" leadingIcon={<FileDown />} onClick={handleCreateDistrictReport} disabled={!isLoaded || districts.length === 0}>
+            <Button className="w-full rounded-xl shadow-sm" leadingIcon={FileDown} onClick={handleCreateDistrictReport} disabled={!isLoaded || districts.length === 0} variant="secondary">
               İlçe Tutanağı Oluştur
             </Button>
           </CardFooter>
@@ -347,7 +347,7 @@ export default function Reports() {
             </div>
           </CardContent>
           <CardFooter className="mt-auto border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
-            <Button className="w-full rounded-xl shadow-sm" leadingIcon={<FileDown />} onClick={handleCreateSchoolReport} disabled={!isBlankTemplate && (!isLoaded || schools.length === 0)}>
+            <Button className="w-full rounded-xl shadow-sm" leadingIcon={FileDown} onClick={handleCreateSchoolReport} disabled={!isBlankTemplate && (!isLoaded || schools.length === 0)} variant="secondary">
               Okul Tutanaklarını Oluştur
             </Button>
           </CardFooter>

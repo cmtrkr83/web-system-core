@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRegistry, type Student } from "@/context/RegistryContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -453,12 +453,12 @@ export default function OpticCoding() {
           <p className="mt-1 text-body-regular text-text-secondary">Excel sütunlarını seçip optik form üzerine yerleştirin.</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={printAll} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting}>
-            <Printer className="mr-2 h-4 w-4" />
+          <Button onClick={printAll} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting} variant="primary" leadingIcon={Printer}>
+            
             Yazdır
           </Button>
-          <Button variant="outline" onClick={exportPdf} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting}>
-            <FileDown className="mr-2 h-4 w-4" />
+          <Button variant="secondary" onClick={exportPdf} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting} leadingIcon={FileDown}>
+            
             {exporting ? `PDF ${exporting.done}/${exporting.total}` : "PDF"}
           </Button>
         </div>
@@ -746,16 +746,14 @@ export default function OpticCoding() {
                         </div>
                       </div>
                       <Button
-                        size="icon"
+
                         variant="ghost"
-                        className="h-7 w-7 shrink-0"
+                        className="shrink-0"
                         onClick={(e) => {
                           e.stopPropagation();
                           removeElement(el.id);
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                        }} iconOnly leadingIcon={Trash2} aria-label="Alanı kaldır"
+                      ></Button>
                     </div>
                     {el.kind !== "qr" && (
                       <select

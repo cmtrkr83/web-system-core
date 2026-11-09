@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/base/buttons/button";
 import { Users, School, Map, FileText, Tags, Package, ClipboardCheck, BookOpen } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import heroIllustration from "@/assets/hero-illustration.png";
@@ -70,8 +70,8 @@ export default function Dashboard() {
           )}
         </div>
         <div className="flex flex-col gap-3">
-          <Button variant="outline" size="sm" onClick={() => setLocation("/")}>
-            <BookOpen className="mr-2 h-4 w-4" />
+          <Button variant="secondary" size="small" onClick={() => setLocation("/")} leadingIcon={BookOpen}>
+            
             Başlangıça Dön
           </Button>
           <div className="text-sm text-text-tertiary bg-background-secondary-default px-4 py-2 rounded-xl border border-separator-border">

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -472,7 +472,7 @@ export default function OpticReading() {
               )}
             </div>
 
-            <Button className="w-full" onClick={readAll} disabled={isReading || files.length === 0 || !design}>
+            <Button className="w-full" onClick={readAll} disabled={isReading || files.length === 0 || !design} variant="primary">
               {isReading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -496,11 +496,11 @@ export default function OpticReading() {
                     {results.filter((r) => r.success).length}/{results.length}
                   </span>
                 </div>
-                <Button className="w-full" variant="outline" onClick={handleCsv} disabled={!results.some((r) => r.success)}>
-                  <Download className="mr-2 h-4 w-4" />
+                <Button className="w-full" variant="secondary" onClick={handleCsv} disabled={!results.some((r) => r.success)} leadingIcon={Download}>
+                  
                   CSV İndir
                 </Button>
-                <Button className="w-full" onClick={handleSave} disabled={isSaving || !results.some((r) => r.success)}>
+                <Button className="w-full" onClick={handleSave} disabled={isSaving || !results.some((r) => r.success)} variant="primary">
                   {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Sonuçları Kaydet
                 </Button>
@@ -615,7 +615,7 @@ export default function OpticReading() {
                             </div>
                           ) : (
                             <Button
-                              variant="outline"
+                              variant="secondary"
                               className="w-full"
                               onClick={() => selected !== null && loadOverlay(selected)}
                               disabled={overlayLoading}

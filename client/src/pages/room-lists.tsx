@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/base/buttons/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -314,8 +314,8 @@ export default function RoomLists() {
             {/* Sıralama, fotoğraflı liste ve imza sütunu kaldırıldı */}
           </CardContent>
           <CardFooter className="border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
-            <Button className="w-full rounded-xl shadow-sm" size="lg" disabled={!isLoaded || students.length === 0} onClick={handleCreatePdf}>
-              <Printer className="mr-2 h-4 w-4" />
+            <Button className="w-full rounded-xl shadow-sm" size="medium" disabled={!isLoaded || students.length === 0} onClick={handleCreatePdf} variant="primary" leadingIcon={Printer}>
+              
               PDF Oluştur
             </Button>
           </CardFooter>
@@ -335,14 +335,12 @@ export default function RoomLists() {
                   type="button"
                   onClick={() => setPreviewIndex((p) => Math.max(0, p - 1))}
                   disabled={previewPages.length === 0 || previewIndex === 0}
-                  variant="table"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary disabled:opacity-40"
+                  variant="secondary"
+
+                  className="rounded-lg text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary disabled:opacity-40"
                   aria-label="Önceki sayfa"
-                  title="Önceki sayfa"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
+                  title="Önceki sayfa" iconOnly leadingIcon={ChevronLeft}
+                ></Button>
                 <span className="min-w-[58px] text-center text-xs font-medium tabular-nums text-text-tertiary">
                   {previewPages.length > 0 ? `${previewIndex + 1} / ${previewPages.length}` : "—"}
                 </span>
@@ -350,14 +348,12 @@ export default function RoomLists() {
                   type="button"
                   onClick={() => setPreviewIndex((p) => Math.min(previewPages.length - 1, p + 1))}
                   disabled={previewPages.length === 0 || previewIndex >= previewPages.length - 1}
-                  variant="table"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary disabled:opacity-40"
+                  variant="secondary"
+
+                  className="rounded-lg text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary disabled:opacity-40"
                   aria-label="Sonraki sayfa"
-                  title="Sonraki sayfa"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                  title="Sonraki sayfa" iconOnly leadingIcon={ChevronRight}
+                ></Button>
               </div>
             </div>
           </CardHeader>

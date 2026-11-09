@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -345,7 +345,7 @@ export default function Evaluation() {
               onChange={handleFileChange}
               className="max-w-sm"
             />
-            <Button onClick={handleParseCsv} disabled={!csvFile || parsing}>
+            <Button onClick={handleParseCsv} disabled={!csvFile || parsing} variant="primary">
               {parsing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
               {parsing ? "Ayrıştırılıyor..." : "Yükle & Ayrıştır"}
             </Button>
@@ -442,7 +442,7 @@ export default function Evaluation() {
                 </>
               )}
 
-              <Button onClick={handleApplyExtraction}>Uygula</Button>
+              <Button onClick={handleApplyExtraction} variant="primary">Uygula</Button>
             </div>
 
             {/* Öğrenci tablosu (ilk 10 satır) */}
@@ -551,8 +551,8 @@ export default function Evaluation() {
               </div>
             ))}
 
-            <Button onClick={handleCompare} size="lg" className="w-full">
-              <CheckCircle2 className="w-5 h-5 mr-2" />
+            <Button onClick={handleCompare} size="medium" className="w-full" variant="primary" leadingIcon={CheckCircle2}>
+              
               Karşılaştır
             </Button>
           </CardContent>
@@ -649,8 +649,8 @@ export default function Evaluation() {
               </div>
             </div>
 
-            <Button variant="outline" onClick={sonucToCsv}>
-              <Download className="w-4 h-4 mr-2" />
+            <Button variant="secondary" onClick={sonucToCsv} leadingIcon={Download}>
+              
               CSV Olarak İndir
             </Button>
           </CardContent>

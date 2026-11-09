@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -350,9 +350,9 @@ export default function OpticCreate() {
               </div>
               <Button
                 className="w-full"
-                onClick={() => setForm(createDefaultForm(newFormName.trim() || "Yeni Optik Form", newFormSize))}
+                onClick={() => setForm(createDefaultForm(newFormName.trim() || "Yeni Optik Form", newFormSize))} variant="primary" leadingIcon={Plus}
               >
-                <Plus className="mr-2 h-4 w-4" />
+                
                 Formu Oluştur
               </Button>
             </CardContent>
@@ -375,15 +375,14 @@ export default function OpticCreate() {
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Button
-                      size="icon"
+
                       variant="ghost"
-                      className="h-7 w-7 text-text-tertiary hover:text-text-error-primary"
+                      className="text-text-tertiary hover:text-text-error-primary"
                       title="Formu sil"
-                      onClick={() => deleteForm(f.id, f.name)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setForm({ ...f })}>
+                      aria-label="Formu sil"
+                      onClick={() => deleteForm(f.id, f.name)} iconOnly leadingIcon={Trash2}
+                    ></Button>
+                    <Button size="small" variant="secondary" onClick={() => setForm({ ...f })}>
                       Aç
                     </Button>
                   </div>
@@ -428,16 +427,16 @@ export default function OpticCreate() {
           </div>
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap">
-          <Button size="sm" variant="outline" leadingIcon={<Move />} onClick={() => setForm(null)}>
+          <Button size="small" variant="secondary" leadingIcon={Move} onClick={() => setForm(null)}>
             ← Form Listesi
           </Button>
-          <Button size="sm" leadingIcon={<Printer />} onClick={printForm}>
+          <Button size="small" leadingIcon={Printer} onClick={printForm} variant="secondary">
             Yazdır
           </Button>
-          <Button size="sm" variant="outline" leadingIcon={<FileDown />} onClick={exportPdf}>
+          <Button size="small" variant="secondary" leadingIcon={FileDown} onClick={exportPdf}>
             PDF
           </Button>
-          <Button size="sm" variant="secondary" leadingIcon={<Save />} onClick={saveForm} disabled={saving}>
+          <Button size="small" variant="secondary" leadingIcon={Save} onClick={saveForm} disabled={saving}>
             {saving ? "Kaydediliyor..." : "Kaydet"}
           </Button>
         </div>
@@ -463,9 +462,7 @@ export default function OpticCreate() {
                       value={field.label}
                       onChange={(e) => updateField(field.id, { label: e.target.value })}
                     />
-                    <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => removeField(field.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <Button variant="ghost" className="shrink-0" onClick={() => removeField(field.id)} iconOnly leadingIcon={Trash2} aria-label="Bilgi alanını kaldır" />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -601,8 +598,8 @@ export default function OpticCreate() {
                   )}
                 </div>
               ))}
-              <Button variant="outline" className="w-full" onClick={addField}>
-                <Plus className="mr-2 h-4 w-4" />
+              <Button variant="secondary" className="w-full" onClick={addField} leadingIcon={Plus}>
+                
                 Bilgi Alanı Ekle
               </Button>
             </CardContent>
@@ -684,9 +681,7 @@ export default function OpticCreate() {
                     value={grid.subject}
                     onChange={(e) => updateGrid(grid.id, { subject: e.target.value })}
                   />
-                  <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => removeGrid(grid.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <Button variant="ghost" className="shrink-0" onClick={() => removeGrid(grid.id)} iconOnly leadingIcon={Trash2} aria-label="Ders tablosunu kaldır" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
@@ -714,8 +709,8 @@ export default function OpticCreate() {
                 </div>
               </div>
             ))}
-            <Button variant="outline" className="w-full" onClick={addGrid}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button variant="secondary" className="w-full" onClick={addGrid} leadingIcon={Plus}>
+              
               Ders Tablosu Ekle
             </Button>
           </CardContent>
