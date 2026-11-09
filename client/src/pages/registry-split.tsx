@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, AlertCircle, Printer } from "lucide-react";
+import { Download, AlertCircle, Printer, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRegistry } from "@/context/RegistryContext";
 import jsPDF from "jspdf";
@@ -297,6 +297,89 @@ export default function RegistrySplit() {
     }
   };
 
+  const buildRetroDistrictReport = (): string => {
+    const totalSchools = districtList.reduce((sum, d) => sum + d.schools, 0);
+    const totalSubes = districtList.reduce((sum, d) => sum + d.subes, 0);
+    const totalStudents = districtList.reduce((sum, d) => sum + d.students, 0);
+    const totalSpecialStudents = districtList.reduce((sum, d) => sum + d.specialStudents, 0);
+    const dateStr = new Date().toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+    const col1 = 30;
+    const col2 = 12;
+    const col3 = 10;
+    const col4 = 14;
+    const col5 = 16;
+    const totalWidth = col1 + col2 + col3 + col4 + col5 + 6;
+
+    const pad = (text: string, width: number, align: 'left' | 'right' = 'left') => {
+      const str = String(text);
+      if (str.length > width) return str.substring(0, width - 1) + '…';
+      const padding = width - str.length;
+      return align === 'right' ? ' '.repeat(padding) + str : str + ' '.repeat(padding);
+    };
+
+    const hLine = '+' + '-'.repeat(totalWidth) + '+';
+
+    const center = (text: string, width: number) => {
+      const padTotal = width - text.length;
+      const padLeft = Math.floor(padTotal / 2);
+      const padRight = padTotal - padLeft;
+      return ' '.repeat(padLeft) + text + ' '.repeat(padRight);
+    };
+
+    let output = '';
+    output += hLine + '\n';
+    output += '|' + center('İL GENEL DURUM BİLGİSİ - İLÇE BAZLI KÜTÜK LİSTESİ', totalWidth) + '|\n';
+    output += hLine + '\n';
+    output += '|' + center(`Tarih: ${dateStr}  Saat: ${timeStr}`, totalWidth) + '|\n';
+    output += '|' + center(`Toplam İlçe: ${districtList.length}  Toplam Okul: ${totalSchools}  Toplam Şube: ${totalSubes}  Toplam Öğrenci: ${totalStudents.toLocaleString('tr-TR')}  Özel Öğrenci: ${totalSpecialStudents.toLocaleString('tr-TR')}`, totalWidth) + '|\n';
+    output += hLine + '\n';
+    output += '| ' + pad('İLÇE ADI', col1) + ' | ' + pad('OKUL', col2, 'right') + ' | ' + pad('ŞUBE', col3, 'right') + ' | ' + pad('ÖĞRENCİ', col4, 'right') + ' | ' + pad('ÖZEL ÖĞRENCİ', col5, 'right') + ' |\n';
+    output += hLine + '\n';
+
+    districtList.forEach((district, idx) => {
+      const row = '| ' + pad(district.name, col1) + ' | ' + pad(district.schools.toLocaleString('tr-TR'), col2, 'right') + ' | ' + pad(district.subes.toLocaleString('tr-TR'), col3, 'right') + ' | ' + pad(district.students.toLocaleString('tr-TR'), col4, 'right') + ' | ' + pad(district.specialStudents.toLocaleString('tr-TR'), col5, 'right') + ' |\n';
+      output += row;
+      if (idx < districtList.length - 1) {
+        output += '|' + '-'.repeat(col1 + 2) + '+' + '-'.repeat(col2 + 2) + '+' + '-'.repeat(col3 + 2) + '+' + '-'.repeat(col4 + 2) + '+' + '-'.repeat(col5 + 2) + '|\n';
+      }
+    });
+
+    output += hLine + '\n';
+    output += '|' + center(`Toplam: ${districtList.length} ilçe  |  ${totalSchools} okul  |  ${totalSubes} şube  |  ${totalStudents.toLocaleString('tr-TR')} öğrenci  |  ${totalSpecialStudents.toLocaleString('tr-TR')} özel öğrenci`, totalWidth) + '|\n';
+    output += hLine + '\n';
+    output += '|' + center('Rapor: Web System Core - İlçe Kütük Modülü', totalWidth) + '|\n';
+    output += hLine + '\n';
+
+    return output;
+  };
+
+  const handleDownloadRetroReport = () => {
+    if (!isLoaded || districtList.length === 0) {
+      toast({
+        title: "Hata",
+        description: "İndirilecek ilçe verisi bulunamadı.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const content = buildRetroDistrictReport();
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `il-raporu-${new Date().toISOString().slice(0,10)}.txt`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "TXT indirildi",
+      description: "Retro Notepad++ tarzı il raporu başarıyla indirildi.",
+    });
+  };
+
   const generateDistrictPdf = async (districtId: string, districtName: string): Promise<Blob> => {
     const schoolData = getDistrictSchoolData(districtId);
     if (schoolData.length === 0) {
@@ -429,6 +512,16 @@ export default function RegistrySplit() {
               >
                 <Printer className="mr-2 h-4 w-4" />
                 İl Raporu
+              </Button>
+              <span className="h-5 w-px bg-border" aria-hidden="true" />
+              <Button
+                onClick={handleDownloadRetroReport}
+                disabled={!isLoaded || districtList.length === 0}
+                variant="table"
+                className="h-9 rounded-lg px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                TXT Çıktı (Retro)
               </Button>
               <span className="h-5 w-px bg-border" aria-hidden="true" />
               <Button
