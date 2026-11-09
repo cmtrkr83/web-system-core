@@ -470,21 +470,21 @@ export default function RegistrySplit() {
               </p>
             </div>
           ) : (
-            <Table className="text-sm">
-              <TableHeader className="bg-background-secondary-default/40">
-                <TableRow className="hover:bg-background-secondary-default/40">
-                  <TableHead className="h-12 px-4 text-xs font-semibold uppercase tracking-wide">İlçe Adı</TableHead>
-                  <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Okul</TableHead>
-                  <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Şube</TableHead>
-                  <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Öğrenci</TableHead>
-                  <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Özel Öğrenci</TableHead>
-                  <TableHead className="h-12 px-4 text-right text-xs font-semibold uppercase tracking-wide">İşlem</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="h-10 px-4">İlçe Adı</TableHead>
+                  <TableHead className="h-10 text-right">Okul</TableHead>
+                  <TableHead className="h-10 text-right">Şube</TableHead>
+                  <TableHead className="h-10 text-right">Öğrenci</TableHead>
+                  <TableHead className="h-10 text-right">Özel Öğrenci</TableHead>
+                  <TableHead className="h-10 px-4 text-right">İşlem</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {districtList.map((district) => (
                   <TableRow key={district.id} className="group border-separator-border/60 hover:bg-accent-600/[0.03]">
-                      <TableCell className="px-4 py-4">
+                      <TableCell className="px-4 py-3">
                         <span className="font-medium text-text-primary">{district.name}</span>
                       </TableCell>
                       <TableCell className="text-right font-medium tabular-nums">{district.schools.toLocaleString("tr-TR")}</TableCell>
