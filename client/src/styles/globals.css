@@ -1023,3 +1023,78 @@ input[type="search"]::-webkit-search-cancel-button {
     box-shadow: inset 0 0 0 2px var(--color-border-button-hover);
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Radix/shadcn köprüsü
+ *
+ * components/ui/* altında Radix tabanlı primitifler `bg-muted`, `border-border`
+ * gibi shadcn adlarını kullanıyor. Bu blok o adları BoardUI semantic
+ * token'larına bağlar; böylece palette tek kaynak styles/theme.css'tir ve
+ * `.dark` sınıfı geldiğinde otomatik çevrilir.
+ *
+ * `@theme inline` şarttır: değer utility'ye gömülür, `var()` çalışma anında
+ * `:root` / `.dark` üzerinden çözümlenir. `@theme` yazılsaydı köprü kendi
+ * değişkenini üretip zinciri kilitlerdi.
+ *
+ * chart-* burada YOK: theme.css chart-1..9'u zaten semantic olarak veriyor.
+ * Yeni kod bu köprüyü değil, doğrudan BoardUI adlarını kullanmalı.
+ * --------------------------------------------------------------------------*/
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-background: var(--color-background-full);
+  --color-foreground: var(--color-text-primary);
+
+  --color-card: var(--color-background-primary-default);
+  --color-card-foreground: var(--color-text-primary);
+
+  --color-popover: var(--color-background-primary-default);
+  --color-popover-foreground: var(--color-text-primary);
+
+  --color-primary: var(--color-accent-600);
+  --color-primary-foreground: var(--color-text-white);
+
+  --color-secondary: var(--color-background-secondary-default);
+  --color-secondary-foreground: var(--color-text-primary);
+
+  --color-muted: var(--color-background-secondary-default);
+  --color-muted-foreground: var(--color-text-tertiary);
+
+  --color-accent: var(--color-background-secondary-default);
+  --color-accent-foreground: var(--color-text-primary);
+
+  --color-destructive: var(--color-border-error-default);
+  --color-destructive-foreground: var(--color-text-white);
+
+  --color-border: var(--color-separator-border);
+  --color-input: var(--color-border-button-default);
+  --color-ring: var(--color-border-focus-ring);
+
+  --color-sidebar: var(--color-background-primary-default);
+  --color-sidebar-foreground: var(--color-text-primary);
+  --color-sidebar-primary: var(--color-accent-500);
+  --color-sidebar-primary-foreground: var(--color-text-white);
+  --color-sidebar-accent: var(--color-background-secondary-default);
+  --color-sidebar-accent-foreground: var(--color-text-primary);
+  --color-sidebar-border: var(--color-separator-border);
+  --color-sidebar-ring: var(--color-border-focus-ring);
+}
+
+/* components/ui/input-group.tsx yarıçapı bundan türetiyor. */
+:root {
+  --radius: 0.5rem;
+}
+
+/* Tailwind v4'te çıplak `border` rengi currentColor'a düşer. shadcn
+ * primitifleri 100'den fazla yerde renksiz `border` kullanıyor; onları
+ * BoardUI ayırıcı rengine bağlıyoruz. Renk sınıfı verilen yerler utilities
+ * katmanında kaldığı için etkilenmez. */
+@layer base {
+  *,
+  ::after,
+  ::before {
+    border-color: var(--color-separator-border);
+  }
+}

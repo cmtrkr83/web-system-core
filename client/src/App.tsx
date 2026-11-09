@@ -41,14 +41,18 @@ function Router() {
 }
 
 import { RegistryProvider } from "@/context/RegistryContext";
+import { TemplateCopyProvider } from "@/components/foundations/template-copy/template-copy";
+import { TEMPLATE_COPY_TR } from "@/lib/template-copy-tr";
 
 function App() {
   return (
     <RegistryProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <TemplateCopyProvider translate={(text) => TEMPLATE_COPY_TR[text] ?? text}>
+            <Toaster />
+            <Router />
+          </TemplateCopyProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </RegistryProvider>

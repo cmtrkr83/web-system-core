@@ -4,20 +4,16 @@
 
 Web System Core — sınav kütük yönetimi, optik kodlama/okuma, etiket/tutanak üretimi ve öğrenci değerlendirme web uygulaması (Express + React/Vite + SQLite/Drizzle).
 
-## ÇALIŞMA KAPSAMI (ÖNEMLİ)
+## ÇALIŞMA KAPSAMI
 
-- Şu anda **yalnızca** şu üç sayfa ile ilgili işlem yapıyoruz:
-  1. **Optik Oluşturma** — `client/src/pages/optic-creation.tsx` (yeni: optik form tasarımı)
-  2. **Optik Kodlama** — `client/src/pages/optic-coding-page.tsx`
-  3. **Optik Okuma** — `client/src/pages/optic-reading.tsx`
-- Bu sayfaların desteklediği backend/yardımcı dosyalara gerektiğinde dokunulabilir:
-  - `server/routes.ts` (optics API route'ları)
-  - `server/optical_processor.py` (Python görüntü işleme)
+- **Tüm proje kapsam içindedir.** Herhangi bir sayfa/modül üzerinde çalışılabilir: dashboard, kütük (`registry-split` vb.), etiket, tutanak, değerlendirme, sınav seçimi, optik oluşturma/kodlama/okuma, auth, ortak bileşenler, backend route'ları, şema ve script'ler.
+- Optik hattı hâlâ en aktif geliştirme alanıdır ve şu dosyalarla temsil edilir (detay: "Optikle İlgili Mimari Özet"):
+  - `client/src/pages/optic-creation.tsx`, `optic-coding-page.tsx`, `optic-reading.tsx`
+  - `server/routes.ts` (`/api/optics/*`), `server/optical_processor.py`
   - `client/src/components/optic/OpticCalibrationEditor.tsx`
   - `client/src/lib/optic-coding.ts`, `client/src/lib/optic-form.ts`
   - `db/optic-configs.json`, `db/optic-results.json`, `db/optic-form-designs.json`, `db/optic-readings.sqlite`
-- **Diğer tüm bölümler/sayfalar (dashboard, kütük, etiket, tutanak, değerlendirme, sınav seçimi vb.) KESİNLİKLE kurcalanmayacak.**
-- Kapsam dışı bir dosyada değişiklik isteniyorsa önce kullanıcıya sor.
+- Çalışma alanı dışına çıkan büyük/yıkıcı değişikliklerde (şema migration, dosya silme, bağımlılık değişimi) yine de kullanıcıya önceden bilgi ver.
 
 ## Nerede Kaldık / Durum
 
@@ -54,6 +50,7 @@ Web System Core — sınav kütük yönetimi, optik kodlama/okuma, etiket/tutana
 
 ## Kurallar
 
+- **Subagent kullanma.** İşleri doğrudan kendin yap (read/grep/edit/shell). Alt ajan açmak yasak.
 - Kod tarzını mevcut dosyalardaki patternlere uydur (önce ilgili dosyayı oku).
 - Gerekmedikçe yorum satırı ekleme.
 - Test/lint komutu: `npm run check` (tsc).

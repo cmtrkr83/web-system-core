@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ThemeToggle } from "@/components/application/theme/theme-toggle";
 import { useState } from "react";
 
 const navItems = [
@@ -78,7 +79,10 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-separator-border p-3">
+      <div className="space-y-2 border-t border-separator-border p-3">
+        <div className="flex justify-center">
+          <ThemeToggle appearance="sidebar-segmented" />
+        </div>
         <div className="rounded-xl bg-background-secondary-default px-3 py-2.5 text-caption-2-regular text-text-tertiary">
           <p className="text-caption-1-semibold text-text-primary">Versiyon 2.2.2</p>
           <p className="mt-1">Kütük Yönetim Sistemi</p>
