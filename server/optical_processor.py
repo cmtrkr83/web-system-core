@@ -740,7 +740,7 @@ def pdf_to_jpeg(pdf_path: Path, dpi: int = 300) -> List[Path]:
 # Referans kareleri (5 köşe) -> homografi -> baloncuk merkezlerinden örnekleme
 # ============================================================================
 
-REF_MARK_SIZE_MM = 5.0
+REF_MARK_SIZE_MM = 4.5
 BUBBLE_SIZE_MM = 4.23
 SAMPLE_RADIUS_MM = 1.5
 

@@ -285,13 +285,12 @@ export function buildOpticFormManifest(design: OpticFormDesign): OpticManifest {
       return { id: field.id, label: field.label, type: isBookletField(field) ? "booklet" : "numeric", bubbles };
     });
 
-  const s = 5;
   const referenceMarks = [
-    { cx: 4 + s / 2, cy: 4 + s / 2 },
-    { cx: 12 + s / 2, cy: 4 + s / 2 },
-    { cx: paperWidth - 4 - s / 2, cy: 4 + s / 2 },
-    { cx: 4 + s / 2, cy: paperHeight - 4 - s / 2 },
-    { cx: paperWidth - 4 - s / 2, cy: paperHeight - 4 - s / 2 },
+    { cx: REF_MARK_CENTER_MM, cy: REF_MARK_CENTER_MM },
+    { cx: REF_MARK_SECOND_CENTER_MM, cy: REF_MARK_CENTER_MM },
+    { cx: paperWidth - REF_MARK_CENTER_MM, cy: REF_MARK_CENTER_MM },
+    { cx: REF_MARK_CENTER_MM, cy: paperHeight - REF_MARK_CENTER_MM },
+    { cx: paperWidth - REF_MARK_CENTER_MM, cy: paperHeight - REF_MARK_CENTER_MM },
   ];
 
   return {
@@ -345,6 +344,9 @@ const DEFAULT_OPTIC_FORM_FIELDS: FormTextField[] = [
 
 const MARGIN_MM = 8;
 const TITLE_BAND_MM = 12;
+const REF_MARK_SIZE_MM = 4.5;
+const REF_MARK_CENTER_MM = 6.5;
+const REF_MARK_SECOND_CENTER_MM = 14.5;
 const LEFT_MARGIN_MM = 10;
 const RIGHT_MARGIN_MM = 6;
 const BUBBLE_SIZE_MM = 4.23;
@@ -509,12 +511,14 @@ export function buildOpticFormHtml(design: OpticFormDesign, fill?: OpticFormFill
     )
     .join("");
 
+  const refMarginMm = REF_MARK_CENTER_MM - REF_MARK_SIZE_MM / 2;
+  const refSecondMarginMm = REF_MARK_SECOND_CENTER_MM - REF_MARK_SIZE_MM / 2;
   const markerMarks =
-    `<span style="position:absolute;top:4mm;left:4mm;width:5mm;height:5mm;background:#000;"></span>
-     <span style="position:absolute;top:4mm;left:12mm;width:5mm;height:5mm;background:#000;"></span>
-     <span style="position:absolute;top:4mm;right:4mm;width:5mm;height:5mm;background:#000;"></span>
-     <span style="position:absolute;bottom:4mm;left:4mm;width:5mm;height:5mm;background:#000;"></span>
-     <span style="position:absolute;bottom:4mm;right:4mm;width:5mm;height:5mm;background:#000;"></span>`;
+    `<span style="position:absolute;top:${refMarginMm}mm;left:${refMarginMm}mm;width:${REF_MARK_SIZE_MM}mm;height:${REF_MARK_SIZE_MM}mm;background:#000;"></span>
+     <span style="position:absolute;top:${refMarginMm}mm;left:${refSecondMarginMm}mm;width:${REF_MARK_SIZE_MM}mm;height:${REF_MARK_SIZE_MM}mm;background:#000;"></span>
+     <span style="position:absolute;top:${refMarginMm}mm;right:${refMarginMm}mm;width:${REF_MARK_SIZE_MM}mm;height:${REF_MARK_SIZE_MM}mm;background:#000;"></span>
+     <span style="position:absolute;bottom:${refMarginMm}mm;left:${refMarginMm}mm;width:${REF_MARK_SIZE_MM}mm;height:${REF_MARK_SIZE_MM}mm;background:#000;"></span>
+     <span style="position:absolute;bottom:${refMarginMm}mm;right:${refMarginMm}mm;width:${REF_MARK_SIZE_MM}mm;height:${REF_MARK_SIZE_MM}mm;background:#000;"></span>`;
 
   const overlaysHtml = overlays
     .map((o) => {
