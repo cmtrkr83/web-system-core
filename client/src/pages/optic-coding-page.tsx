@@ -467,9 +467,9 @@ export default function OpticCoding() {
       {!isLoaded ? (
         <Card>
           <CardContent className="py-12 flex flex-col items-center justify-center text-center">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+            <AlertCircle className="h-12 w-12 text-text-tertiary mb-4" />
             <h3 className="text-lg font-semibold mb-2">Henüz Veri Yüklenmemiş</h3>
-            <p className="text-muted-foreground max-w-md">Optik kodlama için önce sınav seçimi sayfasından Excel dosyası yükleyiniz.</p>
+            <p className="text-text-tertiary max-w-md">Optik kodlama için önce sınav seçimi sayfasından Excel dosyası yükleyiniz.</p>
           </CardContent>
         </Card>
       ) : (
@@ -486,7 +486,7 @@ export default function OpticCoding() {
                   <Label htmlFor="form-select">Form</Label>
                   <select
                     id="form-select"
-                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    className="h-9 w-full rounded-md border border-border-button-default bg-transparent px-3 text-sm"
                     value={selectedFormId}
                     onChange={(e) => handleSelectForm(e.target.value)}
                   >
@@ -499,9 +499,9 @@ export default function OpticCoding() {
                   </select>
                 </div>
                 {selectedDesign && (
-                  <div className="rounded-md bg-muted p-3 text-sm">
+                  <div className="rounded-md bg-background-secondary-default p-3 text-sm">
                     {selectedDesign.name} · {selectedDesign.paperSize}
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="text-xs text-text-tertiary mt-1">
                       {selectedDesign.fields.length} bilgi alanı · {selectedDesign.grids.length} cevap tablosu
                     </div>
                   </div>
@@ -516,7 +516,7 @@ export default function OpticCoding() {
                   <CardDescription>Bir sütunu sürükleyip forma bırakın veya + ile ekleyin.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-1" style={{ maxHeight: 360, overflowY: "auto" }}>
-                  {availableColumns.length === 0 && <p className="text-sm text-muted-foreground">Yüklenen veride sütun yok.</p>}
+                  {availableColumns.length === 0 && <p className="text-sm text-text-tertiary">Yüklenen veride sütun yok.</p>}
                   {availableColumns.map((col) => {
                     const isMapped = elements.some((el) => el.columnKey === col.key);
                     return (
@@ -527,11 +527,11 @@ export default function OpticCoding() {
                           e.dataTransfer.setData("text/plain", col.key);
                           e.dataTransfer.effectAllowed = "copy";
                         }}
-                        className={`group flex items-center justify-between rounded-lg border px-2.5 py-2 ${isMapped ? "border-green-300/60 bg-green-50/40" : "border-border/70 hover:bg-muted/50 cursor-grab"}`}
+                        className={`group flex items-center justify-between rounded-lg border px-2.5 py-2 ${isMapped ? "border-green-300/60 bg-green-50/40" : "border-separator-border/70 hover:bg-background-secondary-default/50 cursor-grab"}`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <GripVertical className={`h-3.5 w-3.5 shrink-0 ${isMapped ? "text-muted-foreground/30" : "text-muted-foreground/60"}`} />
-                          <span className={`text-sm truncate ${isMapped ? "text-muted-foreground" : ""}`}>{col.label}</span>
+                          <GripVertical className={`h-3.5 w-3.5 shrink-0 ${isMapped ? "text-text-tertiary/30" : "text-text-tertiary/60"}`} />
+                          <span className={`text-sm truncate ${isMapped ? "text-text-tertiary" : ""}`}>{col.label}</span>
                         </div>
                         {isMapped ? (
                           <span className="shrink-0 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Eşlendi</span>
@@ -541,7 +541,7 @@ export default function OpticCoding() {
                               type="button"
                               title="QR olarak ekle"
                               onClick={() => addElement(col, undefined, "qr")}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border text-muted-foreground opacity-60 hover:opacity-100 hover:bg-primary hover:text-white transition-opacity"
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-separator-border text-text-tertiary opacity-60 hover:opacity-100 hover:bg-accent-600 hover:text-white transition-opacity"
                             >
                               <QrCode className="h-3.5 w-3.5" />
                             </button>
@@ -549,7 +549,7 @@ export default function OpticCoding() {
                               type="button"
                               title="Forma ekle"
                               onClick={() => addElement(col)}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border text-muted-foreground opacity-60 hover:opacity-100 hover:bg-primary hover:text-white transition-opacity"
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-separator-border text-text-tertiary opacity-60 hover:opacity-100 hover:bg-accent-600 hover:text-white transition-opacity"
                             >
                               <Plus className="h-3.5 w-3.5" />
                             </button>
@@ -572,7 +572,7 @@ export default function OpticCoding() {
                   <Label htmlFor="district-filter">İlçe</Label>
                   <select
                     id="district-filter"
-                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    className="h-9 w-full rounded-md border border-border-button-default bg-transparent px-3 text-sm"
                     value={districtId}
                     onChange={(e) => {
                       setDistrictId(e.target.value);
@@ -592,7 +592,7 @@ export default function OpticCoding() {
                   <Label htmlFor="school-filter">Okul</Label>
                   <select
                     id="school-filter"
-                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    className="h-9 w-full rounded-md border border-border-button-default bg-transparent px-3 text-sm"
                     value={schoolId}
                     onChange={(e) => {
                       setSchoolId(e.target.value);
@@ -611,7 +611,7 @@ export default function OpticCoding() {
                   <Label htmlFor="class-filter">Şube</Label>
                   <select
                     id="class-filter"
-                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    className="h-9 w-full rounded-md border border-border-button-default bg-transparent px-3 text-sm"
                     value={className}
                     onChange={(e) => setClassName(e.target.value)}
                   >
@@ -623,7 +623,7 @@ export default function OpticCoding() {
                     ))}
                   </select>
                 </div>
-                <div className="rounded-md bg-muted p-3 text-sm">
+                <div className="rounded-md bg-background-secondary-default p-3 text-sm">
                   Seçilen öğrenci: <strong>{filteredStudents.length}</strong>
                 </div>
               </CardContent>
@@ -637,7 +637,7 @@ export default function OpticCoding() {
               <CardDescription>Forma bırakın, sürükleyerek konumlandırın.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div ref={previewAreaRef} className="overflow-hidden rounded-lg border bg-muted/30 p-4">
+              <div ref={previewAreaRef} className="overflow-hidden rounded-lg border bg-background-secondary-default/30 p-4">
                 <div className="relative mx-auto" style={{ width: previewWidthPx * previewScale, height: previewHeightPx * previewScale }}>
                   {previewHtml ? (
                     <div
@@ -702,7 +702,7 @@ export default function OpticCoding() {
                       })}
                     </div>
                   ) : (
-                    <div className="absolute inset-0 grid place-content-center text-sm text-muted-foreground border-2 border-dashed border-muted-foreground/25">
+                    <div className="absolute inset-0 grid place-content-center text-sm text-text-tertiary border-2 border-dashed border-border-button-hover/25">
                       <div className="text-center space-y-1">
                         <AlertCircle className="w-5 h-5 mx-auto" />
                         <p>Form seçin ve öğrenci yükleyin.</p>
@@ -712,7 +712,7 @@ export default function OpticCoding() {
                 </div>
               </div>
               {filteredStudents[0] && (
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-text-tertiary mt-2">
                   Önizleme öğrencisi: <strong>{filteredStudents[0].fullName}</strong>
                 </p>
               )}
@@ -727,7 +727,7 @@ export default function OpticCoding() {
             </CardHeader>
             <CardContent className="space-y-3">
               {elements.length === 0 && (
-                <p className="text-sm text-muted-foreground">Henüz öğe yok. Soldaki sütunlardan ekleyin.</p>
+                <p className="text-sm text-text-tertiary">Henüz öğe yok. Soldaki sütunlardan ekleyin.</p>
               )}
               {elements.map((el) => {
                 const isSelected = el.id === selectedElementId;
@@ -735,12 +735,12 @@ export default function OpticCoding() {
                   <div
                     key={el.id}
                     onClick={() => setSelectedElementId(el.id)}
-                    className={`rounded-lg border p-2.5 space-y-2 cursor-pointer ${isSelected ? "border-blue-400 bg-blue-50/40" : "border-border/70"}`}
+                    className={`rounded-lg border p-2.5 space-y-2 cursor-pointer ${isSelected ? "border-blue-400 bg-blue-50/40" : "border-separator-border/70"}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <div className="text-sm font-medium truncate">{el.label}</div>
-                        <div className="text-[11px] text-muted-foreground">
+                        <div className="text-[11px] text-text-tertiary">
                           {Math.round(el.xMm)}mm, {Math.round(el.yMm)}mm
                           {el.kind === "qr" ? " · QR" : el.boundFieldId ? " · bağlı" : " · serbest"}
                         </div>
@@ -759,7 +759,7 @@ export default function OpticCoding() {
                     </div>
                     {el.kind !== "qr" && (
                       <select
-                        className="h-8 w-full rounded-md border border-input bg-transparent px-2 text-xs"
+                        className="h-8 w-full rounded-md border border-border-button-default bg-transparent px-2 text-xs"
                         value={el.boundFieldId ?? ""}
                         onClick={(e) => e.stopPropagation()}
                         onChange={(e) => updateElement(el.id, { boundFieldId: e.target.value || undefined })}
@@ -776,7 +776,7 @@ export default function OpticCoding() {
                 );
               })}
               {selectedElement && selectedElement.kind !== "qr" && (
-                <div className="rounded-lg border border-border/70 p-2.5 space-y-2">
+                <div className="rounded-lg border border-separator-border/70 p-2.5 space-y-2">
                   <Label className="text-xs">Yazı Boyutu (mm)</Label>
                   <Input
                     type="number"
@@ -800,7 +800,7 @@ export default function OpticCoding() {
                 </div>
               )}
               {selectedElement && selectedElement.kind === "qr" && (
-                <div className="rounded-lg border border-border/70 p-2.5 space-y-2">
+                <div className="rounded-lg border border-separator-border/70 p-2.5 space-y-2">
                   <Label className="text-xs">QR Boyutu (mm)</Label>
                   <Input
                     type="number"
@@ -815,7 +815,7 @@ export default function OpticCoding() {
                       })
                     }
                   />
-                  <p className="text-[11px] text-muted-foreground">Sayfada sürükleyip köşe tutamacından da boyutlandırabilirsiniz.</p>
+                  <p className="text-[11px] text-text-tertiary">Sayfada sürükleyip köşe tutamacından da boyutlandırabilirsiniz.</p>
                 </div>
               )}
             </CardContent>

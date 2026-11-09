@@ -253,19 +253,19 @@ export default function RoomLists() {
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
         <h1 className="text-title-1-semibold text-text-primary">Salon Listesi Hazırlama</h1>
-        <p className="text-muted-foreground mt-1">Sınav salonları için yoklama listeleri oluşturun.</p>
+        <p className="text-text-tertiary mt-1">Sınav salonları için yoklama listeleri oluşturun.</p>
         </div>
-        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-accent-600/15 bg-accent-600/5 px-3 py-1.5 text-xs font-medium text-accent-600">
           <ListChecks className="h-3.5 w-3.5" />
           {previewPages.length > 0 ? `${previewPages.length} sayfa hazır` : "Önizleme bekleniyor"}
         </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-1 h-fit overflow-hidden rounded-2xl border-border/70 shadow-sm">
-          <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
+        <Card className="lg:col-span-1 h-fit overflow-hidden rounded-2xl border-separator-border/70 shadow-sm">
+          <CardHeader className="border-b border-separator-border/60 bg-background-secondary-default/20 pb-5">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-600/10 text-accent-600">
                 <ListChecks className="h-5 w-5" />
               </div>
               <div>
@@ -276,12 +276,12 @@ export default function RoomLists() {
           </CardHeader>
           <CardContent className="space-y-5 p-5">
             <div className="space-y-2.5">
-              <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5 text-primary" />
+              <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                <MapPin className="h-3.5 w-3.5 text-accent-600" />
                 İlçe Seçimi
               </Label>
               <Select value={selectedDistrict} onValueChange={(val) => { setSelectedDistrict(val); setSelectedSchool("all"); }}>
-                <SelectTrigger className="h-11 rounded-xl border-border/70 bg-background shadow-sm transition-colors hover:border-primary/50 focus:ring-2 focus:ring-primary/20">
+                <SelectTrigger className="h-11 rounded-xl border-separator-border/70 bg-background-full shadow-sm transition-colors hover:border-accent-600/50 focus:ring-2 focus:ring-border-focus-ring/20">
                   <SelectValue placeholder="İlçe Seçin" />
                 </SelectTrigger>
                 <SelectContent>
@@ -294,12 +294,12 @@ export default function RoomLists() {
             </div>
 
             <div className="space-y-2.5">
-              <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <School className="h-3.5 w-3.5 text-primary" />
+              <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                <School className="h-3.5 w-3.5 text-accent-600" />
                 Okul Seçimi
               </Label>
               <Select value={selectedSchool} onValueChange={setSelectedSchool} disabled={selectedDistrict === "all" && isLoaded}>
-                <SelectTrigger className="h-11 rounded-xl border-border/70 bg-background shadow-sm transition-colors hover:border-primary/50 focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60">
+                <SelectTrigger className="h-11 rounded-xl border-separator-border/70 bg-background-full shadow-sm transition-colors hover:border-accent-600/50 focus:ring-2 focus:ring-border-focus-ring/20 disabled:cursor-not-allowed disabled:opacity-60">
                   <SelectValue placeholder="Okul Seçin" />
                 </SelectTrigger>
                 <SelectContent>
@@ -313,7 +313,7 @@ export default function RoomLists() {
 
             {/* Sıralama, fotoğraflı liste ve imza sütunu kaldırıldı */}
           </CardContent>
-          <CardFooter className="border-t border-border/60 bg-muted/10 p-5">
+          <CardFooter className="border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
             <Button className="w-full rounded-xl shadow-sm" size="lg" disabled={!isLoaded || students.length === 0} onClick={handleCreatePdf}>
               <Printer className="mr-2 h-4 w-4" />
               PDF Oluştur
@@ -321,29 +321,29 @@ export default function RoomLists() {
           </CardFooter>
         </Card>
 
-        <Card className="lg:col-span-2 overflow-hidden rounded-2xl border-border/70 bg-muted/20 shadow-sm">
-          <CardHeader className="border-b border-border/60 pb-4">
+        <Card className="lg:col-span-2 overflow-hidden rounded-2xl border-separator-border/70 bg-background-secondary-default/20 shadow-sm">
+          <CardHeader className="border-b border-separator-border/60 pb-4">
             <div className="w-full flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-600/10 text-accent-600">
                   <Eye className="w-4 h-4" />
                 </span>
                 Önizleme
               </CardTitle>
-              <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-background p-1 shadow-sm">
+              <div className="flex items-center gap-1 rounded-xl border border-separator-border/70 bg-background-full p-1 shadow-sm">
                 <Button
                   type="button"
                   onClick={() => setPreviewIndex((p) => Math.max(0, p - 1))}
                   disabled={previewPages.length === 0 || previewIndex === 0}
                   variant="table"
                   size="icon"
-                  className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+                  className="h-8 w-8 rounded-lg text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary disabled:opacity-40"
                   aria-label="Önceki sayfa"
                   title="Önceki sayfa"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <span className="min-w-[58px] text-center text-xs font-medium tabular-nums text-muted-foreground">
+                <span className="min-w-[58px] text-center text-xs font-medium tabular-nums text-text-tertiary">
                   {previewPages.length > 0 ? `${previewIndex + 1} / ${previewPages.length}` : "—"}
                 </span>
                 <Button
@@ -352,7 +352,7 @@ export default function RoomLists() {
                   disabled={previewPages.length === 0 || previewIndex >= previewPages.length - 1}
                   variant="table"
                   size="icon"
-                  className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+                  className="h-8 w-8 rounded-lg text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary disabled:opacity-40"
                   aria-label="Sonraki sayfa"
                   title="Sonraki sayfa"
                 >
@@ -361,7 +361,7 @@ export default function RoomLists() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex min-h-[500px] items-start justify-center overflow-auto bg-muted/30 p-6">
+          <CardContent className="flex min-h-[500px] items-start justify-center overflow-auto bg-background-secondary-default/30 p-6">
             <div className="w-[210mm] min-h-[297mm] origin-top scale-75 bg-white px-[10mm] pb-[10mm] pt-[8mm] text-[10px] shadow-xl transition-transform md:scale-90">
               {/* Per-page headers are rendered inside pages to avoid duplicate titles */}
               
@@ -418,9 +418,9 @@ export default function RoomLists() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+                  <FileText className="h-16 w-16 text-text-tertiary mb-4" />
                   <h3 className="text-lg font-semibold mb-2">Henüz Veri Yüklenmemiş</h3>
-                  <p className="text-muted-foreground max-w-md">
+                  <p className="text-text-tertiary max-w-md">
                     Salon listesi önizlemesi için önce Başlangıç sayfasından Excel dosyasını yükleyiniz.
                   </p>
                 </div>

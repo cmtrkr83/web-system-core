@@ -353,7 +353,7 @@ export default function Evaluation() {
           {parsing && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
+                <span className="text-text-tertiary">
                   {parsingProgress.phase === "okunuyor" ? "Dosya okunuyor..." : "Satırlar ayrıştırılıyor..."}
                 </span>
                 {parsingProgress.total > 0 ? (
@@ -368,7 +368,7 @@ export default function Evaluation() {
             </div>
           )}
           {csvFile && !parsing && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-text-tertiary">
               Seçilen dosya: <strong>{csvFile.name}</strong> ({(csvFile.size / 1024).toFixed(1)} KB)
             </p>
           )}
@@ -463,7 +463,7 @@ export default function Evaluation() {
                 <TableBody>
                   {students.slice(0, 10).map((s, i) => (
                     <TableRow key={i}>
-                      <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                      <TableCell className="text-text-tertiary">{i + 1}</TableCell>
                       <TableCell className="max-w-40 truncate" title={s.dosya}>{s.dosya}</TableCell>
                       <TableCell className="max-w-40 truncate" title={s.qr}>{s.qr}</TableCell>
                       <TableCell>
@@ -472,14 +472,14 @@ export default function Evaluation() {
                       {s.cevaplar.slice(0, 5).map((c, qi) => (
                         <TableCell key={qi} className="text-center font-mono">{c || "—"}</TableCell>
                       ))}
-                      {numQuestions > 5 && <TableCell className="text-center text-muted-foreground">...</TableCell>}
+                      {numQuestions > 5 && <TableCell className="text-center text-text-tertiary">...</TableCell>}
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
             {students.length > 10 && (
-              <p className="text-xs text-muted-foreground">İlk 10 satır gösteriliyor ({students.length} öğrenci).</p>
+              <p className="text-xs text-text-tertiary">İlk 10 satır gösteriliyor ({students.length} öğrenci).</p>
             )}
 
             {kitapcikTurleri.length > 0 && (
@@ -510,7 +510,7 @@ export default function Evaluation() {
             {kitapcikTurleri.map((tur, ki) => (
               <div key={tur}>
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-muted-foreground" />
+                  <BookOpen className="w-4 h-4 text-text-tertiary" />
                   Kitapçık Türü: <Badge>{tur}</Badge>
                 </h3>
                 <div className="border rounded-md overflow-auto max-h-96">
@@ -525,7 +525,7 @@ export default function Evaluation() {
                     </TableHeader>
                     <TableBody>
                       <TableRow>
-                        <TableCell className="text-center font-medium text-muted-foreground">Cevap</TableCell>
+                        <TableCell className="text-center font-medium text-text-tertiary">Cevap</TableCell>
                         {answerKeys[ki]?.cevaplar.map((_, si) => (
                           <TableCell key={si} className="text-center p-1">
                             <Select
@@ -581,7 +581,7 @@ export default function Evaluation() {
                     <TableHead>Kitapçık</TableHead>
                     <TableHead className="text-center text-green-600">Doğru</TableHead>
                     <TableHead className="text-center text-red-600">Yanlış</TableHead>
-                    <TableHead className="text-center text-muted-foreground">Boş</TableHead>
+                    <TableHead className="text-center text-text-tertiary">Boş</TableHead>
                     {Array.from({ length: Math.min(numQuestions, 8) }, (_, i) => (
                       <TableHead key={i} className="text-center w-10">S.{i + 1}</TableHead>
                     ))}
@@ -591,12 +591,12 @@ export default function Evaluation() {
                 <TableBody>
                   {sonuclar.map((s) => (
                     <TableRow key={s.satir}>
-                      <TableCell className="text-muted-foreground">{s.satir}</TableCell>
+                      <TableCell className="text-text-tertiary">{s.satir}</TableCell>
                       <TableCell className="max-w-32 truncate" title={s.dosya}>{s.dosya}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{s.kitapcikTuru}</Badge></TableCell>
                       <TableCell className="text-center font-medium text-green-600">{s.dogru}</TableCell>
                       <TableCell className="text-center font-medium text-red-600">{s.yanlis}</TableCell>
-                      <TableCell className="text-center font-medium text-muted-foreground">{s.bos}</TableCell>
+                      <TableCell className="text-center font-medium text-text-tertiary">{s.bos}</TableCell>
                       {s.soruSonuclari.slice(0, 8).map((r, qi) => (
                         <TableCell key={qi} className="text-center">
                           {r === "dogru" ? (
@@ -604,11 +604,11 @@ export default function Evaluation() {
                           ) : r === "yanlis" ? (
                             <XCircle className="w-4 h-4 text-red-500 inline" />
                           ) : (
-                            <HelpCircle className="w-4 h-4 text-muted-foreground/50 inline" />
+                            <HelpCircle className="w-4 h-4 text-text-tertiary/50 inline" />
                           )}
                         </TableCell>
                       ))}
-                      {numQuestions > 8 && <TableCell className="text-center text-muted-foreground">...</TableCell>}
+                      {numQuestions > 8 && <TableCell className="text-center text-text-tertiary">...</TableCell>}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -617,34 +617,34 @@ export default function Evaluation() {
 
             {/* İstatistik */}
             <div className="flex flex-wrap gap-4">
-              <div className="bg-muted rounded-lg p-3 flex-1 min-w-[120px]">
-                <p className="text-xs text-muted-foreground">Toplam Öğrenci</p>
+              <div className="bg-background-secondary-default rounded-lg p-3 flex-1 min-w-[120px]">
+                <p className="text-xs text-text-tertiary">Toplam Öğrenci</p>
                 <p className="text-2xl font-bold">{sonuclar.length}</p>
               </div>
-              <div className="bg-muted rounded-lg p-3 flex-1 min-w-[120px]">
-                <p className="text-xs text-muted-foreground">Ortalama Doğru</p>
+              <div className="bg-background-secondary-default rounded-lg p-3 flex-1 min-w-[120px]">
+                <p className="text-xs text-text-tertiary">Ortalama Doğru</p>
                 <p className="text-2xl font-bold text-green-600">
                   {(sonuclar.reduce((s, r) => s + r.dogru, 0) / sonuclar.length).toFixed(1)}
                 </p>
               </div>
-              <div className="bg-muted rounded-lg p-3 flex-1 min-w-[120px]">
-                <p className="text-xs text-muted-foreground">Ortalama Yanlış</p>
+              <div className="bg-background-secondary-default rounded-lg p-3 flex-1 min-w-[120px]">
+                <p className="text-xs text-text-tertiary">Ortalama Yanlış</p>
                 <p className="text-2xl font-bold text-red-600">
                   {(sonuclar.reduce((s, r) => s + r.yanlis, 0) / sonuclar.length).toFixed(1)}
                 </p>
               </div>
-              <div className="bg-muted rounded-lg p-3 flex-1 min-w-[120px]">
-                <p className="text-xs text-muted-foreground">Ortalama Boş</p>
-                <p className="text-2xl font-bold text-muted-foreground">
+              <div className="bg-background-secondary-default rounded-lg p-3 flex-1 min-w-[120px]">
+                <p className="text-xs text-text-tertiary">Ortalama Boş</p>
+                <p className="text-2xl font-bold text-text-tertiary">
                   {(sonuclar.reduce((s, r) => s + r.bos, 0) / sonuclar.length).toFixed(1)}
                 </p>
               </div>
-              <div className="bg-muted rounded-lg p-3 flex-1 min-w-[120px]">
-                <p className="text-xs text-muted-foreground">Toplam Doğru</p>
+              <div className="bg-background-secondary-default rounded-lg p-3 flex-1 min-w-[120px]">
+                <p className="text-xs text-text-tertiary">Toplam Doğru</p>
                 <p className="text-2xl font-bold">{sonuclar.reduce((s, r) => s + r.dogru, 0)}</p>
               </div>
-              <div className="bg-muted rounded-lg p-3 flex-1 min-w-[120px]">
-                <p className="text-xs text-muted-foreground">Toplam Yanlış</p>
+              <div className="bg-background-secondary-default rounded-lg p-3 flex-1 min-w-[120px]">
+                <p className="text-xs text-text-tertiary">Toplam Yanlış</p>
                 <p className="text-2xl font-bold">{sonuclar.reduce((s, r) => s + r.yanlis, 0)}</p>
               </div>
             </div>

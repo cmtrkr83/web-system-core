@@ -413,29 +413,29 @@ export default function RegistrySplit() {
         )}
       </div>
 
-      <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
-        <CardHeader className="border-b border-border/60 bg-muted/10 pb-5">
+      <Card className="overflow-hidden rounded-2xl border-separator-border/70 shadow-sm">
+        <CardHeader className="border-b border-separator-border/60 bg-background-secondary-default/10 pb-5">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base">İlçe Listesi</CardTitle>
               <CardDescription>{isLoaded ? `${districtList.length} ilçe tespit edildi` : "Henüz Excel dosyası yüklenmemiş"}</CardDescription>
             </div>
-            <div className="inline-flex items-center rounded-xl border border-border/70 bg-background p-1 shadow-sm">
+            <div className="inline-flex items-center rounded-xl border border-separator-border/70 bg-background-full p-1 shadow-sm">
               <Button
                 onClick={handlePrintTable}
                 disabled={!isLoaded || districtList.length === 0}
                 variant="table"
-                className="h-9 rounded-lg px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="h-9 rounded-lg px-3 text-xs font-medium text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary"
               >
                 <Printer className="mr-2 h-4 w-4" />
                 İl Raporu
               </Button>
-              <span className="h-5 w-px bg-border" aria-hidden="true" />
+              <span className="h-5 w-px bg-separator-border" aria-hidden="true" />
               <Button
                 onClick={handlePrintAllDistricts}
                 disabled={bulkSaving || !isLoaded || districtList.length === 0}
                 variant="table"
-                className="h-9 rounded-lg px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="h-9 rounded-lg px-3 text-xs font-medium text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary"
               >
                 {bulkSaving ? (
                   <>
@@ -455,24 +455,24 @@ export default function RegistrySplit() {
         <CardContent>
           {!isLoaded ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+              <AlertCircle className="h-12 w-12 text-text-tertiary mb-4" />
               <h3 className="text-lg font-semibold mb-2">Henüz Veri Yüklenmemiş</h3>
-              <p className="text-muted-foreground max-w-md">
+              <p className="text-text-tertiary max-w-md">
                 Kütük bölme işlemine başlamadan önce Excel dosyasını Başlangıç sayfasından yükleyiniz.
               </p>
             </div>
           ) : districtList.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+              <AlertCircle className="h-12 w-12 text-text-tertiary mb-4" />
               <h3 className="text-lg font-semibold mb-2">İlçe Verisi Bulunamadı</h3>
-              <p className="text-muted-foreground">
+              <p className="text-text-tertiary">
                 Yüklenen Excel dosyasında ilçe bilgisi bulunmuyor.
               </p>
             </div>
           ) : (
             <Table className="text-sm">
-              <TableHeader className="bg-muted/40">
-                <TableRow className="hover:bg-muted/40">
+              <TableHeader className="bg-background-secondary-default/40">
+                <TableRow className="hover:bg-background-secondary-default/40">
                   <TableHead className="h-12 px-4 text-xs font-semibold uppercase tracking-wide">İlçe Adı</TableHead>
                   <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Okul</TableHead>
                   <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide">Şube</TableHead>
@@ -483,13 +483,13 @@ export default function RegistrySplit() {
               </TableHeader>
               <TableBody>
                 {districtList.map((district) => (
-                  <TableRow key={district.id} className="group border-border/60 hover:bg-primary/[0.03]">
+                  <TableRow key={district.id} className="group border-separator-border/60 hover:bg-accent-600/[0.03]">
                       <TableCell className="px-4 py-4">
-                        <span className="font-medium text-foreground">{district.name}</span>
+                        <span className="font-medium text-text-primary">{district.name}</span>
                       </TableCell>
                       <TableCell className="text-right font-medium tabular-nums">{district.schools.toLocaleString("tr-TR")}</TableCell>
                       <TableCell className="text-right font-medium tabular-nums">{district.subes.toLocaleString("tr-TR")}</TableCell>
-                      <TableCell className="text-right font-semibold tabular-nums text-foreground">{district.students.toLocaleString("tr-TR")}</TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums text-text-primary">{district.students.toLocaleString("tr-TR")}</TableCell>
                       <TableCell className="text-right tabular-nums">{district.specialStudents.toLocaleString("tr-TR")}</TableCell>
                       <TableCell className="px-4 text-right">
                         <Button

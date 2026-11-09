@@ -393,7 +393,7 @@ export default function OpticReading() {
       value={a.answer || "__"}
       onValueChange={(v) => updateAnswer(fi, gi, a.no, v === "__" ? "" : v)}
     >
-      <SelectTrigger className={`h-8 w-14 ${a.answer ? confidenceColor(a.confidence) : "text-muted-foreground"}`}>
+      <SelectTrigger className={`h-8 w-14 ${a.answer ? confidenceColor(a.confidence) : "text-text-tertiary"}`}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -438,7 +438,7 @@ export default function OpticReading() {
                 </SelectContent>
               </Select>
               {design && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-text-tertiary">
                   {design.grids.reduce((s, g) => s + g.questionCount, 0)} soru,{" "}
                   {design.grids.map((g) => g.subject).join(", ")}
                 </p>
@@ -456,13 +456,13 @@ export default function OpticReading() {
                 onChange={handleFileChange}
               />
               {isConvertingPdf && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <div className="flex items-center gap-2 text-sm text-text-tertiary py-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   PDF sayfaları JPEG'e dönüştürülüyor...
                 </div>
               )}
               {files.length > 0 && (
-                <div className="max-h-24 overflow-y-auto text-xs text-muted-foreground space-y-0.5 border rounded-md p-2">
+                <div className="max-h-24 overflow-y-auto text-xs text-text-tertiary space-y-0.5 border rounded-md p-2">
                   {files.map((f, i) => (
                     <div key={i} className="truncate">
                       {i + 1}. {f.name}
@@ -491,7 +491,7 @@ export default function OpticReading() {
             {results.length > 0 && (
               <div className="space-y-2 border rounded-lg p-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Okunan sayfa</span>
+                  <span className="text-text-tertiary">Okunan sayfa</span>
                   <span className="font-medium">
                     {results.filter((r) => r.success).length}/{results.length}
                   </span>
@@ -520,7 +520,7 @@ export default function OpticReading() {
           </CardHeader>
           <CardContent className="space-y-4">
             {results.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+              <div className="flex flex-col items-center justify-center py-16 text-center text-text-tertiary">
                 <Upload className="h-10 w-10 mb-3 opacity-40" />
                 <p>Henüz okuma yapılmadı.</p>
               </div>
@@ -553,13 +553,13 @@ export default function OpticReading() {
                         return (
                           <TableRow
                             key={fi}
-                            className={`cursor-pointer ${selected === fi ? "bg-muted/40" : ""}`}
+                            className={`cursor-pointer ${selected === fi ? "bg-background-secondary-default/40" : ""}`}
                             onClick={() => setSelected(fi)}
                           >
                             <TableCell className="text-xs max-w-[140px] truncate">{r.file_name}</TableCell>
                             <TableCell className="text-xs font-mono">{r.qr || "-"}</TableCell>
                             {r.fields.map((f) => (
-                              <TableCell key={f.id} className={`text-xs font-mono ${f.value ? "" : "text-muted-foreground"}`}>
+                              <TableCell key={f.id} className={`text-xs font-mono ${f.value ? "" : "text-text-tertiary"}`}>
                                 {fieldValue(f)}
                               </TableCell>
                             ))}
@@ -631,19 +631,19 @@ export default function OpticReading() {
                         </div>
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Referans karesi</span>
+                            <span className="text-text-tertiary">Referans karesi</span>
                             <Badge variant={selectedResult.marks_detected >= 4 ? "secondary" : "outline"}>
                               {selectedResult.marks_detected}/5
                             </Badge>
                           </div>
                           {selectedResult.fields.map((f) => (
                             <div key={f.id} className="flex items-center justify-between">
-                              <span className="text-muted-foreground">{f.label}</span>
+                              <span className="text-text-tertiary">{f.label}</span>
                               <span className="font-mono font-bold text-base">{fieldValue(f)}</span>
                             </div>
                           ))}
                           <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">QR</span>
+                            <span className="text-text-tertiary">QR</span>
                             <span className="font-mono">{selectedResult.qr || "-"}</span>
                           </div>
                         </div>
@@ -663,7 +663,7 @@ export default function OpticReading() {
                                   return (
                                     <TableHead key={g.subject} className="text-center">
                                       {g.subject}
-                                      <span className="block text-[10px] font-normal text-muted-foreground">
+                                      <span className="block text-[10px] font-normal text-text-tertiary">
                                         (Q{gi + 1})
                                       </span>
                                     </TableHead>
@@ -677,7 +677,7 @@ export default function OpticReading() {
                                 (_, qi) => qi + 1,
                               ).map((qno) => (
                                 <TableRow key={qno}>
-                                  <TableCell className="text-xs text-muted-foreground">{qno}</TableCell>
+                                  <TableCell className="text-xs text-text-tertiary">{qno}</TableCell>
                                   {selectedResult.grids.map((g, gi) => {
                                     const a = g.answers.find((ans) => ans.no === qno);
                                     const gr = manifest?.grids.find((mg) => mg.subject === g.subject);

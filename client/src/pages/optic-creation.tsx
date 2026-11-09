@@ -317,7 +317,7 @@ export default function OpticCreate() {
       <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
         <div>
           <h1 className="text-title-1-semibold text-text-primary">Optik Oluşturma</h1>
-          <p className="text-muted-foreground mt-1">Yeni bir optik form oluşturun veya kayıtlı bir formu düzenleyin.</p>
+          <p className="text-text-tertiary mt-1">Yeni bir optik form oluşturun veya kayıtlı bir formu düzenleyin.</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -340,7 +340,7 @@ export default function OpticCreate() {
                 <Label htmlFor="new-form-size">Kağıt Boyutu</Label>
                 <select
                   id="new-form-size"
-                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  className="h-9 w-full rounded-md border border-border-button-default bg-transparent px-3 text-sm"
                   value={newFormSize}
                   onChange={(e) => setNewFormSize(e.target.value as "A4" | "A5")}
                 >
@@ -364,12 +364,12 @@ export default function OpticCreate() {
               <CardDescription>Daha önce tasarladığınız formları düzenleyin.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 max-h-[420px] overflow-auto">
-              {forms.length === 0 && <p className="text-sm text-muted-foreground">Henüz kayıtlı form yok.</p>}
+              {forms.length === 0 && <p className="text-sm text-text-tertiary">Henüz kayıtlı form yok.</p>}
               {forms.map((f) => (
-                <div key={f.id} className="flex items-center justify-between gap-2 rounded-lg border border-border/70 p-3 hover:border-primary/40 transition-colors">
+                <div key={f.id} className="flex items-center justify-between gap-2 rounded-lg border border-separator-border/70 p-3 hover:border-accent-600/40 transition-colors">
                   <div className="min-w-0">
                     <div className="text-sm font-medium truncate">{f.name}</div>
-                    <div className="text-[11px] text-muted-foreground">
+                    <div className="text-[11px] text-text-tertiary">
                       {f.paperSize} · {f.grids.length} ders · {f.fields.length} bilgi alanı
                     </div>
                   </div>
@@ -377,7 +377,7 @@ export default function OpticCreate() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      className="h-7 w-7 text-text-tertiary hover:text-text-error-primary"
                       title="Formu sil"
                       onClick={() => deleteForm(f.id, f.name)}
                     >
@@ -398,7 +398,7 @@ export default function OpticCreate() {
 
   return (
     <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-      <div className="flex items-end gap-4 rounded-lg border bg-card px-4 py-2 shadow-sm">
+      <div className="flex items-end gap-4 rounded-lg border bg-background-primary-default px-4 py-2 shadow-sm">
         <div className="flex items-end gap-3">
           <div className="shrink-0 space-y-1">
             <Label htmlFor="form-name" className="text-xs">Form Adı</Label>
@@ -418,7 +418,7 @@ export default function OpticCreate() {
             <Label htmlFor="form-size" className="text-xs">Kağıt Boyutu</Label>
             <select
               id="form-size"
-              className="h-8 w-24 rounded-md border border-input bg-transparent px-2 text-sm"
+              className="h-8 w-24 rounded-md border border-border-button-default bg-transparent px-2 text-sm"
               value={form.paperSize}
               onChange={(e) => patch({ paperSize: e.target.value as "A4" | "A5" })}
             >
@@ -456,7 +456,7 @@ export default function OpticCreate() {
               style={{ maxHeight: previewHeightPx * previewScale + 32, overflowY: "auto" }}
             >
               {form.fields.map((field) => (
-                <div key={field.id} className="rounded-lg border border-border/70 p-2.5 space-y-2">
+                <div key={field.id} className="rounded-lg border border-separator-border/70 p-2.5 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Input
                       className="h-7 text-sm"
@@ -471,7 +471,7 @@ export default function OpticCreate() {
                     <div>
                       <Label className="text-xs">Tür</Label>
                       <select
-                        className="h-7 w-full rounded-md border border-input bg-transparent px-2 text-xs"
+                        className="h-7 w-full rounded-md border border-border-button-default bg-transparent px-2 text-xs"
                         value={isHeadingField(field) ? "heading" : isBoxField(field) ? "box" : isBookletField(field) ? "booklet" : isNumericField(field) ? "numeric" : "text"}
                         onChange={(e) => updateField(field.id, { type: e.target.value as FormTextField["type"] })}
                       >
@@ -616,7 +616,7 @@ export default function OpticCreate() {
             <CardDescription>Formun birebir çıktısı.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div ref={previewAreaRef} className="overflow-hidden rounded-lg border bg-muted/30 p-4">
+            <div ref={previewAreaRef} className="overflow-hidden rounded-lg border bg-background-secondary-default/30 p-4">
               <div
                 className="relative mx-auto"
                 style={{ width: previewWidthPx * previewScale, height: previewHeightPx * previewScale }}
@@ -677,7 +677,7 @@ export default function OpticCreate() {
           </CardHeader>
           <CardContent className="space-y-3">
             {form.grids.map((grid) => (
-              <div key={grid.id} className="rounded-lg border border-border/70 p-2.5 space-y-2">
+              <div key={grid.id} className="rounded-lg border border-separator-border/70 p-2.5 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <Input
                     className="h-7 text-sm"
@@ -703,7 +703,7 @@ export default function OpticCreate() {
                   <div>
                     <Label className="text-xs">Seçenek</Label>
                     <select
-                      className="h-7 w-full rounded-md border border-input bg-transparent px-2 text-xs"
+                      className="h-7 w-full rounded-md border border-border-button-default bg-transparent px-2 text-xs"
                       value={grid.optionCount}
                       onChange={(e) => updateGrid(grid.id, { optionCount: Number(e.target.value) as 4 | 5 })}
                     >

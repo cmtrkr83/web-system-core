@@ -263,17 +263,17 @@ export default function Reports() {
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-title-1-semibold text-text-primary">Teslim Tutanakları</h1>
-          <p className="text-muted-foreground mt-1">Sınav evrakları için ilçe ve okul teslim tutanaklarını oluşturun.</p>
+          <p className="text-text-tertiary mt-1">Sınav evrakları için ilçe ve okul teslim tutanaklarını oluşturun.</p>
         </div>
-        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-accent-600/15 bg-accent-600/5 px-3 py-1.5 text-xs font-medium text-accent-600">
           <ClipboardCheck className="h-3.5 w-3.5" />
           {generated ? "Son belge hazır" : "Belge üretmeye hazır"}
         </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
-        <Card className="flex h-full flex-col overflow-hidden rounded-2xl border-border/70 shadow-sm">
-          <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
+        <Card className="flex h-full flex-col overflow-hidden rounded-2xl border-separator-border/70 shadow-sm">
+          <CardHeader className="border-b border-separator-border/60 bg-background-secondary-default/20 pb-5">
              <div className="flex items-start gap-3">
                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
                   <FileSignature className="w-5 h-5" />
@@ -285,26 +285,26 @@ export default function Reports() {
              </div>
           </CardHeader>
           <CardContent className="flex-1 space-y-4 p-5">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-text-tertiary">
               Bu tutanak, ODM ile ilçe milli eğitim müdürlüklerinin sınav evraklarını teslim ederken ya da teslim alırken kullanacakları belgedir.
             </p>
-            <div className="rounded-xl border border-border/70 bg-muted/30 p-4 text-sm">
-              <ul className="space-y-2 text-muted-foreground">
+            <div className="rounded-xl border border-separator-border/70 bg-background-secondary-default/30 p-4 text-sm">
+              <ul className="space-y-2 text-text-tertiary">
                 <li>İlçe adı</li>
                 <li>Poşet sayısı</li>
                 <li>Teslim eden/alan bilgileri</li>
               </ul>
             </div>
           </CardContent>
-          <CardFooter className="mt-auto border-t border-border/60 bg-muted/10 p-5">
+          <CardFooter className="mt-auto border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
             <Button className="w-full rounded-xl shadow-sm" leadingIcon={<FileDown />} onClick={handleCreateDistrictReport} disabled={!isLoaded || districts.length === 0}>
               İlçe Tutanağı Oluştur
             </Button>
           </CardFooter>
         </Card>
 
-        <Card className="flex h-full flex-col overflow-hidden rounded-2xl border-border/70 shadow-sm">
-          <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
+        <Card className="flex h-full flex-col overflow-hidden rounded-2xl border-separator-border/70 shadow-sm">
+          <CardHeader className="border-b border-separator-border/60 bg-background-secondary-default/20 pb-5">
              <div className="flex items-start gap-3">
                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400">
                     <FileCheck className="w-5 h-5" />
@@ -316,17 +316,17 @@ export default function Reports() {
              </div>
           </CardHeader>
           <CardContent className="flex-1 space-y-5 p-5">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-text-tertiary">
               Bu tutanak, İlçe müdürlüklerinin sınav evraklarını okul müdürlüklerine teslim ederken kullanacakları belgedir.
             </p>
-            <div className="space-y-4 rounded-xl border border-border/70 bg-muted/20 p-4">
+            <div className="space-y-4 rounded-xl border border-separator-border/70 bg-background-secondary-default/20 p-4">
                <div className="space-y-2.5">
-                <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <MapPin className="h-3.5 w-3.5 text-primary" />
+                <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                    <MapPin className="h-3.5 w-3.5 text-accent-600" />
                     İlçe Filtresi
                 </Label>
                 <Select value={selectedDistrictForSchool} onValueChange={setSelectedDistrictForSchool}>
-                    <SelectTrigger className="h-11 rounded-xl border-border/70 bg-background shadow-sm transition-colors hover:border-primary/50 focus:ring-2 focus:ring-primary/20">
+                    <SelectTrigger className="h-11 rounded-xl border-separator-border/70 bg-background-full shadow-sm transition-colors hover:border-accent-600/50 focus:ring-2 focus:ring-border-focus-ring/20">
                     <SelectValue placeholder="Tüm İlçeler" />
                     </SelectTrigger>
                   <SelectContent>
@@ -337,16 +337,16 @@ export default function Reports() {
                   </SelectContent>
                 </Select>
                </div>
-               <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-background p-3">
+               <div className="flex items-start gap-3 rounded-lg border border-separator-border/60 bg-background-full p-3">
                   <Checkbox id="blank" className="mt-0.5" checked={isBlankTemplate} onCheckedChange={(checked) => setIsBlankTemplate(checked === true)} />
                   <div className="space-y-0.5">
                     <Label htmlFor="blank" className="cursor-pointer font-medium">Boş şablon olarak indir</Label>
-                    <p className="text-xs text-muted-foreground">Okul adları olmadan boş tutanak sayfaları oluşturur.</p>
+                    <p className="text-xs text-text-tertiary">Okul adları olmadan boş tutanak sayfaları oluşturur.</p>
                   </div>
                </div>
             </div>
           </CardContent>
-          <CardFooter className="mt-auto border-t border-border/60 bg-muted/10 p-5">
+          <CardFooter className="mt-auto border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
             <Button className="w-full rounded-xl shadow-sm" leadingIcon={<FileDown />} onClick={handleCreateSchoolReport} disabled={!isBlankTemplate && (!isLoaded || schools.length === 0)}>
               Okul Tutanaklarını Oluştur
             </Button>

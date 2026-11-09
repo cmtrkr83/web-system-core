@@ -62,9 +62,9 @@ export default function Dashboard() {
           <p className="mt-1 text-body-regular text-text-secondary">Sınav kütük sistemi durum özeti ve istatistikler.</p>
           {selectedExam && (
             <div className="mt-3 flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">
-                Aktif Sınav: <span className="text-primary">{selectedExam.name}</span>
+              <BookOpen className="h-4 w-4 text-accent-600" />
+              <span className="text-sm font-medium text-text-primary">
+                Aktif Sınav: <span className="text-accent-600">{selectedExam.name}</span>
               </span>
             </div>
           )}
@@ -74,10 +74,10 @@ export default function Dashboard() {
             <BookOpen className="mr-2 h-4 w-4" />
             Başlangıça Dön
           </Button>
-          <div className="text-sm text-muted-foreground bg-red-50 px-4 py-2 rounded-xl border border-red-200">
+          <div className="text-sm text-text-tertiary bg-red-50 px-4 py-2 rounded-xl border border-red-200">
             {isLoaded ? (
               <div className="space-y-0.5">
-                <div className="font-medium text-foreground">Veriler Güncel</div>
+                <div className="font-medium text-text-primary">Veriler Güncel</div>
                 <div>Son Dosya: {sourceFileText}</div>
                 <div>DB Yüklenme: {loadedAtText}</div>
               </div>
@@ -89,13 +89,13 @@ export default function Dashboard() {
       <StatCards stats={statCards} columns={4} />
 
       <div className="grid gap-6 md:grid-cols-7">
-        <Card className="md:col-span-4 overflow-hidden rounded-2xl border-border/70 shadow-sm">
-          <CardHeader className="flex-row items-start justify-between space-y-0 border-b border-border/60 pb-4">
+        <Card className="md:col-span-4 overflow-hidden rounded-2xl border-separator-border/70 shadow-sm">
+          <CardHeader className="flex-row items-start justify-between space-y-0 border-b border-separator-border/60 pb-4">
             <div className="space-y-1">
               <CardTitle className="text-base">İlçelere Göre {chartLabel} Dağılımı</CardTitle>
               <CardDescription>İlçelerdeki {chartLabel.toLocaleLowerCase("tr-TR")} dağılımı.</CardDescription>
             </div>
-            <div className="flex items-center rounded-xl border border-border/70 bg-muted/40 p-0.5">
+            <div className="flex items-center rounded-xl border border-separator-border/70 bg-background-secondary-default/40 p-0.5">
               {(["students", "schools"] as const).map((metric) => {
                 const isActive = chartMetric === metric;
                 const label = metric === "students" ? "Öğrenci" : "Okul";
@@ -106,8 +106,8 @@ export default function Dashboard() {
                     onClick={() => setChartMetric(metric)}
                     className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                       isActive
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "bg-background-full text-text-primary shadow-sm"
+                        : "text-text-tertiary hover:text-text-primary"
                     }`}
                     aria-pressed={isActive}
                   >
@@ -151,14 +151,14 @@ export default function Dashboard() {
                     content={({ active, payload, label }) => {
                       if (!active || !payload?.length) return null;
                       return (
-                        <div className="rounded-xl border border-border/70 bg-background/95 px-3 py-2.5 shadow-lg backdrop-blur-sm">
-                          <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p>
+                        <div className="rounded-xl border border-separator-border/70 bg-background-full/95 px-3 py-2.5 shadow-lg backdrop-blur-sm">
+                          <p className="mb-1 text-xs font-medium text-text-tertiary">{label}</p>
                           <div className="flex items-center gap-2">
                             <span className="size-2 rounded-full bg-blue-500" />
-                            <span className="text-sm font-semibold text-foreground">
+                            <span className="text-sm font-semibold text-text-primary">
                               {Number(payload[0].value ?? 0).toLocaleString("tr-TR")}
                             </span>
-                            <span className="text-xs text-muted-foreground">{chartLabel.toLocaleLowerCase("tr-TR")}</span>
+                            <span className="text-xs text-text-tertiary">{chartLabel.toLocaleLowerCase("tr-TR")}</span>
                           </div>
                         </div>
                       );
@@ -180,14 +180,14 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="relative md:col-span-3 overflow-hidden rounded-2xl border-border/70 bg-background shadow-sm">
-          <div className="pointer-events-none absolute -right-20 -top-20 size-48 rounded-full bg-primary/10 blur-3xl" />
-          <CardHeader className="relative z-10 flex-row items-start justify-between space-y-0 border-b border-border/60 pb-4">
+        <Card className="relative md:col-span-3 overflow-hidden rounded-2xl border-separator-border/70 bg-background-full shadow-sm">
+          <div className="pointer-events-none absolute -right-20 -top-20 size-48 rounded-full bg-accent-600/10 blur-3xl" />
+          <CardHeader className="relative z-10 flex-row items-start justify-between space-y-0 border-b border-separator-border/60 pb-4">
             <div className="space-y-1">
               <CardTitle className="text-base">Hızlı İşlemler</CardTitle>
               <CardDescription>Sık kullanılan araçlara hızlı erişim.</CardDescription>
             </div>
-            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+            <span className="rounded-full bg-accent-600/10 px-2.5 py-1 text-[11px] font-medium text-accent-600">
               Kısayollar
             </span>
           </CardHeader>
@@ -199,40 +199,40 @@ export default function Dashboard() {
             />
             <div className="grid grid-cols-2 gap-2.5">
                <button
-                 className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-border/70 bg-muted/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.04] hover:shadow-sm"
+                 className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-separator-border/70 bg-background-secondary-default/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-accent-600/30 hover:bg-accent-600/[0.04] hover:shadow-sm"
                  onClick={() => setLocation("/room-lists")}
                >
                  <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white dark:bg-blue-950/40 dark:text-blue-300">
                    <FileText className="h-4 w-4" />
                  </div>
-                 <span className="text-xs font-medium text-foreground">Salon Listesi</span>
+                 <span className="text-xs font-medium text-text-primary">Salon Listesi</span>
                </button>
                <button
-                 className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-border/70 bg-muted/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.04] hover:shadow-sm"
+                 className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-separator-border/70 bg-background-secondary-default/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-accent-600/30 hover:bg-accent-600/[0.04] hover:shadow-sm"
                  onClick={() => setLocation("/branch-labels")}
                >
                  <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-600 group-hover:text-white dark:bg-emerald-950/40 dark:text-emerald-300">
                    <Package className="h-4 w-4" />
                  </div>
-                 <span className="text-xs font-medium text-foreground">Şube Etiketi Bas</span>
+                 <span className="text-xs font-medium text-text-primary">Şube Etiketi Bas</span>
                </button>
                <button
-                 className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-border/70 bg-muted/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.04] hover:shadow-sm"
+                 className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-separator-border/70 bg-background-secondary-default/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-accent-600/30 hover:bg-accent-600/[0.04] hover:shadow-sm"
                  onClick={() => setLocation("/labels")}
                >
                  <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-500 group-hover:text-white dark:bg-amber-950/40 dark:text-amber-300">
                    <Tags className="h-4 w-4" />
                  </div>
-                 <span className="text-xs font-medium text-foreground">Okul Etiketi Bas</span>
+                 <span className="text-xs font-medium text-text-primary">Okul Etiketi Bas</span>
                </button>
                <button
-                 className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-border/70 bg-muted/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.04] hover:shadow-sm"
+                 className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-separator-border/70 bg-background-secondary-default/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-accent-600/30 hover:bg-accent-600/[0.04] hover:shadow-sm"
                  onClick={() => setLocation("/reports")}
                >
                  <div className="flex size-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600 transition-colors group-hover:bg-violet-600 group-hover:text-white dark:bg-violet-950/40 dark:text-violet-300">
                    <ClipboardCheck className="h-4 w-4" />
                  </div>
-                 <span className="text-xs font-medium text-foreground">Teslim Tutanağı Bas</span>
+                 <span className="text-xs font-medium text-text-primary">Teslim Tutanağı Bas</span>
                </button>
             </div>
           </CardContent>

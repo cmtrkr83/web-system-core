@@ -372,19 +372,19 @@ export default function Labels() {
 			<div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
 				<div>
 				<h1 className="text-title-1-semibold text-text-primary">Okul Etiketi Hazırlama</h1>
-				<p className="text-muted-foreground mt-1">Sınav evrak poşetleri için okul etiketleri oluşturun.</p>
+				<p className="text-text-tertiary mt-1">Sınav evrak poşetleri için okul etiketleri oluşturun.</p>
 				</div>
-				<div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+				<div className="inline-flex w-fit items-center gap-2 rounded-full border border-accent-600/15 bg-accent-600/5 px-3 py-1.5 text-xs font-medium text-accent-600">
 					<Tags className="h-3.5 w-3.5" />
 					{totalPages} sayfa
 				</div>
 			</div>
 
 			<div className="grid lg:grid-cols-3 gap-8">
-				<Card className="lg:col-span-1 h-fit overflow-hidden rounded-2xl border-border/70 shadow-sm">
-					<CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
+				<Card className="lg:col-span-1 h-fit overflow-hidden rounded-2xl border-separator-border/70 shadow-sm">
+					<CardHeader className="border-b border-separator-border/60 bg-background-secondary-default/20 pb-5">
 						<div className="flex items-start gap-3">
-							<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Tags className="h-5 w-5" /></div>
+							<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-600/10 text-accent-600"><Tags className="h-5 w-5" /></div>
 							<div><CardTitle className="text-base">Etiket Ayarları</CardTitle>
 						<CardDescription>Sayfa düzeni ve görünüm ayarları.</CardDescription>
 							</div>
@@ -416,9 +416,9 @@ export default function Labels() {
 
 						<div className="grid gap-4 mt-2">
 							<div className="space-y-2.5">
-								<Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><MapPin className="h-3.5 w-3.5 text-primary" />İlçe Seçimi</Label>
+								<Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary"><MapPin className="h-3.5 w-3.5 text-accent-600" />İlçe Seçimi</Label>
 								<Select value={selectedDistrict || "all"} onValueChange={(value) => { setSelectedDistrict(value === "all" ? "" : value); setSelectedSchool(""); setCurrentPage(0); }}>
-									<SelectTrigger className="h-11 rounded-xl border-border/70 bg-background shadow-sm"><SelectValue placeholder="İlçe seçin" /></SelectTrigger>
+									<SelectTrigger className="h-11 rounded-xl border-separator-border/70 bg-background-full shadow-sm"><SelectValue placeholder="İlçe seçin" /></SelectTrigger>
 									<SelectContent>
 										<SelectItem value="all">Tüm İlçeler</SelectItem>
 										{ctxDistricts.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
@@ -426,9 +426,9 @@ export default function Labels() {
 								</Select>
 							</div>
 							<div className="space-y-2.5">
-								<Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><School className="h-3.5 w-3.5 text-primary" />Okul Seçimi</Label>
+								<Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary"><School className="h-3.5 w-3.5 text-accent-600" />Okul Seçimi</Label>
 								<Select value={selectedSchool || "all"} onValueChange={(value) => { setSelectedSchool(value === "all" ? "" : value); setCurrentPage(0); }} disabled={!selectedDistrict}>
-									<SelectTrigger className="h-11 rounded-xl border-border/70 bg-background shadow-sm disabled:cursor-not-allowed disabled:opacity-60"><SelectValue placeholder={selectedDistrict ? "Okul seçin" : "Önce ilçe seçin"} /></SelectTrigger>
+									<SelectTrigger className="h-11 rounded-xl border-separator-border/70 bg-background-full shadow-sm disabled:cursor-not-allowed disabled:opacity-60"><SelectValue placeholder={selectedDistrict ? "Okul seçin" : "Önce ilçe seçin"} /></SelectTrigger>
 									<SelectContent>
 										<SelectItem value="all">Tüm Okullar</SelectItem>
 										{filteredSchools.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -444,7 +444,7 @@ export default function Labels() {
 									value={lessonName}
 									onChange={(e) => setLessonName(e.target.value)}
 								/>
-								<p className="text-xs text-muted-foreground">
+								<p className="text-xs text-text-tertiary">
 									Doldurulursa etiketlerde ders adı görüntülenir.
 								</p>
 							</div>
@@ -465,7 +465,7 @@ export default function Labels() {
 										<RadioGroupItem value={s.id} id={s.id} className="peer sr-only" />
 										<Label
 											htmlFor={s.id}
-											className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer transition-all"
+											className="flex flex-col items-center justify-between rounded-md border-2 border-separator-border bg-background-primary-default p-2 hover:bg-background-secondary-default hover:text-text-primary peer-data-[state=checked]:border-accent-600 cursor-pointer transition-all"
 										>
 											<div className={cn("w-full h-8 rounded mb-2 border", s.primary || "bg-white", s.border)}></div>
 											<span className="text-xs font-medium">{s.name}</span>
@@ -475,7 +475,7 @@ export default function Labels() {
 							</RadioGroup>
 						</div>
 					</CardContent>
-					<CardFooter className="flex-col gap-2 border-t border-border/60 bg-muted/10 p-5">
+					<CardFooter className="flex-col gap-2 border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
 						<Button className="w-full rounded-xl shadow-sm" size="lg" onClick={handleHtmlPrint}>
 							<Printer className="mr-2 h-4 w-4" />
 							Etiketleri HTML Yazdır
@@ -484,24 +484,24 @@ export default function Labels() {
 				</Card>
 
 				<div className="lg:col-span-2 flex flex-col gap-8">
-					<Card className="overflow-hidden rounded-2xl border-border/70 bg-muted/20 shadow-sm">
-						<CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-border/60 pb-4">
+					<Card className="overflow-hidden rounded-2xl border-separator-border/70 bg-background-secondary-default/20 shadow-sm">
+						<CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-separator-border/60 pb-4">
 							<CardTitle className="inline-flex items-center gap-2 flex-1 min-w-0 m-0">
-								<span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary"><Eye className="w-4 h-4 flex-shrink-0" /></span>
+								<span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-600/10 text-accent-600"><Eye className="w-4 h-4 flex-shrink-0" /></span>
 								<span className="truncate">Önizleme</span>
 							</CardTitle>
-							<div className="flex items-center gap-1 rounded-xl border border-border/70 bg-background p-1 shadow-sm">
+							<div className="flex items-center gap-1 rounded-xl border border-separator-border/70 bg-background-full p-1 shadow-sm">
 								<Button variant="table" size="icon"
-									className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted disabled:opacity-40"
+									className="h-8 w-8 rounded-lg text-text-tertiary hover:bg-background-secondary-default disabled:opacity-40"
 									onClick={handlePrevPage}
 									disabled={currentPage === 0}
 									aria-label="Önceki Sayfa"
 								>
 									<ChevronLeft className="w-4 h-4" />
 								</Button>
-								<span className="min-w-[58px] text-center text-xs font-medium tabular-nums text-muted-foreground">{currentPage + 1} / {totalPages}</span>
+								<span className="min-w-[58px] text-center text-xs font-medium tabular-nums text-text-tertiary">{currentPage + 1} / {totalPages}</span>
 								<Button variant="table" size="icon"
-									className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted disabled:opacity-40"
+									className="h-8 w-8 rounded-lg text-text-tertiary hover:bg-background-secondary-default disabled:opacity-40"
 									onClick={handleNextPage}
 									disabled={currentPage === totalPages - 1}
 									aria-label="Sonraki Sayfa"
@@ -510,9 +510,9 @@ export default function Labels() {
 								</Button>
 							</div>
 						</CardHeader>
-						<CardContent className="flex min-h-[500px] items-start justify-center overflow-auto bg-muted/30 p-6">
+						<CardContent className="flex min-h-[500px] items-start justify-center overflow-auto bg-background-secondary-default/30 p-6">
 							{!isLoaded ? (
-								<div className="text-center text-muted-foreground">
+								<div className="text-center text-text-tertiary">
 									<p className="font-semibold mb-2">Henüz veri yüklenmemiş</p>
 									<p className="text-sm">Lütfen Başlangıç sayfasından Excel dosyası yükleyin.</p>
 								</div>
@@ -574,11 +574,11 @@ export default function Labels() {
 												</div>
 												<div className="grid grid-cols-2" style={{ gap: `${boxPaddingMm}mm` }}>
 													<div className="h-full min-w-0 min-h-0 overflow-hidden flex flex-col justify-center bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
-														<p className="text-muted-foreground uppercase" style={{ fontSize: `${infoLabelFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>Şube Sayısı</p>
+														<p className="text-text-tertiary uppercase" style={{ fontSize: `${infoLabelFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>Şube Sayısı</p>
 														<p className="font-bold" style={{ fontSize: `${infoValueFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>{branchCount}</p>
 													</div>
 													<div className="h-full min-w-0 min-h-0 overflow-hidden flex flex-col justify-center bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
-														<p className="text-muted-foreground uppercase" style={{ fontSize: `${infoLabelFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>Öğrenci Sayısı</p>
+														<p className="text-text-tertiary uppercase" style={{ fontSize: `${infoLabelFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>Öğrenci Sayısı</p>
 														<p className="font-bold" style={{ fontSize: `${infoValueFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>{studentCount}</p>
 													</div>
 												</div>

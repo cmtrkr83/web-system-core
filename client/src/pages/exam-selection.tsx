@@ -677,16 +677,16 @@ export default function ExamSelection() {
   const renderWizardContent = () => {
     return (
       <div className="space-y-6 py-2">
-        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between gap-2 text-xs text-text-tertiary">
           {wizardSteps.map((item) => (
             <div
               key={item.step}
               className={`flex items-center gap-2 rounded-full border px-3 py-1.5 ${
                 currentStep === item.step
-                  ? "border-primary bg-primary/10 text-primary"
+                  ? "border-accent-600 bg-accent-600/10 text-accent-600"
                   : currentStep > item.step
                     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-border bg-muted/30"
+                    : "border-separator-border bg-background-secondary-default/30"
               }`}
             >
               <span className="font-semibold">{item.step}</span>
@@ -730,7 +730,7 @@ export default function ExamSelection() {
                 value={examData.description}
                 onChange={handleInputChange}
                 disabled={loading}
-                className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                className="min-h-[96px] w-full rounded-md border border-border-button-default bg-background-full px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-border-focus-ring/50 disabled:opacity-50"
                 rows={4}
               />
             </div>
@@ -796,7 +796,7 @@ export default function ExamSelection() {
               {mappingFields.map((field) => (
                 <div key={String(field.key)} className="space-y-2">
                   <Label>
-                    {field.label} {field.required ? <span className="text-destructive">*</span> : null}
+                    {field.label} {field.required ? <span className="text-text-error-primary">*</span> : null}
                   </Label>
                   <Select
                     value={columnMapping[field.key] || undefined}
@@ -824,9 +824,9 @@ export default function ExamSelection() {
               ))}
             </div>
 
-            <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+            <div className="rounded-xl border bg-background-secondary-default/20 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-foreground">Ek Sütunlar</p>
+                <p className="text-sm font-medium text-text-primary">Ek Sütunlar</p>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -834,15 +834,15 @@ export default function ExamSelection() {
                       const used = Object.values(columnMapping).filter(Boolean);
                       setExtraColumns(new Set(excelColumns.filter(c => !used.includes(c))));
                     }}
-                    className="text-xs text-primary hover:underline"
+                    className="text-xs text-accent-600 hover:underline"
                   >
                     Tümünü Seç
                   </button>
-                  <span className="text-xs text-muted-foreground">|</span>
+                  <span className="text-xs text-text-tertiary">|</span>
                   <button
                     type="button"
                     onClick={() => setExtraColumns(new Set())}
-                    className="text-xs text-muted-foreground hover:underline"
+                    className="text-xs text-text-tertiary hover:underline"
                   >
                     Temizle
                   </button>
@@ -856,8 +856,8 @@ export default function ExamSelection() {
                       key={column}
                       className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer transition-colors ${
                         isSelected
-                          ? "border-primary bg-primary/5 text-foreground"
-                          : "border-border text-muted-foreground hover:border-muted-foreground/30"
+                          ? "border-accent-600 bg-accent-600/5 text-text-primary"
+                          : "border-separator-border text-text-tertiary hover:border-border-button-hover/30"
                       }`}
                     >
                       <input
@@ -876,12 +876,12 @@ export default function ExamSelection() {
                   );
                 })}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-text-tertiary">
                 {extraColumns.size} ek sütun seçili
               </p>
             </div>
 
-            <div className="rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground">
+            <div className="rounded-lg border bg-background-secondary-default/20 p-4 text-sm text-text-tertiary">
               {rawData.length} satır yüklendi. Zorunlu alanlar: İlçe, Kurum/Okul Kodu, Öğrenci ID ve Öğrenci Adı. Okul adı boşsa kurum koduyla gösterilir.
             </div>
 
@@ -900,11 +900,11 @@ export default function ExamSelection() {
 
         {currentStep === 4 && (
           <div className="space-y-6">
-            <div className="rounded-xl border bg-muted/20 p-5 space-y-4">
+            <div className="rounded-xl border bg-background-secondary-default/20 p-5 space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">Özel Gereksinimli Öğrencileri Dahil Etme</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-medium text-text-primary">Özel Gereksinimli Öğrencileri Dahil Etme</p>
+                  <p className="text-xs text-text-tertiary">
                     Okul adında <span className="font-medium">uygulama</span> veya <span className="font-medium">kademe</span> geçen okullar ile şube adında{" "}
                     <span className="font-medium">hafif, ağır, zihinsel, işitme</span> geçen şubeler kapsam dışı bırakılır.
                   </p>
@@ -914,8 +914,8 @@ export default function ExamSelection() {
                   role="switch"
                   aria-checked={excludeSpecialNeeds}
                   onClick={() => setExcludeSpecialNeeds((prev) => !prev)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 ${
-                    excludeSpecialNeeds ? "bg-primary" : "bg-muted"
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus-ring/50 ${
+                    excludeSpecialNeeds ? "bg-accent-600" : "bg-background-secondary-default"
                   }`}
                 >
                   <span
@@ -943,21 +943,21 @@ export default function ExamSelection() {
         {currentStep === 5 && (
           <div className="space-y-4 overflow-x-hidden">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border bg-background px-3 py-3">
-                <p className="text-xs text-muted-foreground">İlçe</p>
+              <div className="rounded-xl border bg-background-full px-3 py-3">
+                <p className="text-xs text-text-tertiary">İlçe</p>
                 <p className="mt-1 text-xl font-bold">{stats.districts}</p>
               </div>
-              <div className="rounded-xl border bg-background px-3 py-3">
-                <p className="text-xs text-muted-foreground">Okul</p>
+              <div className="rounded-xl border bg-background-full px-3 py-3">
+                <p className="text-xs text-text-tertiary">Okul</p>
                 <p className="mt-1 text-xl font-bold">{stats.schools}</p>
               </div>
-              <div className="rounded-xl border bg-background px-3 py-3">
-                <p className="text-xs text-muted-foreground">Öğrenci</p>
+              <div className="rounded-xl border bg-background-full px-3 py-3">
+                <p className="text-xs text-text-tertiary">Öğrenci</p>
                 <p className="mt-1 text-xl font-bold">{stats.students}</p>
               </div>
             </div>
 
-            <div className="rounded-xl border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+            <div className="rounded-xl border bg-background-secondary-default/20 px-4 py-3 text-sm text-text-tertiary">
               {currentStep === 5 && createdExamId ? (
                 <p>{stats.students} öğrenci kaydı seçili sınava bağlanacak.</p>
               ) : null}
@@ -965,13 +965,13 @@ export default function ExamSelection() {
 
             {rawData.length > 0 && (
               <div className="rounded-xl border">
-                <div className="border-b bg-muted/30 px-4 py-3 text-sm font-medium text-foreground">İlk kayıt önizlemesi</div>
+                <div className="border-b bg-background-secondary-default/30 px-4 py-3 text-sm font-medium text-text-primary">İlk kayıt önizlemesi</div>
                 <div className="max-h-56 overflow-y-auto">
                   <table className="w-full text-left text-sm table-fixed">
-                    <thead className="sticky top-0 bg-background">
+                    <thead className="sticky top-0 bg-background-full">
                       <tr className="border-b">
                         {[columnMapping.studentNumber, ...Array.from(extraColumns)].filter(Boolean).map((label, i) => (
-                          <th key={i} className="px-2 py-2 font-medium text-muted-foreground truncate">{label}</th>
+                          <th key={i} className="px-2 py-2 font-medium text-text-tertiary truncate">{label}</th>
                         ))}
                       </tr>
                     </thead>
@@ -1010,7 +1010,7 @@ export default function ExamSelection() {
       <div className="container mx-auto px-4 py-10 md:py-12">
         {/* Header */}
         <div className="mx-auto mb-10 max-w-3xl text-center">
-          <div className="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
+          <div className="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-accent-600/10 text-accent-600 shadow-sm">
             <BookOpen className="h-7 w-7" />
           </div>
           <h1 className="mb-3 text-title-1-semibold tracking-tight text-text-primary md:text-display-2">Sınav Kütük Sistemi</h1>
@@ -1022,15 +1022,15 @@ export default function ExamSelection() {
         <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-3">
           {/* Create New Exam Card */}
           <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-            <Card className="group min-h-[280px] cursor-pointer border border-dashed border-primary/30 bg-primary/[0.03] transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-lg">
+            <Card className="group min-h-[280px] cursor-pointer border border-dashed border-accent-600/30 bg-accent-600/[0.03] transition-all hover:-translate-y-0.5 hover:border-accent-600/60 hover:shadow-lg">
               <DialogTrigger asChild>
                 <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-                  <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-105">
+                  <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-accent-600/10 text-accent-600 transition-transform group-hover:scale-105">
                     <Plus className="h-6 w-6" />
                   </div>
-                  <h3 className="mb-2 font-semibold text-foreground">Yeni Sınav Ekle</h3>
-                  <p className="max-w-[200px] text-sm text-muted-foreground">Sınav bilgilerini ve kütük dosyasını birlikte oluşturun.</p>
-                  <span className="mt-5 text-xs font-medium text-primary">Başlamak için tıklayın</span>
+                  <h3 className="mb-2 font-semibold text-text-primary">Yeni Sınav Ekle</h3>
+                  <p className="max-w-[200px] text-sm text-text-tertiary">Sınav bilgilerini ve kütük dosyasını birlikte oluşturun.</p>
+                  <span className="mt-5 text-xs font-medium text-accent-600">Başlamak için tıklayın</span>
                 </div>
               </DialogTrigger>
             </Card>
@@ -1048,13 +1048,13 @@ export default function ExamSelection() {
           {exams.map((exam) => (
             <Card
               key={exam.id}
-              className="group cursor-pointer overflow-hidden border-border/80 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              className="group cursor-pointer overflow-hidden border-separator-border/80 transition-all hover:-translate-y-0.5 hover:shadow-lg"
               onClick={() => handleSelectExam(exam.id)}
             >
               <CardHeader className="pb-3 pt-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <CardTitle className="text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                    <CardTitle className="text-lg text-text-primary group-hover:text-accent-600 transition-colors line-clamp-2">
                       {exam.name}
                     </CardTitle>
                     <div className="flex items-center gap-2 mt-2">
@@ -1075,7 +1075,7 @@ export default function ExamSelection() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="shrink-0 h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    className="shrink-0 h-8 w-8 text-text-tertiary hover:bg-border-error-default/10 hover:text-text-error-primary"
                     onClick={(event) => {
                       event.stopPropagation();
                       void handleDeleteExam(exam.id, exam.name);
@@ -1090,14 +1090,14 @@ export default function ExamSelection() {
 
               <CardContent className="space-y-4 pb-5">
                 {/* Date Info */}
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4 text-primary/60" />
-                  <span className="font-medium text-foreground">{formatDate(exam.date)}</span>
+                <div className="flex items-center gap-3 text-sm text-text-tertiary">
+                  <Calendar className="h-4 w-4 text-accent-600/60" />
+                  <span className="font-medium text-text-primary">{formatDate(exam.date)}</span>
                 </div>
 
                 {/* Created At Info */}
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4 text-primary/60" />
+                <div className="flex items-center gap-3 text-sm text-text-tertiary">
+                  <Clock className="h-4 w-4 text-accent-600/60" />
                   <span>Oluşturulma: {formatDate(exam.createdAt)}</span>
                 </div>
 
@@ -1117,9 +1117,9 @@ export default function ExamSelection() {
         {/* Empty State */}
         {exams.length === 0 && (
           <div className="text-center py-12">
-            <BookOpen className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Henüz Sınav Yok</h3>
-            <p className="text-muted-foreground mb-6">Başlamak için yeni bir sınav oluşturun.</p>
+            <BookOpen className="h-16 w-16 text-text-tertiary/30 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Henüz Sınav Yok</h3>
+            <p className="text-text-tertiary mb-6">Başlamak için yeni bir sınav oluşturun.</p>
             <Dialog open={open} onOpenChange={handleDialogOpenChange}>
               <DialogTrigger asChild>
                 <Button size="lg">
