@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/base/buttons/button";
-import { Input } from "@/components/ui/input";
+import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -401,13 +401,13 @@ export default function OpticCreate() {
         <div className="flex items-end gap-3">
           <div className="shrink-0 space-y-1">
             <Label htmlFor="form-name" className="text-xs">Form Adı</Label>
-            <Input id="form-name" className="h-8 w-72" value={form.name} onChange={(e) => patch({ name: e.target.value })} />
+            <Input id="form-name" fieldClassName="w-72" size="small" value={form.name} onChange={(e) => patch({ name: e.target.value })} />
           </div>
           <div className="shrink-0 space-y-1">
             <Label htmlFor="form-title" className="text-xs">Form Başlığı</Label>
             <Input
               id="form-title"
-              className="h-8 w-56"
+              fieldClassName="w-56" size="small"
               value={form.title ?? ""}
               placeholder="Örn. LGS Deneme Sınavı"
               onChange={(e) => patch({ title: e.target.value })}
@@ -458,7 +458,7 @@ export default function OpticCreate() {
                 <div key={field.id} className="rounded-lg border border-separator-border/70 p-2.5 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Input
-                      className="h-7 text-sm"
+                      className="text-sm" size="small"
                       value={field.label}
                       onChange={(e) => updateField(field.id, { label: e.target.value })}
                     />
@@ -503,7 +503,7 @@ export default function OpticCreate() {
                           min={0}
                           max={20}
                           step={0.5}
-                          className="h-7"
+                          size="small"
                           value={field.borderRadiusMm ?? 2}
                           onChange={(e) => updateField(field.id, { borderRadiusMm: Number(e.target.value) || 0 })}
                         />
@@ -515,7 +515,7 @@ export default function OpticCreate() {
                           type="number"
                           min={isBookletField(field) ? 2 : 1}
                           max={isBookletField(field) ? 12 : 30}
-                          className="h-7"
+                          size="small"
                           value={field.digitCount ?? (isBookletField(field) ? 4 : 11)}
                           onChange={(e) => updateField(field.id, { digitCount: Number(e.target.value) || 1 })}
                         />
@@ -544,7 +544,7 @@ export default function OpticCreate() {
                           min={10}
                           max={200}
                           step={0.5}
-                          className="h-7"
+                          size="small"
                           value={field.autoWidth === false ? field.widthMm ?? 88 : ""}
                           placeholder="Otomatik"
                           disabled={field.autoWidth !== false}
@@ -577,7 +577,7 @@ export default function OpticCreate() {
                           min={10}
                           max={200}
                           step={0.5}
-                          className="h-7"
+                          size="small"
                           value={field.widthMm}
                           onChange={(e) => updateField(field.id, { widthMm: Number(e.target.value) || 10 })}
                         />
@@ -589,7 +589,7 @@ export default function OpticCreate() {
                           min={3}
                           max={100}
                           step={0.5}
-                          className="h-7"
+                          size="small"
                           value={field.heightMm ?? 14}
                           onChange={(e) => updateField(field.id, { heightMm: Number(e.target.value) || 3 })}
                         />
@@ -677,7 +677,7 @@ export default function OpticCreate() {
               <div key={grid.id} className="rounded-lg border border-separator-border/70 p-2.5 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <Input
-                    className="h-7 text-sm"
+                    className="text-sm" size="small"
                     value={grid.subject}
                     onChange={(e) => updateGrid(grid.id, { subject: e.target.value })}
                   />
@@ -690,7 +690,7 @@ export default function OpticCreate() {
                       type="number"
                       min={1}
                       max={100}
-                      className="h-7"
+                      size="small"
                       value={grid.questionCount}
                       onChange={(e) => updateGrid(grid.id, { questionCount: Number(e.target.value) || 1 })}
                     />

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/base/buttons/button";
-import { Input } from "@/components/ui/input";
+import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useRegistry, District, School, Student } from "@/context/RegistryContext";

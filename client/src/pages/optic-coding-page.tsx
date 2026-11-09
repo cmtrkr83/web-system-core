@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRegistry, type Student } from "@/context/RegistryContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/base/buttons/button";
-import { Input } from "@/components/ui/input";
+import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -781,7 +781,7 @@ export default function OpticCoding() {
                     min={2}
                     max={12}
                     step={0.5}
-                    className="h-8"
+                    size="small"
                     value={selectedElement.fontSizeMm ?? 3}
                     onChange={(e) => updateElement(selectedElement.id, { fontSizeMm: Number(e.target.value) || undefined })}
                   />
@@ -791,7 +791,7 @@ export default function OpticCoding() {
                     min={0}
                     max={5}
                     step={0.5}
-                    className="h-8"
+                    size="small"
                     value={selectedElement.letterSpacingMm ?? 0}
                     onChange={(e) => updateElement(selectedElement.id, { letterSpacingMm: Number(e.target.value) || 0 })}
                   />
@@ -805,7 +805,7 @@ export default function OpticCoding() {
                     min={QR_MIN_SIZE_MM}
                     max={QR_MAX_SIZE_MM}
                     step={1}
-                    className="h-8"
+                    size="small"
                     value={selectedElement.qrSizeMm ?? QR_DEFAULT_SIZE_MM}
                     onChange={(e) =>
                       updateElement(selectedElement.id, {

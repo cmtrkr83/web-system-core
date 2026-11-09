@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/base/buttons/button";
-import { Input } from "@/components/ui/input";
+import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -343,7 +343,7 @@ export default function Evaluation() {
               type="file"
               accept=".csv"
               onChange={handleFileChange}
-              className="max-w-sm"
+              fieldClassName="max-w-sm"
             />
             <Button onClick={handleParseCsv} disabled={!csvFile || parsing} variant="primary">
               {parsing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
@@ -413,7 +413,7 @@ export default function Evaluation() {
                     max={50}
                     value={cikarmaParam}
                     onChange={(e) => setCikarmaParam(e.target.value)}
-                    className="w-20"
+                    fieldClassName="w-20"
                   />
                 </div>
               )}
@@ -425,7 +425,7 @@ export default function Evaluation() {
                     <Input
                       value={cikarmaAyirici}
                       onChange={(e) => setCikarmaAyirici(e.target.value)}
-                      className="w-20"
+                      fieldClassName="w-20"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -436,7 +436,7 @@ export default function Evaluation() {
                       max={20}
                       value={cikarmaParam}
                       onChange={(e) => setCikarmaParam(e.target.value)}
-                      className="w-20"
+                      fieldClassName="w-20"
                     />
                   </div>
                 </>
