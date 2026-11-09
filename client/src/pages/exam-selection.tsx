@@ -685,7 +685,7 @@ export default function ExamSelection() {
                 currentStep === item.step
                   ? "border-accent-600 bg-accent-600/10 text-accent-600"
                   : currentStep > item.step
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    ? "border-state-success-base bg-state-success-base text-state-success-text"
                     : "border-separator-border bg-background-secondary-default/30"
               }`}
             >
@@ -869,7 +869,7 @@ export default function ExamSelection() {
                           else next.add(column);
                           setExtraColumns(next);
                         }}
-                        className="rounded border-gray-300"
+                        className="rounded border-border-button-default"
                       />
                       <span className="truncate">{column}</span>
                     </label>
@@ -1066,7 +1066,7 @@ export default function ExamSelection() {
                           #{exam.sinavid}
                         </Badge>
                       )}
-                      <Badge variant="secondary" className="rounded-full text-emerald-700">
+                      <Badge variant="secondary" className="rounded-full text-status-lime-text">
                         Serbest
                       </Badge>
                     </div>

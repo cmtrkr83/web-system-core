@@ -579,8 +579,8 @@ export default function Evaluation() {
                     <TableHead className="w-10">#</TableHead>
                     <TableHead>Dosya</TableHead>
                     <TableHead>Kitapçık</TableHead>
-                    <TableHead className="text-center text-green-600">Doğru</TableHead>
-                    <TableHead className="text-center text-red-600">Yanlış</TableHead>
+                    <TableHead className="text-center text-status-lime-text">Doğru</TableHead>
+                    <TableHead className="text-center text-status-rose-text">Yanlış</TableHead>
                     <TableHead className="text-center text-text-tertiary">Boş</TableHead>
                     {Array.from({ length: Math.min(numQuestions, 8) }, (_, i) => (
                       <TableHead key={i} className="text-center w-10">S.{i + 1}</TableHead>
@@ -594,15 +594,15 @@ export default function Evaluation() {
                       <TableCell className="text-text-tertiary">{s.satir}</TableCell>
                       <TableCell className="max-w-32 truncate" title={s.dosya}>{s.dosya}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{s.kitapcikTuru}</Badge></TableCell>
-                      <TableCell className="text-center font-medium text-green-600">{s.dogru}</TableCell>
-                      <TableCell className="text-center font-medium text-red-600">{s.yanlis}</TableCell>
+                      <TableCell className="text-center font-medium text-status-lime-text">{s.dogru}</TableCell>
+                      <TableCell className="text-center font-medium text-status-rose-text">{s.yanlis}</TableCell>
                       <TableCell className="text-center font-medium text-text-tertiary">{s.bos}</TableCell>
                       {s.soruSonuclari.slice(0, 8).map((r, qi) => (
                         <TableCell key={qi} className="text-center">
                           {r === "dogru" ? (
-                            <CheckCircle2 className="w-4 h-4 text-green-500 inline" />
+                            <CheckCircle2 className="w-4 h-4 text-status-lime-text inline" />
                           ) : r === "yanlis" ? (
-                            <XCircle className="w-4 h-4 text-red-500 inline" />
+                            <XCircle className="w-4 h-4 text-status-rose-text inline" />
                           ) : (
                             <HelpCircle className="w-4 h-4 text-text-tertiary/50 inline" />
                           )}
@@ -623,13 +623,13 @@ export default function Evaluation() {
               </div>
               <div className="bg-background-secondary-default rounded-lg p-3 flex-1 min-w-[120px]">
                 <p className="text-xs text-text-tertiary">Ortalama Doğru</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-status-lime-text">
                   {(sonuclar.reduce((s, r) => s + r.dogru, 0) / sonuclar.length).toFixed(1)}
                 </p>
               </div>
               <div className="bg-background-secondary-default rounded-lg p-3 flex-1 min-w-[120px]">
                 <p className="text-xs text-text-tertiary">Ortalama Yanlış</p>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-2xl font-bold text-status-rose-text">
                   {(sonuclar.reduce((s, r) => s + r.yanlis, 0) / sonuclar.length).toFixed(1)}
                 </p>
               </div>

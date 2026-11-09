@@ -527,14 +527,14 @@ export default function OpticCoding() {
                           e.dataTransfer.setData("text/plain", col.key);
                           e.dataTransfer.effectAllowed = "copy";
                         }}
-                        className={`group flex items-center justify-between rounded-lg border px-2.5 py-2 ${isMapped ? "border-green-300/60 bg-green-50/40" : "border-separator-border/70 hover:bg-background-secondary-default/50 cursor-grab"}`}
+                        className={`group flex items-center justify-between rounded-lg border px-2.5 py-2 ${isMapped ? "border-state-success-base bg-state-success-base/40" : "border-separator-border/70 hover:bg-background-secondary-default/50 cursor-grab"}`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <GripVertical className={`h-3.5 w-3.5 shrink-0 ${isMapped ? "text-text-tertiary/30" : "text-text-tertiary/60"}`} />
                           <span className={`text-sm truncate ${isMapped ? "text-text-tertiary" : ""}`}>{col.label}</span>
                         </div>
                         {isMapped ? (
-                          <span className="shrink-0 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Eşlendi</span>
+                          <span className="shrink-0 rounded bg-state-success-base px-1.5 py-0.5 text-[10px] font-semibold text-state-success-text">Eşlendi</span>
                         ) : (
                           <div className="ml-1 flex shrink-0 items-center gap-1">
                             <button
@@ -684,7 +684,7 @@ export default function OpticCoding() {
                             }}
                           >
                             {isSelected && el.kind === "qr" && (
-                              <span className="pointer-events-none absolute left-1 top-1 rounded bg-blue-600 px-1 py-0.5 text-[9px] font-semibold text-white">
+                              <span className="pointer-events-none absolute left-1 top-1 rounded bg-accent-600 px-1 py-0.5 text-[9px] font-semibold text-text-white">
                                 QR
                               </span>
                             )}
@@ -693,7 +693,7 @@ export default function OpticCoding() {
                                 onPointerDown={(e) => onResizePointerDown(e, el)}
                                 onPointerMove={onResizePointerMove}
                                 onPointerUp={onResizePointerUp}
-                                className="absolute bottom-0 right-0 h-3.5 w-3.5 cursor-nwse-resize rounded-sm border border-white bg-blue-600"
+                                className="absolute bottom-0 right-0 h-3.5 w-3.5 cursor-nwse-resize rounded-sm border border-white bg-accent-600"
                                 style={{ touchAction: "none" }}
                               />
                             )}
@@ -735,7 +735,7 @@ export default function OpticCoding() {
                   <div
                     key={el.id}
                     onClick={() => setSelectedElementId(el.id)}
-                    className={`rounded-lg border p-2.5 space-y-2 cursor-pointer ${isSelected ? "border-blue-400 bg-blue-50/40" : "border-separator-border/70"}`}
+                    className={`rounded-lg border p-2.5 space-y-2 cursor-pointer ${isSelected ? "border-accent-500 bg-accent-50/40" : "border-separator-border/70"}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">

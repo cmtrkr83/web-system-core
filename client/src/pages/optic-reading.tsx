@@ -54,9 +54,9 @@ interface ReadResult {
 }
 
 function confidenceColor(c: number): string {
-  if (c >= 0.6) return "text-green-600";
-  if (c >= 0.3) return "text-amber-500";
-  return "text-red-500";
+  if (c >= 0.6) return "text-status-lime-text";
+  if (c >= 0.3) return "text-status-orange-text";
+  return "text-status-rose-text";
 }
 
 function classifyField(f: FieldRead): "tcNo" | "booklet" | "examId" {
@@ -572,7 +572,7 @@ export default function OpticReading() {
                             ))}
                             <TableCell className="text-center">
                               {r.success ? (
-                                <Badge className="bg-green-600">
+                                <Badge className="bg-state-success-base text-state-success-text">
                                   <CheckCircle2 className="mr-1 h-3 w-3" />
                                   OK
                                 </Badge>

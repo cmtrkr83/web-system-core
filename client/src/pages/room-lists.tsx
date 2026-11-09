@@ -381,7 +381,7 @@ export default function RoomLists() {
 
                   <table className="w-full border-collapse border border-black">
                     <thead>
-                      <tr className="bg-gray-100">
+                      <tr className="bg-background-secondary-default">
                         <th className="border border-black p-2 w-10">S.NO</th>
                         <th className="border border-black p-2 w-20">OKUL NO</th>
                         <th className="border border-black p-2">AD SOYAD</th>

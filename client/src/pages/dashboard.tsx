@@ -74,7 +74,7 @@ export default function Dashboard() {
             <BookOpen className="mr-2 h-4 w-4" />
             Başlangıça Dön
           </Button>
-          <div className="text-sm text-text-tertiary bg-red-50 px-4 py-2 rounded-xl border border-red-200">
+          <div className="text-sm text-text-tertiary bg-background-secondary-default px-4 py-2 rounded-xl border border-separator-border">
             {isLoaded ? (
               <div className="space-y-0.5">
                 <div className="font-medium text-text-primary">Veriler Güncel</div>
@@ -154,7 +154,7 @@ export default function Dashboard() {
                         <div className="rounded-xl border border-separator-border/70 bg-background-full/95 px-3 py-2.5 shadow-lg backdrop-blur-sm">
                           <p className="mb-1 text-xs font-medium text-text-tertiary">{label}</p>
                           <div className="flex items-center gap-2">
-                            <span className="size-2 rounded-full bg-blue-500" />
+                            <span className="size-2 rounded-full bg-accent-600" />
                             <span className="text-sm font-semibold text-text-primary">
                               {Number(payload[0].value ?? 0).toLocaleString("tr-TR")}
                             </span>
@@ -202,7 +202,7 @@ export default function Dashboard() {
                  className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-separator-border/70 bg-background-secondary-default/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-accent-600/30 hover:bg-accent-600/[0.04] hover:shadow-sm"
                  onClick={() => setLocation("/room-lists")}
                >
-                 <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white dark:bg-blue-950/40 dark:text-blue-300">
+                 <div className="flex size-9 items-center justify-center rounded-xl bg-status-blue-background text-status-blue-text transition-colors group-hover:bg-accent-600 group-hover:text-text-white">
                    <FileText className="h-4 w-4" />
                  </div>
                  <span className="text-xs font-medium text-text-primary">Salon Listesi</span>
@@ -211,7 +211,7 @@ export default function Dashboard() {
                  className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-separator-border/70 bg-background-secondary-default/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-accent-600/30 hover:bg-accent-600/[0.04] hover:shadow-sm"
                  onClick={() => setLocation("/branch-labels")}
                >
-                 <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-600 group-hover:text-white dark:bg-emerald-950/40 dark:text-emerald-300">
+                 <div className="flex size-9 items-center justify-center rounded-xl bg-status-cyan-background text-status-cyan-text transition-colors group-hover:bg-accent-600 group-hover:text-text-white">
                    <Package className="h-4 w-4" />
                  </div>
                  <span className="text-xs font-medium text-text-primary">Şube Etiketi Bas</span>
@@ -220,7 +220,7 @@ export default function Dashboard() {
                  className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-separator-border/70 bg-background-secondary-default/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-accent-600/30 hover:bg-accent-600/[0.04] hover:shadow-sm"
                  onClick={() => setLocation("/labels")}
                >
-                 <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-500 group-hover:text-white dark:bg-amber-950/40 dark:text-amber-300">
+                 <div className="flex size-9 items-center justify-center rounded-xl bg-status-orange-background text-status-orange-text transition-colors group-hover:bg-accent-600 group-hover:text-text-white">
                    <Tags className="h-4 w-4" />
                  </div>
                  <span className="text-xs font-medium text-text-primary">Okul Etiketi Bas</span>
@@ -229,7 +229,7 @@ export default function Dashboard() {
                  className="group flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-separator-border/70 bg-background-secondary-default/30 p-3 text-center transition-all hover:-translate-y-0.5 hover:border-accent-600/30 hover:bg-accent-600/[0.04] hover:shadow-sm"
                  onClick={() => setLocation("/reports")}
                >
-                 <div className="flex size-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600 transition-colors group-hover:bg-violet-600 group-hover:text-white dark:bg-violet-950/40 dark:text-violet-300">
+                 <div className="flex size-9 items-center justify-center rounded-xl bg-status-purple-background text-status-purple-text transition-colors group-hover:bg-accent-600 group-hover:text-text-white">
                    <ClipboardCheck className="h-4 w-4" />
                  </div>
                  <span className="text-xs font-medium text-text-primary">Teslim Tutanağı Bas</span>
