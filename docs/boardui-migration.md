@@ -32,9 +32,15 @@ shadcn token sınıfları → BoardUI semantic sınıfları, sayfa sayfa:
       `iconOnly` + aria-label, 18 ana eylem `variant="primary"`.
 - [x] **Input** (27 alan): `InputBase` — genişlik `fieldClassName`e, tipografi `className`a,
       `h-7`/`h-8` → `size="small"`. value/onChange semantiği korundu.
+- [x] **Badge → Chip** (11 durum etiketi): `variant="bold|subtle|caption"` + `color` paleti.
+- [x] **Table** (6 rapor tablosu): BoardUI'nin registry tablosu React Aria koleksiyon modeli
+      (Column/Row/Cell) istiyor; koştullu kolon kullanan bu tablolar o modele girmedi.
+      `components/ui/table.tsx` BoardUI token'larıyla yeniden stillendirildi
+      (ölçü/renkler `globals.css`'teki `.bui-table` ile birebir), kurulduktan sonra kullanılmayan
+      `components/base/table/` silindi.
 - [ ] Select (12) — BoardUI Select'in API'si farklı (RAC `Select.Button/Popover/Item`), elle taşınmalı.
 - [ ] Label (51) — BoardUI Label'ı TextField bağlamında çalışır; ya `<Input label>` ile birleşir ya kalır.
-- [ ] Table (6), Badge→chip (11), Dialog (2), Sheet (2), Tooltip (2), Separator, Skeleton.
+- [ ] Toast (`hooks/use-toast` + `ui/toaster` → BoardUI `toast`), Dialog (2), Sheet (2), Tooltip (2), Separator, Skeleton.
 
 ## Faz 4 — Kapsam dışı bırakılanlar
 - Auth: yok (yerel erişim). `passport*`, `express-session` bağımlılıkları kullanılmıyor.
