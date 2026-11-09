@@ -74,6 +74,12 @@ function optionLetters(count: number): string[] {
   return Array.from({ length: count }, (_, i) => String.fromCharCode(65 + i));
 }
 
+const READ_CHUNK_SIZE = 10;
+
+function csvCell(value: string): string {
+  return /[;"\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
 export default function OpticReading() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,9 +91,15 @@ export default function OpticReading() {
   const [files, setFiles] = useState<File[]>([]);
   const [isConvertingPdf, setIsConvertingPdf] = useState(false);
   const [isReading, setIsReading] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [progress, setProgress] = useState<{ phase: "upload" | "read"; done: number; total: number }>({
+    phase: "upload",
+    done: 0,
+    total: 0,
+  });
   const [results, setResults] = useState<ReadResult[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
+  const [selectedOverlay, setSelectedOverlay] = useState<string | null>(null);
+  const [overlayLoading, setOverlayLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const design = useMemo(() => designs.find((d) => d.id === designId) ?? null, [designs, designId]);
@@ -102,6 +114,10 @@ export default function OpticReading() {
   useEffect(() => {
     if (design) setManifest(design.manifest ?? buildOpticFormManifest(design));
   }, [design]);
+
+  useEffect(() => {
+    setSelectedOverlay(null);
+  }, [selected]);
 
   const handleDesignChange = (value: string) => {
     setDesignId(value);
@@ -171,46 +187,103 @@ export default function OpticReading() {
     }
 
     setIsReading(true);
-    setProgress({ done: 0, total: files.length });
+    setProgress({ phase: "upload", done: 0, total: files.length });
     setResults([]);
     setSelected(null);
 
+    const collected: ReadResult[] = [];
     try {
-      const paths: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        paths.push(await uploadFile(files[i]));
-        setProgress({ done: i + 1, total: files.length });
+      const manifest = buildOpticFormManifest(design);
+      for (let start = 0; start < files.length; start += READ_CHUNK_SIZE) {
+        const chunk = files.slice(start, start + READ_CHUNK_SIZE);
+        try {
+          const paths: string[] = [];
+          for (let i = 0; i < chunk.length; i++) {
+            paths.push(await uploadFile(chunk[i]));
+            setProgress({ phase: "upload", done: start + i + 1, total: files.length });
+          }
+
+          setProgress({ phase: "read", done: start, total: files.length });
+          const res = await fetch("/api/optics/read", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ manifest, files: paths, includeOverlay: false }),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || "Okuma başarısız");
+          }
+          collected.push(...((await res.json()) as ReadResult[]));
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : "Okuma hatası";
+          collected.push(
+            ...chunk.map((file) => ({
+              success: false,
+              file_name: file.name,
+              image_width: 0,
+              image_height: 0,
+              qr: "",
+              marks_detected: 0,
+              fields: [],
+              grids: [],
+              error: msg,
+            })),
+          );
+        }
+        setResults([...collected]);
+        setProgress({ phase: "read", done: start + chunk.length, total: files.length });
       }
 
-      const res = await fetch("/api/optics/read", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ manifest: buildOpticFormManifest(design), files: paths }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Okuma başarısız");
-      }
-      const data = (await res.json()) as ReadResult[];
-      setResults(data);
-
-      const firstOk = data.findIndex((r) => r.success);
+      const firstOk = collected.findIndex((r) => r.success);
       setSelected(firstOk >= 0 ? firstOk : 0);
 
-      const okCount = data.filter((r) => r.success).length;
+      const okCount = collected.filter((r) => r.success).length;
       toast({
-        title: `${okCount}/${data.length} sayfa okundu`,
-        description: okCount === data.length ? "Tüm sayfalar başarıyla okundu." : "Bazı sayfalar okunamadı.",
-        status: okCount === data.length ? "success" : "warning",
+        title: `${okCount}/${collected.length} sayfa okundu`,
+        description: okCount === collected.length ? "Tüm sayfalar başarıyla okundu." : "Bazı sayfalar okunamadı.",
+        status: okCount === collected.length ? "success" : "warning",
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Okuma hatası";
       toast({ title: "Okuma hatası", description: msg, variant: "destructive" });
     } finally {
       setIsReading(false);
-      setProgress({ done: 0, total: 0 });
+      setProgress({ phase: "upload", done: 0, total: 0 });
     }
   }, [design, files, uploadFile, toast]);
+
+  const loadOverlay = useCallback(
+    async (index: number) => {
+      const file = files[index];
+      if (!file || !design) return;
+      setOverlayLoading(true);
+      setSelectedOverlay(null);
+      try {
+        const filePath = await uploadFile(file);
+        const res = await fetch("/api/optics/read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            manifest: buildOpticFormManifest(design),
+            files: [filePath],
+            includeOverlay: true,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || "Overlay alınamadı");
+        }
+        const data = (await res.json()) as ReadResult[];
+        setSelectedOverlay(data[0]?.overlay_base64 ?? null);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Overlay alınamadı";
+        toast({ title: "Overlay hatası", description: msg, variant: "destructive" });
+      } finally {
+        setOverlayLoading(false);
+      }
+    },
+    [design, files, uploadFile, toast],
+  );
 
   const updateAnswer = (fi: number, gi: number, no: number, answer: string) => {
     setResults((prev) =>
@@ -307,12 +380,13 @@ export default function OpticReading() {
         }),
         String(r.grids.reduce((sum, g) => sum + g.answers.filter((a) => a.answer).length, 0)),
       ];
-      return cells.join(";");
+      return cells.map(csvCell).join(";");
     });
-    downloadCsv("\uFEFF" + [header.join(";"), ...rows].join("\n"), `optic_okuma_${Date.now()}`);
+    downloadCsv("\uFEFF" + [header.map(csvCell).join(";"), ...rows].join("\n"), `optic_okuma_${Date.now()}`);
   };
 
   const selectedResult = selected !== null ? results[selected] : null;
+  const headerResult = results.find((r) => r.success) ?? results[0]!;
 
   const renderAnswerCell = (fi: number, gi: number, a: AnswerRead, optionCount: number) => (
     <Select
@@ -402,7 +476,9 @@ export default function OpticReading() {
               {isReading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {progress.total > 0 && progress.done > 0 ? `${progress.done}/${progress.total} yüklendi` : "Okunuyor..."}
+                  {progress.total > 0
+                    ? `${progress.done}/${progress.total} ${progress.phase === "upload" ? "yükleniyor" : "okunuyor"}`
+                    : "Okunuyor..."}
                 </>
               ) : (
                 <>
@@ -456,10 +532,10 @@ export default function OpticReading() {
                       <TableRow>
                         <TableHead className="min-w-[140px]">Dosya</TableHead>
                         <TableHead>QR</TableHead>
-                        {results[0].fields.map((f) => (
+                        {headerResult.fields.map((f) => (
                           <TableHead key={f.id}>{f.label}</TableHead>
                         ))}
-                        {results[0].grids.map((g) => (
+                        {headerResult.grids.map((g) => (
                           <TableHead key={g.subject} className="text-right">
                             {g.subject}
                           </TableHead>
@@ -526,14 +602,32 @@ export default function OpticReading() {
                       </Alert>
                     )}
 
-                    {selectedResult.success && selectedResult.overlay_base64 && (
+                    {selectedResult.success && (
                       <div className="grid gap-4 md:grid-cols-2">
-                        <div className="rounded-md overflow-hidden border bg-black/5">
-                          <img
-                            src={`data:image/jpeg;base64,${selectedResult.overlay_base64}`}
-                            alt={`${selectedResult.file_name} overlay`}
-                            className="w-full h-auto object-contain max-h-[420px]"
-                          />
+                        <div className="space-y-2">
+                          {selectedOverlay ? (
+                            <div className="rounded-md overflow-hidden border bg-black/5">
+                              <img
+                                src={`data:image/jpeg;base64,${selectedOverlay}`}
+                                alt={`${selectedResult.file_name} overlay`}
+                                className="w-full h-auto object-contain max-h-[420px]"
+                              />
+                            </div>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => selected !== null && loadOverlay(selected)}
+                              disabled={overlayLoading}
+                            >
+                              {overlayLoading ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <FileScan className="mr-2 h-4 w-4" />
+                              )}
+                              Overlay'i Göster
+                            </Button>
+                          )}
                         </div>
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center justify-between">

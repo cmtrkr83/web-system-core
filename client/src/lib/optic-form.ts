@@ -78,7 +78,7 @@ export function computeFieldPlacements(design: OpticFormDesign): FieldPlacement[
     const b = regularFields[r * 2 + 1];
     return Math.max(formFieldHeightMm(a), b ? formFieldHeightMm(b) : 0);
   });
-  const baseY = MARGIN_MM;
+  const baseY = MARGIN_MM + (design.title?.trim() ? TITLE_BAND_MM : 0);
 
   const placements: FieldPlacement[] = [];
 
@@ -154,13 +154,11 @@ export function gridHeightMm(grid: AnswerGrid): number {
 function computeAnswerRegionTop(design: OpticFormDesign): number {
   const paperHeight = design.paperSize === "A4" ? 297 : 210;
   const placements = computeFieldPlacements(design);
-  let infoBottomMm = 0;
-  if (design.showStudentInfo) {
-    const regularPlaces = placements.filter((p) => !isHeadingField(p.field));
-    if (regularPlaces.length > 0) {
-      infoBottomMm = Math.max(...regularPlaces.map((p) => p.yMm + formFieldHeightMm(p.field)));
-    }
-  }
+  const visiblePlaces = placements.filter((p) => design.showStudentInfo || isHeadingField(p.field));
+  const infoBottomMm =
+    visiblePlaces.length > 0
+      ? Math.max(...visiblePlaces.map((p) => p.yMm + formFieldHeightMm(p.field)))
+      : 0;
   return Math.max(paperHeight * 0.4, MARGIN_MM + 6, infoBottomMm > 0 ? infoBottomMm + 6 : 0);
 }
 
@@ -346,6 +344,7 @@ const DEFAULT_OPTIC_FORM_FIELDS: FormTextField[] = [
 ];
 
 const MARGIN_MM = 8;
+const TITLE_BAND_MM = 12;
 const LEFT_MARGIN_MM = 10;
 const RIGHT_MARGIN_MM = 6;
 const BUBBLE_SIZE_MM = 4.23;
@@ -476,9 +475,13 @@ export function buildOpticFormHtml(design: OpticFormDesign, fill?: OpticFormFill
 
   const placements = computeFieldPlacements(design);
 
-  const infoHtml = design.showStudentInfo
-    ? placements
-        .map(({ field, xMm, yMm, colWidthMm }) => {
+  const titleHtml = design.title?.trim()
+    ? `<div style="position:absolute;left:${LEFT_MARGIN_MM}mm;top:${MARGIN_MM}mm;width:${paperWidth - LEFT_MARGIN_MM - RIGHT_MARGIN_MM}mm;text-align:center;font-size:5mm;font-weight:700;color:#000;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(design.title.trim())}</div>`
+    : "";
+
+  const infoHtml = placements
+    .filter(({ field }) => design.showStudentInfo || isHeadingField(field))
+    .map(({ field, xMm, yMm, colWidthMm }) => {
           const fillValue = fill?.[field.id];
           return `
           <div style="position:absolute;left:${xMm}mm;top:${yMm}mm;width:${colWidthMm}mm;">
@@ -494,9 +497,8 @@ export function buildOpticFormHtml(design: OpticFormDesign, fill?: OpticFormFill
                      ${buildFieldInputHtml(field, fillValue)}`
             }
           </div>`;
-        })
-        .join("")
-    : "";
+    })
+    .join("");
 
   const gridPlaces = computeGridPlacements(design);
 
@@ -506,11 +508,6 @@ export function buildOpticFormHtml(design: OpticFormDesign, fill?: OpticFormFill
       <div style="position:absolute;left:${xMm}mm;top:${yMm}mm;width:${gridColumnWidth(grid)}mm;">${buildAnswerGridHtml(grid)}</div>`,
     )
     .join("");
-
-  const cevaplarHeader =
-    design.grids.length > 0
-      ? `<div style="position:absolute;top:${computeAnswerRegionTop(design)}mm;left:${LEFT_MARGIN_MM}mm;right:${RIGHT_MARGIN_MM}mm;text-align:center;font-size:4.5mm;font-weight:700;color:${BUBBLE_BORDER_COLOR};letter-spacing:1mm;">CEVAPLAR</div>`
-      : "";
 
   const markerMarks =
     `<span style="position:absolute;top:4mm;left:4mm;width:5mm;height:5mm;background:#000;"></span>
@@ -534,6 +531,7 @@ export function buildOpticFormHtml(design: OpticFormDesign, fill?: OpticFormFill
 
   return `
     <div style="box-sizing:border-box;position:relative;width:${paperWidth}mm;height:${paperHeight}mm;padding:${MARGIN_MM}mm ${RIGHT_MARGIN_MM}mm ${MARGIN_MM}mm ${LEFT_MARGIN_MM}mm;background:#fff;color:#000;font-family:Arial, Helvetica, sans-serif;overflow:hidden;">
+      ${titleHtml}
       ${infoHtml}
       ${gridsHtml}
       ${overlaysHtml}

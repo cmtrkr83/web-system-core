@@ -176,6 +176,14 @@ const fs = await import("fs/promises");
     await fs.rename(temporaryPath, filePath);
   };
 
+  let formDesignsQueue: Promise<unknown> = Promise.resolve();
+
+  function withFormDesignsLock<T>(task: () => Promise<T>): Promise<T> {
+    const result = formDesignsQueue.then(task, task);
+    formDesignsQueue = result.catch(() => undefined);
+    return result;
+  }
+
   app.get("/api/system/backups", async (_req, res) => {
     return res.status(200).json(await listLocalBackups(backupRoot));
   });
@@ -262,6 +270,12 @@ const fs = await import("fs/promises");
     )
   `);
 
+  const findScanSession = opticDb.prepare(`
+    SELECT id FROM optic_scan_sessions
+    WHERE file_name = ? AND manifest_hash = ? AND tc_no = ? AND results_json = ?
+    LIMIT 1
+  `);
+
   const PYTHON_CANDIDATES = [
     process.env.OPTIC_PYTHON,
     "/usr/local/bin/python3",
@@ -270,10 +284,10 @@ const fs = await import("fs/promises");
     "python",
   ].filter((p): p is string => Boolean(p));
 
-  let resolvedPython: string | null = null;
+  let resolvedPython: string | null | undefined;
 
-  function resolvePython(): string {
-    if (resolvedPython) return resolvedPython;
+  function resolvePython(): string | null {
+    if (resolvedPython !== undefined) return resolvedPython;
     for (const candidate of PYTHON_CANDIDATES) {
       try {
         const check = spawnSync(candidate, ["-c", "import cv2, numpy; print('ok')"], {
@@ -288,13 +302,14 @@ const fs = await import("fs/promises");
         // sıradaki adaya geç
       }
     }
-    resolvedPython = PYTHON_CANDIDATES[0] ?? "python";
-    return resolvedPython;
+    console.warn("Optik okuma için Python/OpenCV bulunamadı. OPTIC_PYTHON ile yorumlayıcı yolunu belirtin.");
+    resolvedPython = null;
+    return null;
   }
 
-  function runPython(args: string[], timeoutMs: number): Promise<string> {
+  function runPython(python: string, args: string[], timeoutMs: number): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-      const proc = spawn(resolvePython(), args, { timeout: timeoutMs });
+      const proc = spawn(python, args, { timeout: timeoutMs });
       let stdout = "";
       let stderr = "";
       proc.stdout?.on("data", (data) => { stdout += data.toString(); });
@@ -320,51 +335,57 @@ const fs = await import("fs/promises");
   });
 
   app.post("/api/optics/form-designs", async (req, res) => {
-    try {
-      const body = req.body;
-      const existing = await (async () => {
-        try {
-          const d = await fs.readFile(formDesignsFile, "utf-8");
-          return JSON.parse(d) as any[];
-        } catch {
-          return [] as any[];
-        }
-      })();
+    const result = await withFormDesignsLock(async () => {
+      try {
+        const body = req.body;
+        const existing = await (async () => {
+          try {
+            const d = await fs.readFile(formDesignsFile, "utf-8");
+            return JSON.parse(d) as any[];
+          } catch {
+            return [] as any[];
+          }
+        })();
 
-      const manifestHash = createHash("sha256")
-        .update(JSON.stringify(body.manifest ?? {}))
-        .digest("hex");
-      const index = existing.findIndex((item) => item.id === body.id);
-      if (index >= 0) {
-        const previous = existing[index];
-        const version = previous.manifestHash === manifestHash ? Number(previous.version || 1) : Number(previous.version || 1) + 1;
-        existing[index] = { ...previous, ...body, version, manifestHash };
-      } else {
-        existing.push({ ...body, version: 1, manifestHash });
+        const manifestHash = createHash("sha256")
+          .update(JSON.stringify(body.manifest ?? {}))
+          .digest("hex");
+        const index = existing.findIndex((item) => item.id === body.id);
+        if (index >= 0) {
+          const previous = existing[index];
+          const version = previous.manifestHash === manifestHash ? Number(previous.version || 1) : Number(previous.version || 1) + 1;
+          existing[index] = { ...previous, ...body, version, manifestHash };
+        } else {
+          existing.push({ ...body, version: 1, manifestHash });
+        }
+        await writeJsonAtomically(formDesignsFile, existing);
+        return { status: 201, body: { message: "Kaydedildi" } };
+      } catch (err) {
+        return { status: 500, body: { message: "Kaydetme hatası" } };
       }
-      await writeJsonAtomically(formDesignsFile, existing);
-      return res.status(201).json({ message: "Kaydedildi" });
-    } catch (err) {
-      return res.status(500).json({ message: "Kaydetme hatası" });
-    }
+    });
+    return res.status(result.status).json(result.body);
   });
 
   app.delete("/api/optics/form-designs/:id", async (req, res) => {
-    try {
-      const existing = await (async () => {
-        try {
-          const d = await fs.readFile(formDesignsFile, "utf-8");
-          return JSON.parse(d) as any[];
-        } catch {
-          return [] as any[];
-        }
-      })();
-      const next = existing.filter((item) => item.id !== req.params.id);
-      await writeJsonAtomically(formDesignsFile, next);
-      return res.status(200).json({ message: "Silindi" });
-    } catch (err) {
-      return res.status(500).json({ message: "Silme hatası" });
-    }
+    const result = await withFormDesignsLock(async () => {
+      try {
+        const existing = await (async () => {
+          try {
+            const d = await fs.readFile(formDesignsFile, "utf-8");
+            return JSON.parse(d) as any[];
+          } catch {
+            return [] as any[];
+          }
+        })();
+        const next = existing.filter((item) => item.id !== req.params.id);
+        await writeJsonAtomically(formDesignsFile, next);
+        return { status: 200, body: { message: "Silindi" } };
+      } catch (err) {
+        return { status: 500, body: { message: "Silme hatası" } };
+      }
+    });
+    return res.status(result.status).json(result.body);
   });
 
 
@@ -454,11 +475,24 @@ const fs = await import("fs/promises");
       if (scans.length === 0) {
         return res.status(400).json({ message: "En az bir tarama sonucu gerekli" });
       }
+      let skipped = 0;
       const scanIds = opticDb.transaction((rows: Array<Record<string, unknown>>) => {
         const ids: string[] = [];
         for (const body of rows) {
-          const sessionId = randomUUID();
           const results = Array.isArray(body.results) ? body.results : [];
+          const resultsJson = JSON.stringify(results);
+          if (
+            findScanSession.get(
+              String(body.fileName || ""),
+              String(body.manifestHash || ""),
+              String(body.tcNo || ""),
+              resultsJson,
+            )
+          ) {
+            skipped += 1;
+            continue;
+          }
+          const sessionId = randomUUID();
           insertScanSession.run({
             id: sessionId,
             created_at: new Date().toISOString(),
@@ -469,7 +503,7 @@ const fs = await import("fs/promises");
             booklet: String(body.booklet || ""),
             exam_id: String(body.examId || ""),
             confidence: Number(body.confidence) || 0,
-            results_json: JSON.stringify(results),
+            results_json: resultsJson,
             form_design_id: String(body.formDesignId || ""),
             form_version: Number(body.formVersion) || 1,
             manifest_hash: String(body.manifestHash || ""),
@@ -493,7 +527,7 @@ const fs = await import("fs/promises");
         }
         return ids;
       })(scans as Array<Record<string, unknown>>);
-      return res.status(201).json({ message: "Kaydedildi", scanIds, count: scanIds.length });
+      return res.status(201).json({ message: "Kaydedildi", scanIds, count: scanIds.length, skipped });
     } catch (err) {
       console.error("Optik tarama batch kaydı başarısız:", err);
       return res.status(500).json({ message: "Kaydetme hatası" });
@@ -534,31 +568,44 @@ const fs = await import("fs/promises");
 
   // Manifest tabanlı okuma: referans kareleri + baloncuk örneklemesi
   app.post("/api/optics/read", async (req, res) => {
+    const body = req.body as { manifest?: unknown; files?: string[]; includeOverlay?: boolean };
+    const manifest = body?.manifest;
+    const files = Array.isArray(body?.files) ? body.files : [];
+    if (!manifest || files.length === 0) {
+      return res.status(400).json({ message: "manifest ve files gerekli" });
+    }
+
+    const python = resolvePython();
+    if (!python) {
+      return res.status(503).json({ message: "Python/OpenCV bulunamadı. Sunucuda optik okuma bağımlılıkları kurulu değil." });
+    }
+
+    const uploadRoot = `${path.resolve(uploadsDir)}${path.sep}`;
+    const safeFiles = files.map((file) => path.resolve(file));
+    if (safeFiles.some((file) => !file.startsWith(uploadRoot))) {
+      return res.status(400).json({ message: "Geçersiz optik dosya yolu" });
+    }
+
+    let manifestPath: string | null = null;
     try {
-      const body = req.body as { manifest?: unknown; files?: string[] };
-      const manifest = body?.manifest;
-      const files = Array.isArray(body?.files) ? body.files : [];
-      if (!manifest || files.length === 0) {
-        return res.status(400).json({ message: "manifest ve files gerekli" });
-      }
-
-      const uploadRoot = `${path.resolve(uploadsDir)}${path.sep}`;
-      const safeFiles = files.map((file) => path.resolve(file));
-      if (safeFiles.some((file) => !file.startsWith(uploadRoot))) {
-        return res.status(400).json({ message: "Geçersiz optik dosya yolu" });
-      }
-
       await fs.mkdir(uploadsDir, { recursive: true });
-      const manifestPath = path.join(uploadsDir, `manifest_${Date.now()}.json`);
+      manifestPath = path.join(uploadsDir, `manifest_${Date.now()}_${randomUUID()}.json`);
       await fs.writeFile(manifestPath, JSON.stringify(manifest), "utf-8");
 
       const scriptPath = path.join(process.cwd(), "server", "optical_processor.py");
-      const args = [scriptPath, "read", manifestPath, ...safeFiles];
-      const stdout = await runPython(args, 600000);
+      const noOverlay = body.includeOverlay === false ? ["--no-overlay"] : [];
+      const args = [scriptPath, "read", manifestPath, ...noOverlay, ...safeFiles];
+      const timeoutMs = Number(process.env.OPTIC_READ_TIMEOUT_MS) || 180000;
+      const stdout = await runPython(python, args, timeoutMs);
       return res.status(200).json(JSON.parse(stdout));
     } catch (err) {
       console.error("Optik okuma hatası:", err);
       return res.status(500).json({ message: "Okuma hatası" });
+    } finally {
+      await Promise.allSettled([
+        ...safeFiles.map((file) => fs.unlink(file)),
+        ...(manifestPath ? [fs.unlink(manifestPath)] : []),
+      ]);
     }
   });
 

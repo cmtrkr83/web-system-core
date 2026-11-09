@@ -2,7 +2,7 @@
 
 > Exam registry management, optical coding/reading, labels, delivery minutes and student evaluation in one self-hosted web app.
 
-[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Express](https://img.shields.io/badge/Express-API-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
 [![SQLite](https://img.shields.io/badge/SQLite-Drizzle-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://orm.drizzle.team/)
@@ -52,7 +52,7 @@ It is a single deployable app: React/Vite client, Express/TypeScript API, SQLite
 
 ### Optical forms
 - **Optical coding** — upload a PDF template, drag fields (student name, school, TC no, etc.) onto the sheet, A4/A5 support, print.
-- **Optical reading** — JPEG scans, black-frame detection, perspective correction, bubble fill detection, batch processing, adjustable threshold, QR decoding, CSV/JSON export.
+- **Optical reading** — JPEG/PNG/PDF scans, reference-mark homography correction, bubble sampling, per-page batch reading, QR decoding, CSV/JSON export.
 - **Evaluation** — upload answer CSVs, compare with the answer key, view correct/wrong/blank statistics.
 
 ### UX
@@ -64,7 +64,7 @@ It is a single deployable app: React/Vite client, Express/TypeScript API, SQLite
 
 | Layer | Technology |
 | --- | --- |
-| Frontend | React 18, Vite, TypeScript, Tailwind, shadcn/ui, Radix UI, wouter |
+| Frontend | React 19, Vite, TypeScript, Tailwind, shadcn/ui, Radix UI, wouter |
 | Backend | Node.js, Express, TypeScript |
 | Database | SQLite (`better-sqlite3`) + Drizzle ORM |
 | PDF | jsPDF, html2canvas |
@@ -100,7 +100,7 @@ It is a single deployable app: React/Vite client, Express/TypeScript API, SQLite
 
 ## 🚀 Local setup
 
-Requirements: Node.js 20+, npm, Python 3.9+ (only for optical reading).
+Requirements: Node.js 20.19+ or 22.12+, npm, Python 3.10+ with OpenCV (only for optical reading).
 
 ```bash
 npm install

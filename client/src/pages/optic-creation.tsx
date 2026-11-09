@@ -405,6 +405,16 @@ export default function OpticCreate() {
             <Input id="form-name" className="h-8 w-72" value={form.name} onChange={(e) => patch({ name: e.target.value })} />
           </div>
           <div className="shrink-0 space-y-1">
+            <Label htmlFor="form-title" className="text-xs">Form Başlığı</Label>
+            <Input
+              id="form-title"
+              className="h-8 w-56"
+              value={form.title ?? ""}
+              placeholder="Örn. LGS Deneme Sınavı"
+              onChange={(e) => patch({ title: e.target.value })}
+            />
+          </div>
+          <div className="shrink-0 space-y-1">
             <Label htmlFor="form-size" className="text-xs">Kağıt Boyutu</Label>
             <select
               id="form-size"

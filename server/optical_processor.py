@@ -853,7 +853,7 @@ def _decode_options(entries: List[tuple], empty_ref: float) -> tuple:
     return best_key, round(conf, 3)
 
 
-def read_manifest_image(file_path: str, manifest: Dict[str, Any]) -> Dict[str, Any]:
+def read_manifest_image(file_path: str, manifest: Dict[str, Any], include_overlay: bool = True) -> Dict[str, Any]:
     """Manifest + görsel -> alan/kitapçık/sınav ID/cevaplar + güven skorları."""
     path = Path(file_path)
     if not path.exists():
@@ -961,7 +961,8 @@ def read_manifest_image(file_path: str, manifest: Dict[str, Any]) -> Dict[str, A
                     px, py = _mm_to_px(H, all_b[0]["cx"], all_b[0]["cy"])
                     cv2.circle(overlay, (int(round(px)), int(round(py))), radius_px + 4, (0, 0, 255), 1)
 
-    result["overlay_base64"] = img_to_base64(overlay, quality=70)
+    if include_overlay:
+        result["overlay_base64"] = img_to_base64(overlay, quality=70)
     return result
 
 
@@ -977,10 +978,12 @@ if __name__ == "__main__":
             print(json.dumps({"error": "read modu için manifest yolu ve en az 1 görsel yolu gerekli"}))
             sys.exit(1)
         manifest = _load_manifest(sys.argv[2])
+        raw_files = [arg for arg in sys.argv[3:] if arg != "--no-overlay"]
+        include_overlay = "--no-overlay" not in sys.argv[3:]
         results = []
-        for idx, img in enumerate(sys.argv[3:]):
-            print(json.dumps({"progress": f"{idx+1}/{len(sys.argv)-3}", "file": Path(img).name}), file=sys.stderr)
-            results.append(read_manifest_image(img, manifest))
+        for idx, img in enumerate(raw_files):
+            print(json.dumps({"progress": f"{idx+1}/{len(raw_files)}", "file": Path(img).name}), file=sys.stderr)
+            results.append(read_manifest_image(img, manifest, include_overlay))
         print(json.dumps(results, ensure_ascii=False))
 
     elif mode == "detect_frame":
