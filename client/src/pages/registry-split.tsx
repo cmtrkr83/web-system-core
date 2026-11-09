@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/base/buttons/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Chip } from "@/components/base/badges/chip";
 import { Download, AlertCircle, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRegistry } from "@/context/RegistryContext";
@@ -407,9 +407,9 @@ export default function RegistrySplit() {
           <p className="mt-1 text-body-regular text-text-secondary">Ana kütük dosyasını ilçe bazlı alt dosyalara ayırın.</p>
         </div>
         {isLoaded && districtList.length > 0 && (
-          <Badge variant="secondary" className="w-fit rounded-full px-3 py-1">
+          <Chip variant="subtle" color="blue" className="w-fit rounded-full px-3 py-1">
             {districtList.length} ilçe hazır
-          </Badge>
+          </Chip>
         )}
       </div>
 

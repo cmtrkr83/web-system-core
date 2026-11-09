@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Chip } from "@/components/base/badges/chip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -467,7 +467,7 @@ export default function Evaluation() {
                       <TableCell className="max-w-40 truncate" title={s.dosya}>{s.dosya}</TableCell>
                       <TableCell className="max-w-40 truncate" title={s.qr}>{s.qr}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{s.kitapcikTuru || "—"}</Badge>
+                        <Chip variant="subtle" color="neutral">{s.kitapcikTuru || "—"}</Chip>
                       </TableCell>
                       {s.cevaplar.slice(0, 5).map((c, qi) => (
                         <TableCell key={qi} className="text-center font-mono">{c || "—"}</TableCell>
@@ -486,7 +486,7 @@ export default function Evaluation() {
               <div className="flex flex-wrap gap-2 items-center">
                 <span className="text-sm font-medium">Tespit edilen kitapçık türleri:</span>
                 {kitapcikTurleri.map((t) => (
-                  <Badge key={t} variant="secondary">{t}</Badge>
+                  <Chip key={t} variant="subtle" color="neutral">{t}</Chip>
                 ))}
               </div>
             )}
@@ -511,7 +511,7 @@ export default function Evaluation() {
               <div key={tur}>
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-text-tertiary" />
-                  Kitapçık Türü: <Badge>{tur}</Badge>
+                  Kitapçık Türü: <Chip variant="subtle" color="blue">{tur}</Chip>
                 </h3>
                 <div className="border rounded-md overflow-auto max-h-96">
                   <Table>
@@ -593,7 +593,7 @@ export default function Evaluation() {
                     <TableRow key={s.satir}>
                       <TableCell className="text-text-tertiary">{s.satir}</TableCell>
                       <TableCell className="max-w-32 truncate" title={s.dosya}>{s.dosya}</TableCell>
-                      <TableCell><Badge variant="outline" className="text-xs">{s.kitapcikTuru}</Badge></TableCell>
+                      <TableCell><Chip variant="caption" color="neutral">{s.kitapcikTuru}</Chip></TableCell>
                       <TableCell className="text-center font-medium text-status-lime-text">{s.dogru}</TableCell>
                       <TableCell className="text-center font-medium text-status-rose-text">{s.yanlis}</TableCell>
                       <TableCell className="text-center font-medium text-text-tertiary">{s.bos}</TableCell>

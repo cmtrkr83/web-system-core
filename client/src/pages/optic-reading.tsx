@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Chip } from "@/components/base/badges/chip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -572,15 +572,15 @@ export default function OpticReading() {
                             ))}
                             <TableCell className="text-center">
                               {r.success ? (
-                                <Badge className="bg-state-success-base text-state-success-text">
+                                <Chip variant="bold" color="lime">
                                   <CheckCircle2 className="mr-1 h-3 w-3" />
                                   OK
-                                </Badge>
+                                </Chip>
                               ) : (
-                                <Badge variant="destructive">
+                                <Chip variant="bold" color="rose">
                                   <XCircle className="mr-1 h-3 w-3" />
                                   Hata
-                                </Badge>
+                                </Chip>
                               )}
                             </TableCell>
                           </TableRow>
@@ -632,9 +632,9 @@ export default function OpticReading() {
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center justify-between">
                             <span className="text-text-tertiary">Referans karesi</span>
-                            <Badge variant={selectedResult.marks_detected >= 4 ? "secondary" : "outline"}>
+                            <Chip variant="subtle" color={selectedResult.marks_detected >= 4 ? "cyan" : "gray"}>
                               {selectedResult.marks_detected}/5
-                            </Badge>
+                            </Chip>
                           </div>
                           {selectedResult.fields.map((f) => (
                             <div key={f.id} className="flex items-center justify-between">

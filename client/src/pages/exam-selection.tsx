@@ -9,7 +9,7 @@ import { useLocation } from "wouter";
 import { Plus, BookOpen, Calendar, Clock, FileSpreadsheet, ChevronRight, ChevronLeft, Trash2, Download, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Chip } from "@/components/base/badges/chip";
 import { FileUpload } from "@/components/base/file-upload/file-upload";
 import { apiRequest } from "@/lib/queryClient";
 import * as XLSX from "xlsx";
@@ -1058,17 +1058,17 @@ export default function ExamSelection() {
                       {exam.name}
                     </CardTitle>
                     <div className="flex items-center gap-2 mt-2">
-                      <Badge variant={exam.isActive === "1" ? "default" : "secondary"} className="rounded-full">
+                      <Chip variant="bold" color={exam.isActive === "1" ? "lime" : "gray"} className="rounded-full">
                         {exam.isActive === "1" ? "Aktif" : "İnaktif"}
-                      </Badge>
+                      </Chip>
                       {exam.sinavid && (
-                        <Badge variant="outline" className="rounded-full font-mono">
+                        <Chip variant="caption" color="neutral" className="rounded-full font-mono">
                           #{exam.sinavid}
-                        </Badge>
+                        </Chip>
                       )}
-                      <Badge variant="secondary" className="rounded-full text-status-lime-text">
+                      <Chip variant="subtle" color="lime" className="rounded-full">
                         Serbest
-                      </Badge>
+                      </Chip>
                     </div>
                   </div>
 
