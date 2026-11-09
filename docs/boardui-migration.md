@@ -19,9 +19,25 @@ shadcn token sınıfları → BoardUI semantic sınıfları, sayfa sayfa:
 `text-muted-foreground`→`text-text-tertiary`, `bg-muted`→`bg-background-secondary-default`,
 `border-border`→`border-separator-border`, `bg-card`→`bg-background-primary-default`, …
 
+- [x] 372 sınıf, 11 sayfa (`script/migrate-boardui-tokens.py`, AST ile doğrulandı).
+- [x] Durum renkleri (green/red/amber/emerald/blue/violet) → `status-*` / `state-success-*` tokenları.
+      Kalan ham palet sınıfları yalnızca baskı çıktısında (labels, branch-labels, optic-creation önizlemesi) — bilinçli.
+- [x] `dark:` override'ları kaldırıldı (tokenlar `.dark` ile kendini çeviriyor).
+
 ## Faz 3 — shadcn primitiflerini BoardUI bileşenleriyle değiştir
-`npx boardui add <ad> --yes` ile gerçek kaynak kurulur; sayfa çağrı yerleri güncellenir.
-Sıra: button → input/select/checkbox → table → badge/chip → dialog/sheet → toast.
+`npx boardui add <ad> --yes --dir client/src` ile gerçek kaynak kurulur; çağrı yerleri AST codemod'larıyla taşınır
+(regex JSX'e güvenilmez — `script/migrate-boardui-*.cjs` her dosyayı yazmadan önce yeniden ayrıştırıp doğrular).
+
+- [x] **Button** (52 kullanım): variant/size eşlemesi, ikonlar `leadingIcon`/`trailingIcon`,
+      `iconOnly` + aria-label, 18 ana eylem `variant="primary"`.
+- [x] **Input** (27 alan): `InputBase` — genişlik `fieldClassName`e, tipografi `className`a,
+      `h-7`/`h-8` → `size="small"`. value/onChange semantiği korundu.
+- [ ] Select (12) — BoardUI Select'in API'si farklı (RAC `Select.Button/Popover/Item`), elle taşınmalı.
+- [ ] Label (51) — BoardUI Label'ı TextField bağlamında çalışır; ya `<Input label>` ile birleşir ya kalır.
+- [ ] Table (6), Badge→chip (11), Dialog (2), Sheet (2), Tooltip (2), Separator, Skeleton.
 
 ## Faz 4 — Kapsam dışı bırakılanlar
 - Auth: yok (yerel erişim). `passport*`, `express-session` bağımlılıkları kullanılmıyor.
+- `components/ui/*` dosyaları henüz silinmiyor: `alert-dialog`, `input-group`, `pagination`,
+  `sidebar`, `calendar`, `carousel` içinde hâlâ `ui/button` import'u var (kullanılmıyorlar ama
+  Faz 3 tamamlanana dek köprü onları taşıyor).
