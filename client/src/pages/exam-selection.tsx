@@ -8,7 +8,7 @@ import { useRegistry, District, School, Student } from "@/context/RegistryContex
 import { useLocation } from "wouter";
 import { Plus, BookOpen, Calendar, Clock, FileSpreadsheet, ChevronRight, ChevronLeft, Trash2, Download, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/base/select/select";
 import { Chip } from "@/components/base/badges/chip";
 import { FileUpload } from "@/components/base/file-upload/file-upload";
 import { apiRequest } from "@/lib/queryClient";
@@ -799,26 +799,23 @@ export default function ExamSelection() {
                     {field.label} {field.required ? <span className="text-text-error-primary">*</span> : null}
                   </Label>
                   <Select
-                    value={columnMapping[field.key] || undefined}
-                    onValueChange={(value) => {
+                    selectedKey={columnMapping[field.key] || undefined}
+                    placeholder="Sütun seçin"
+                    onSelectionChange={(key) => {
+                      const value = String(key);
                       handleMappingChange(field.key, value);
-                      setExtraColumns(prev => {
+                      setExtraColumns((prev) => {
                         const next = new Set(prev);
                         next.delete(value);
                         return next;
                       });
                     }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sütun seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {excelColumns.map((column) => (
-                        <SelectItem key={column} value={column}>
-                          {column}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                    {excelColumns.map((column) => (
+                      <SelectItem key={column} id={column}>
+                        {column}
+                      </SelectItem>
+                    ))}
                   </Select>
                 </div>
               ))}
@@ -892,8 +889,7 @@ export default function ExamSelection() {
               </Button>
               <Button onClick={handlePrepareRegistryUpload} disabled={loading || analyzing} variant="ghost" trailingIcon={ChevronRight}>
                 Filtrelemeye Geç
-                
-              </Button>
+</Button>
             </div>
           </div>
         )}
@@ -934,8 +930,7 @@ export default function ExamSelection() {
               </Button>
               <Button onClick={handleApplyFiltersAndProceed} disabled={loading || analyzing} variant="ghost" trailingIcon={ChevronRight}>
                 Önizlemeye Geç
-                
-              </Button>
+</Button>
             </div>
           </div>
         )}
@@ -996,8 +991,7 @@ export default function ExamSelection() {
               </Button>
               <Button onClick={handleFinalizeRegistryUpload} disabled={loading || analyzing} variant="ghost" trailingIcon={ChevronRight}>
                 {analyzing ? "Yükleniyor..." : "Kütüğü Yükle"}
-                
-              </Button>
+</Button>
             </div>
           </div>
         )}

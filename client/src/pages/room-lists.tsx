@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/base/buttons/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/base/select/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FileText, Printer, Eye, ChevronLeft, ChevronRight, MapPin, School, ListChecks } from "lucide-react";
@@ -280,16 +280,15 @@ export default function RoomLists() {
                 <MapPin className="h-3.5 w-3.5 text-accent-600" />
                 İlçe Seçimi
               </Label>
-              <Select value={selectedDistrict} onValueChange={(val) => { setSelectedDistrict(val); setSelectedSchool("all"); }}>
-                <SelectTrigger className="h-11 rounded-xl border-separator-border/70 bg-background-full shadow-sm transition-colors hover:border-accent-600/50 focus:ring-2 focus:ring-border-focus-ring/20">
-                  <SelectValue placeholder="İlçe Seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tüm İlçeler</SelectItem>
-                  {districts.map(d => (
-                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                  ))}
-                </SelectContent>
+              <Select
+                selectedKey={selectedDistrict}
+                onSelectionChange={(key) => { setSelectedDistrict(String(key)); setSelectedSchool("all"); }}
+                placeholder="İlçe Seçin"
+              >
+                <SelectItem id="all">Tüm İlçeler</SelectItem>
+                {districts.map(d => (
+                  <SelectItem key={d.id} id={d.id}>{d.name}</SelectItem>
+                ))}
               </Select>
             </div>
 
@@ -298,16 +297,16 @@ export default function RoomLists() {
                 <School className="h-3.5 w-3.5 text-accent-600" />
                 Okul Seçimi
               </Label>
-              <Select value={selectedSchool} onValueChange={setSelectedSchool} disabled={selectedDistrict === "all" && isLoaded}>
-                <SelectTrigger className="h-11 rounded-xl border-separator-border/70 bg-background-full shadow-sm transition-colors hover:border-accent-600/50 focus:ring-2 focus:ring-border-focus-ring/20 disabled:cursor-not-allowed disabled:opacity-60">
-                  <SelectValue placeholder="Okul Seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tüm Okullar</SelectItem>
-                  {filteredSchools.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{`${s.name} [ ${schoolBranchCounts.get(s.id) ?? 0} Şube ]`}</SelectItem>
-                  ))}
-                </SelectContent>
+              <Select
+                selectedKey={selectedSchool}
+                onSelectionChange={(key) => setSelectedSchool(String(key))}
+                isDisabled={selectedDistrict === "all" && isLoaded}
+                placeholder="Okul Seçin"
+              >
+                <SelectItem id="all">Tüm Okullar</SelectItem>
+                {filteredSchools.map(s => (
+                  <SelectItem key={s.id} id={s.id}>{`${s.name} [ ${schoolBranchCounts.get(s.id) ?? 0} Şube ]`}</SelectItem>
+                ))}
               </Select>
             </div>
 

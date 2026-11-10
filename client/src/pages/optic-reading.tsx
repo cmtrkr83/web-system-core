@@ -6,7 +6,7 @@ import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/ui/label";
 import { Chip } from "@/components/base/badges/chip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/base/select/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertCircle, CheckCircle2, Download, FileScan, Loader2, Save, Upload, XCircle } from "lucide-react";
 
@@ -390,20 +390,17 @@ export default function OpticReading() {
 
   const renderAnswerCell = (fi: number, gi: number, a: AnswerRead, optionCount: number) => (
     <Select
-      value={a.answer || "__"}
-      onValueChange={(v) => updateAnswer(fi, gi, a.no, v === "__" ? "" : v)}
+      selectedKey={a.answer || "__"}
+      onSelectionChange={(key) => { const v = String(key); updateAnswer(fi, gi, a.no, v === "__" ? "" : v); }}
+      size="sm"
+      triggerClassName={`w-14 ${a.answer ? confidenceColor(a.confidence) : "text-text-tertiary"}`}
     >
-      <SelectTrigger className={`h-8 w-14 ${a.answer ? confidenceColor(a.confidence) : "text-text-tertiary"}`}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__">—</SelectItem>
-        {optionLetters(optionCount).map((l) => (
-          <SelectItem key={l} value={l}>
-            {l}
-          </SelectItem>
-        ))}
-      </SelectContent>
+      <SelectItem id="__">—</SelectItem>
+      {optionLetters(optionCount).map((l) => (
+        <SelectItem key={l} id={l}>
+          {l}
+        </SelectItem>
+      ))}
     </Select>
   );
 
@@ -425,17 +422,17 @@ export default function OpticReading() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Optik Form Tasarımı</Label>
-              <Select value={designId} onValueChange={handleDesignChange} disabled={designs.length === 0}>
-                <SelectTrigger>
-                  <SelectValue placeholder={designs.length === 0 ? "Form bulunamadı" : "Form seçin"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {designs.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name} ({d.paperSize})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select
+                selectedKey={designId}
+                onSelectionChange={(key) => handleDesignChange(String(key))}
+                isDisabled={designs.length === 0}
+                placeholder={designs.length === 0 ? "Form bulunamadı" : "Form seçin"}
+              >
+                {designs.map((d) => (
+                  <SelectItem key={d.id} id={d.id}>
+                    {d.name} ({d.paperSize})
+                  </SelectItem>
+                ))}
               </Select>
               {design && (
                 <p className="text-xs text-text-tertiary">

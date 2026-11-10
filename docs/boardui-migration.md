@@ -33,14 +33,25 @@ shadcn token sınıfları → BoardUI semantic sınıfları, sayfa sayfa:
 - [x] **Input** (27 alan): `InputBase` — genişlik `fieldClassName`e, tipografi `className`a,
       `h-7`/`h-8` → `size="small"`. value/onChange semantiği korundu.
 - [x] **Badge → Chip** (11 durum etiketi): `variant="bold|subtle|caption"` + `color` paleti.
-- [x] **Table** (6 rapor tablosu): BoardUI'nin registry tablosu React Aria koleksiyon modeli
-      (Column/Row/Cell) istiyor; koştullu kolon kullanan bu tablolar o modele girmedi.
+- [x] **Table** (6 rapor tablosu): registry'nin `table` bileşeni React Aria koleksiyon modeli
+      (Column/Row/Cell) istiyor; bu tablolar ise koştullu kolon listesi ve hücre `colSpan` ile
+      çiziliyor — deklaratif koleksiyona sığmadı (yapay bir `columns` dizisi + `Fragment key`
+      denendi, `TableCell` RAC `Cell` olduğu için geçersiz çocuk üretiyor).
       `components/ui/table.tsx` BoardUI token'larıyla yeniden stillendirildi
       (ölçü/renkler `globals.css`'teki `.bui-table` ile birebir), kurulduktan sonra kullanılmayan
       `components/base/table/` silindi.
-- [ ] Select (12) — BoardUI Select'in API'si farklı (RAC `Select.Button/Popover/Item`), elle taşınmalı.
+- [x] **Select** (12 seçim): `components/base/select/select` (`Select` + `SelectItem`, React Aria).
+      Bileşik yapı düz API'ye çevrildi (`script/migrate-boardui-select.cjs`): `SelectTrigger`/`SelectValue`/
+      `SelectContent` kaldırıldı, `value`→`selectedKey`, `onValueChange`→`onSelectionChange` (RAC `Key`
+      döndürür → elle `String(key)`), `SelectItem value=`→`id=`, `disabled`→`isDisabled`,
+      `h-7/h-8`→`size="sm"`, `SelectValue placeholder`→kökte `placeholder`.
+      Eski tetikleyici giydirme sınıfları (`h-11 rounded-xl bg-background-full …`) silindi;
+      boyutu ve yüzeyi bileşen kendi veriyor. `script/format-jsx-elements.cjs` taşınan blokları
+      yeniden biçimlendiriyor (proje formatlayıcısı yok).
+      Yerel bir rötuş: `SelectValue`'a `data-placeholder:text-text-tertiary` eklendi.
 - [ ] Label (51) — BoardUI Label'ı TextField bağlamında çalışır; ya `<Input label>` ile birleşir ya kalır.
 - [ ] Toast (`hooks/use-toast` + `ui/toaster` → BoardUI `toast`), Dialog (2), Sheet (2), Tooltip (2), Separator, Skeleton.
+- Not: `components/ui/select.tsx` artık hiçbir yerden import edilmiyor; Faz 3 bitince silinecek.
 
 ## Faz 4 — Kapsam dışı bırakılanlar
 - Auth: yok (yerel erişim). `passport*`, `express-session` bağımlılıkları kullanılmıyor.

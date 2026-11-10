@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/base/buttons/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/base/select/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ClipboardCheck, FileCheck, FileSignature, MapPin, FileDown } from "lucide-react";
@@ -325,16 +325,15 @@ export default function Reports() {
                     <MapPin className="h-3.5 w-3.5 text-accent-600" />
                     İlçe Filtresi
                 </Label>
-                <Select value={selectedDistrictForSchool} onValueChange={setSelectedDistrictForSchool}>
-                    <SelectTrigger className="h-11 rounded-xl border-separator-border/70 bg-background-full shadow-sm transition-colors hover:border-accent-600/50 focus:ring-2 focus:ring-border-focus-ring/20">
-                    <SelectValue placeholder="Tüm İlçeler" />
-                    </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tüm İlçeler</SelectItem>
-                    {districts.map(d => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                    ))}
-                  </SelectContent>
+                <Select
+                  selectedKey={selectedDistrictForSchool}
+                  onSelectionChange={(key) => setSelectedDistrictForSchool(String(key))}
+                  placeholder="Tüm İlçeler"
+                >
+                  <SelectItem id="all">Tüm İlçeler</SelectItem>
+                  {districts.map(d => (
+                    <SelectItem key={d.id} id={d.id}>{d.name}</SelectItem>
+                  ))}
                 </Select>
                </div>
                <div className="flex items-start gap-3 rounded-lg border border-separator-border/60 bg-background-full p-3">

@@ -6,7 +6,7 @@ import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/ui/label";
 import { Chip } from "@/components/base/badges/chip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/base/select/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -391,16 +391,15 @@ export default function Evaluation() {
             <div className="flex flex-wrap items-end gap-4">
               <div className="space-y-1.5">
                 <Label>Çıkarma Yöntemi</Label>
-                <Select value={cikarmaYontemi} onValueChange={(v) => setCikarmaYontemi(v as CikarmaYontemi)}>
-                  <SelectTrigger className="w-44">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="tum">QR'ın Tamamı</SelectItem>
-                    <SelectItem value="ilk_n">İlk N Karakter</SelectItem>
-                    <SelectItem value="son_n">Son N Karakter</SelectItem>
-                    <SelectItem value="ayirici">Ayırıcı ile Böl</SelectItem>
-                  </SelectContent>
+                <Select
+                  selectedKey={cikarmaYontemi}
+                  onSelectionChange={(key) => setCikarmaYontemi(String(key) as CikarmaYontemi)}
+                  triggerClassName="w-44"
+                >
+                  <SelectItem id="tum">QR'ın Tamamı</SelectItem>
+                  <SelectItem id="ilk_n">İlk N Karakter</SelectItem>
+                  <SelectItem id="son_n">Son N Karakter</SelectItem>
+                  <SelectItem id="ayirici">Ayırıcı ile Böl</SelectItem>
                 </Select>
               </div>
 
@@ -529,18 +528,16 @@ export default function Evaluation() {
                         {answerKeys[ki]?.cevaplar.map((_, si) => (
                           <TableCell key={si} className="text-center p-1">
                             <Select
-                              value={answerKeys[ki]?.cevaplar[si] || "__"}
-                              onValueChange={(v) => updateAnswerKey(ki, si, v === "__" ? "" : v as AnswerChar)}
+                              selectedKey={answerKeys[ki]?.cevaplar[si] || "__"}
+                              onSelectionChange={(key) => { const v = String(key); updateAnswerKey(ki, si, v === "__" ? "" : (v as AnswerChar)); }}
+                              size="sm"
+                              triggerClassName="w-14 mx-auto"
+                              placeholder="—"
                             >
-                              <SelectTrigger className="h-9 w-14 mx-auto">
-                                <SelectValue placeholder="—" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__">—</SelectItem>
-                                {answerOptions.map((opt) => (
-                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                ))}
-                              </SelectContent>
+                              <SelectItem id="__">—</SelectItem>
+                              {answerOptions.map((opt) => (
+                                <SelectItem key={opt} id={opt}>{opt}</SelectItem>
+                              ))}
                             </Select>
                           </TableCell>
                         ))}
