@@ -314,7 +314,7 @@ export default function RoomLists() {
             {/* Sıralama, fotoğraflı liste ve imza sütunu kaldırıldı */}
           </CardContent>
           <CardFooter className="border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
-            <Button className="w-full rounded-xl shadow-sm" size="medium" disabled={!isLoaded || students.length === 0} onClick={handleCreatePdf} variant="primary" leadingIcon={Printer}>
+            <Button className="w-full rounded-xl" size="medium" disabled={!isLoaded || students.length === 0} onClick={handleCreatePdf} variant="ghost" leadingIcon={Printer}>
               
               PDF Oluştur
             </Button>

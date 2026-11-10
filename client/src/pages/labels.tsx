@@ -476,7 +476,7 @@ export default function Labels() {
 						</div>
 					</CardContent>
 					<CardFooter className="flex-col gap-2 border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
-						<Button className="w-full rounded-xl shadow-sm" size="medium" onClick={handleHtmlPrint} variant="primary" leadingIcon={Printer}>
+						<Button className="w-full rounded-xl" size="medium" onClick={handleHtmlPrint} variant="ghost" leadingIcon={Printer}>
 							
 							Etiketleri HTML Yazdır
 						</Button>

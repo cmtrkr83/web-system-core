@@ -739,7 +739,7 @@ export default function ExamSelection() {
               <Button variant="secondary" leadingIcon={ChevronLeft} onClick={() => handleDialogOpenChange(false)} disabled={loading}>
                 İptal
               </Button>
-              <Button leadingIcon={ChevronRight} onClick={handleCreateExam} disabled={loading} variant="primary">
+              <Button leadingIcon={ChevronRight} onClick={handleCreateExam} disabled={loading} variant="ghost">
                 {loading ? "Oluşturuluyor..." : "Devam Et"}
               </Button>
             </div>
@@ -890,7 +890,7 @@ export default function ExamSelection() {
                 
                 Geri
               </Button>
-              <Button onClick={handlePrepareRegistryUpload} disabled={loading || analyzing} variant="primary" trailingIcon={ChevronRight}>
+              <Button onClick={handlePrepareRegistryUpload} disabled={loading || analyzing} variant="ghost" trailingIcon={ChevronRight}>
                 Filtrelemeye Geç
                 
               </Button>
@@ -932,7 +932,7 @@ export default function ExamSelection() {
                 
                 Geri
               </Button>
-              <Button onClick={handleApplyFiltersAndProceed} disabled={loading || analyzing} variant="primary" trailingIcon={ChevronRight}>
+              <Button onClick={handleApplyFiltersAndProceed} disabled={loading || analyzing} variant="ghost" trailingIcon={ChevronRight}>
                 Önizlemeye Geç
                 
               </Button>
@@ -994,7 +994,7 @@ export default function ExamSelection() {
                 
                 Geri
               </Button>
-              <Button onClick={handleFinalizeRegistryUpload} disabled={loading || analyzing} variant="primary" trailingIcon={ChevronRight}>
+              <Button onClick={handleFinalizeRegistryUpload} disabled={loading || analyzing} variant="ghost" trailingIcon={ChevronRight}>
                 {analyzing ? "Yükleniyor..." : "Kütüğü Yükle"}
                 
               </Button>
@@ -1120,7 +1120,7 @@ export default function ExamSelection() {
             <p className="text-text-tertiary mb-6">Başlamak için yeni bir sınav oluşturun.</p>
             <Dialog open={open} onOpenChange={handleDialogOpenChange}>
               <DialogTrigger asChild>
-                <Button size="medium" variant="primary" leadingIcon={Plus}>
+                <Button size="medium" variant="ghost" leadingIcon={Plus}>
                   
                   İlk Sınavı Oluştur
                 </Button>

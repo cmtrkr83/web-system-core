@@ -350,7 +350,7 @@ export default function OpticCreate() {
               </div>
               <Button
                 className="w-full"
-                onClick={() => setForm(createDefaultForm(newFormName.trim() || "Yeni Optik Form", newFormSize))} variant="primary" leadingIcon={Plus}
+                onClick={() => setForm(createDefaultForm(newFormName.trim() || "Yeni Optik Form", newFormSize))} variant="ghost" leadingIcon={Plus}
               >
                 
                 Formu Oluştur

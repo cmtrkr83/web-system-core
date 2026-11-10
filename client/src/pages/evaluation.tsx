@@ -345,7 +345,7 @@ export default function Evaluation() {
               onChange={handleFileChange}
               fieldClassName="max-w-sm"
             />
-            <Button onClick={handleParseCsv} disabled={!csvFile || parsing} variant="primary">
+            <Button onClick={handleParseCsv} disabled={!csvFile || parsing} variant="ghost">
               {parsing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
               {parsing ? "Ayrıştırılıyor..." : "Yükle & Ayrıştır"}
             </Button>
@@ -442,7 +442,7 @@ export default function Evaluation() {
                 </>
               )}
 
-              <Button onClick={handleApplyExtraction} variant="primary">Uygula</Button>
+              <Button onClick={handleApplyExtraction} variant="ghost">Uygula</Button>
             </div>
 
             {/* Öğrenci tablosu (ilk 10 satır) */}
@@ -551,7 +551,7 @@ export default function Evaluation() {
               </div>
             ))}
 
-            <Button onClick={handleCompare} size="medium" className="w-full" variant="primary" leadingIcon={CheckCircle2}>
+            <Button onClick={handleCompare} size="medium" className="w-full" variant="ghost" leadingIcon={CheckCircle2}>
               
               Karşılaştır
             </Button>

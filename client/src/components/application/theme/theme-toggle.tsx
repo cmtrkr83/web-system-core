@@ -148,6 +148,18 @@ export async function applyThemeWithTransition(
 ) {
   if (typeof document === "undefined" || currentTheme() === theme) return;
 
+  // transitionDuration={0} temanın ani değişmesini ister: View Transition hiç
+  // başlatılmaz. Renk geçişlerini de bastırmak için tema sınıfı, bileşenlerin
+  // kendi `transition-colors`'unu donduran .theme-transitioning altında çevrilir;
+  // sınıf iki kare sonra kaldırılıyor, böylece hover/geçiş animasyonları çalışmaya devam eder.
+  if (duration <= 0) {
+    const root = document.documentElement;
+    root.classList.add("theme-transitioning");
+    applyTheme(theme);
+    requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-transitioning")));
+    return;
+  }
+
   const transitionDocument = document as ViewTransitionDocument;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!transitionDocument.startViewTransition || reduceMotion) {

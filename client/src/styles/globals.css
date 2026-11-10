@@ -21,9 +21,10 @@
 @custom-variant rtl (&:dir(rtl));
 @custom-variant ltr (&:dir(ltr));
 
-/* The next theme is revealed by ThemeToggle from the exact interaction point.
- * Native view-transition crossfades are disabled so only the soft circular
- * clip-path animation runs; unsupported browsers simply ignore these rules. */
+/* Tema geçişinde dairesel açılma kullanılmıyor: ThemeToggle'a transitionDuration={0}
+ * veriliyor (uygulama ani değişimi istiyor). Bu kurallar yine de dursun: biri
+ * transitionDuration > 0 verirse tarayıcının kendi crossfade'i yerine temiz bir
+ * kesme uygulanır. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
@@ -74,10 +75,10 @@
   z-index: 2;
 }
 
-/* Components often have their own hover/focus color transitions. Freeze them
- * while the browser captures the next theme so the expanding circle contains
- * the fully resolved new palette instead of a frame that is still fading from
- * the old one. This is what makes the click-origin reveal read clearly. */
+/* Bileşenlerin kendi hover/odak renk geçişleri var. Tema çevrilirken bunları
+ * kısa süre donduruyoruz: böylece geçiş gerçekten ani olur, hiçbir yüzey eski
+ * paletten yeni palete doğru süzülmez. Sınıf iki kare sonra kalktığı için
+ * hover/geçiş animasyonları normal çalışmaya devam eder. */
 .theme-transitioning,
 .theme-transitioning * {
   transition: none !important;

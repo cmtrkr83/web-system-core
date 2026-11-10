@@ -472,7 +472,7 @@ export default function OpticReading() {
               )}
             </div>
 
-            <Button className="w-full" onClick={readAll} disabled={isReading || files.length === 0 || !design} variant="primary">
+            <Button className="w-full" onClick={readAll} disabled={isReading || files.length === 0 || !design} variant="ghost">
               {isReading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -500,7 +500,7 @@ export default function OpticReading() {
                   
                   CSV İndir
                 </Button>
-                <Button className="w-full" onClick={handleSave} disabled={isSaving || !results.some((r) => r.success)} variant="primary">
+                <Button className="w-full" onClick={handleSave} disabled={isSaving || !results.some((r) => r.success)} variant="ghost">
                   {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Sonuçları Kaydet
                 </Button>

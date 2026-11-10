@@ -453,7 +453,7 @@ export default function OpticCoding() {
           <p className="mt-1 text-body-regular text-text-secondary">Excel sütunlarını seçip optik form üzerine yerleştirin.</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={printAll} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting} variant="primary" leadingIcon={Printer}>
+          <Button onClick={printAll} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting} variant="ghost" leadingIcon={Printer}>
             
             Yazdır
           </Button>

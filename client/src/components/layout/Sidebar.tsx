@@ -81,7 +81,7 @@ export function Sidebar() {
 
       <div className="space-y-2 border-t border-separator-border p-3">
         <div className="flex justify-center">
-          <ThemeToggle appearance="sidebar-segmented" />
+          <ThemeToggle appearance="sidebar-segmented" transitionDuration={0} />
         </div>
         <div className="rounded-xl bg-background-secondary-default px-3 py-2.5 text-caption-2-regular text-text-tertiary">
           <p className="text-caption-1-semibold text-text-primary">Versiyon 2.2.2</p>
