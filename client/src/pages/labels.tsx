@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/base/input/label";
 import { Select, SelectItem } from "@/components/base/select/select";
-import { Radio, RadioGroup } from "@/components/base/radio/radio";
 import { Printer, Eye, Palette, ChevronLeft, ChevronRight, MapPin, School, Tags } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRegistry } from "@/context/RegistryContext";
@@ -268,7 +267,8 @@ export default function Labels() {
 				<title>Okul Etiketleri</title>
 				<style>
 					@page { size: A4; margin: 0; }
-					body { margin: 0; padding: 0; background: #fff; }
+					html { color-scheme: light; }
+					body { margin: 0; padding: 0; background: #fff; color: #111827; color-scheme: light; }
 					.print-page { break-inside: avoid; page-break-inside: avoid; }
 					.print-page:not(:last-child) { break-after: page; page-break-after: always; }
 				</style>
@@ -313,6 +313,7 @@ export default function Labels() {
 	};
 	const sideStripBgHex = sideStripBgMap[scheme] || sideStripBgMap.blue;
 	const sideStripTextColor = sideStripTextColorMap[scheme] || "#111827";
+	const infoLabelTextColor = scheme === "black" || scheme === "none" ? "#6b7280" : "#475569";
 
 	// Dinamik iç stil: etiket boyutlarına göre yazı ve padding ayarları (mm)
 	// Küçülme gerektiğinde yazı boyutlarının otomatik küçülmesi için düşük minimumlar kullanıyoruz
@@ -458,24 +459,24 @@ export default function Labels() {
 								<Palette className="w-4 h-4" />
 								Renk Şeması
 							</Label>
-							<RadioGroup
-								aria-label="Renk şeması"
-								value={scheme}
-								onChange={setScheme}
-								className="grid grid-cols-3 gap-2"
-							>
+							<div role="group" aria-label="Renk şeması" className="grid grid-cols-3 gap-2">
 								{colorSchemes.map((s) => (
-									<Radio
+									<button
 										key={s.id}
-										value={s.id}
+										type="button"
+										aria-pressed={scheme === s.id}
 										aria-label={s.name}
-										className="relative w-full flex-col items-stretch gap-0 rounded-2lg border-2 border-border-button-default bg-background-primary-default p-2 transition-colors hover:bg-background-primary-hover data-[selected]:border-accent-600 [&>span:first-child]:absolute [&>span:first-child]:end-1.5 [&>span:first-child]:top-1.5 [&>span:last-child]:block [&>span:last-child]:w-full"
+										onClick={() => setScheme(s.id)}
+										className={cn(
+											"relative flex w-full flex-col items-stretch gap-0 rounded-2lg border-2 bg-background-primary-default p-2 transition-colors hover:bg-background-primary-hover",
+											scheme === s.id ? "border-accent-600" : "border-border-button-default",
+										)}
 									>
 										<span className={cn("mb-2 block h-8 w-full rounded border", s.primary || "bg-white", s.border)} />
 										<span className="block text-caption-1-medium">{s.name}</span>
-									</Radio>
+									</button>
 								))}
-							</RadioGroup>
+							</div>
 						</div>
 					</CardContent>
 					<CardFooter className="flex-col gap-2 border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
@@ -572,13 +573,13 @@ export default function Labels() {
 													</h2>
 												</div>
 												<div className="grid grid-cols-2" style={{ gap: `${boxPaddingMm}mm` }}>
-													<div className="h-full min-w-0 min-h-0 overflow-hidden flex flex-col justify-center bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
-														<p className="text-text-tertiary uppercase" style={{ fontSize: `${infoLabelFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>Şube Sayısı</p>
-														<p className="font-bold" style={{ fontSize: `${infoValueFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>{branchCount}</p>
+													<div className="h-full min-w-0 min-h-0 overflow-hidden flex flex-col justify-center bg-white rounded text-center" style={{ padding: `${boxPaddingMm}mm`, border: "1px solid #d1d5db" }}>
+														<p className="uppercase" style={{ fontSize: `${infoLabelFontSizeMm}mm`, lineHeight: 1.1, margin: 0, color: infoLabelTextColor }}>Şube Sayısı</p>
+														<p className="font-bold" style={{ fontSize: `${infoValueFontSizeMm}mm`, lineHeight: 1.1, margin: 0, color: "#111827" }}>{branchCount}</p>
 													</div>
-													<div className="h-full min-w-0 min-h-0 overflow-hidden flex flex-col justify-center bg-white rounded border text-center" style={{ padding: `${boxPaddingMm}mm` }}>
-														<p className="text-text-tertiary uppercase" style={{ fontSize: `${infoLabelFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>Öğrenci Sayısı</p>
-														<p className="font-bold" style={{ fontSize: `${infoValueFontSizeMm}mm`, lineHeight: 1.1, margin: 0 }}>{studentCount}</p>
+													<div className="h-full min-w-0 min-h-0 overflow-hidden flex flex-col justify-center bg-white rounded text-center" style={{ padding: `${boxPaddingMm}mm`, border: "1px solid #d1d5db" }}>
+														<p className="uppercase" style={{ fontSize: `${infoLabelFontSizeMm}mm`, lineHeight: 1.1, margin: 0, color: infoLabelTextColor }}>Öğrenci Sayısı</p>
+														<p className="font-bold" style={{ fontSize: `${infoValueFontSizeMm}mm`, lineHeight: 1.1, margin: 0, color: "#111827" }}>{studentCount}</p>
 													</div>
 												</div>
 													</div>

@@ -929,7 +929,7 @@ export default function ExamSelection() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+    <div className="min-h-screen bg-background-secondary-default">
       <div className="container mx-auto px-4 py-10 md:py-12">
         {/* Header */}
         <div className="mx-auto mb-10 max-w-3xl text-center">
@@ -946,15 +946,15 @@ export default function ExamSelection() {
           {/* Create New Exam Card */}
           <Card
             onClick={() => handleDialogOpenChange(true)}
-            className="group min-h-[280px] cursor-pointer border border-dashed border-accent-600/30 bg-accent-600/[0.03] transition-all hover:-translate-y-0.5 hover:border-accent-600/60 hover:shadow-lg"
+            className="group min-h-[280px] cursor-pointer border border-dashed border-accent-600/30 transition-all hover:-translate-y-0.5 hover:border-accent-600/60 hover:shadow-lg"
           >
             <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-              <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-accent-600/10 text-accent-600 transition-transform group-hover:scale-105">
+              <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-accent-600/10 text-text-primary transition-transform group-hover:scale-105">
                 <Plus className="h-6 w-6" />
               </div>
               <h3 className="mb-2 font-semibold text-text-primary">Yeni Sınav Ekle</h3>
               <p className="max-w-[200px] text-sm text-text-tertiary">Sınav bilgilerini ve kütük dosyasını birlikte oluşturun.</p>
-              <span className="mt-5 text-xs font-medium text-accent-600">Başlamak için tıklayın</span>
+              <span className="mt-5 text-caption-1-semibold text-text-primary">Başlamak için tıklayın</span>
             </div>
           </Card>
 

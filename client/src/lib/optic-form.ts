@@ -70,33 +70,50 @@ export interface FieldPlacement {
 
 export function computeFieldPlacements(design: OpticFormDesign): FieldPlacement[] {
   const paperWidth = design.paperSize === "A4" ? 210 : 148;
-  const colWidth = (paperWidth - LEFT_MARGIN_MM - RIGHT_MARGIN_MM - INFO_COL_GAP_MM) / 2;
+  const paperHeight = design.paperSize === "A4" ? 297 : 210;
+  const usableWidth = paperWidth - LEFT_MARGIN_MM - RIGHT_MARGIN_MM;
   const regularFields = design.fields.filter((f) => !isHeadingField(f));
-  const rowCount = Math.ceil(regularFields.length / 2);
-  const rowHeights = Array.from({ length: rowCount }, (_, r) => {
-    const a = regularFields[r * 2];
-    const b = regularFields[r * 2 + 1];
-    return Math.max(formFieldHeightMm(a), b ? formFieldHeightMm(b) : 0);
-  });
   const baseY = MARGIN_MM + (design.title?.trim() ? TITLE_BAND_MM : 0);
+  const layouts = Array.from({ length: 5 }, (_, i) => i + 2).map((columnCount) => {
+    const colWidth = (usableWidth - INFO_COL_GAP_MM * (columnCount - 1)) / columnCount;
+    const rowCount = Math.ceil(regularFields.length / columnCount);
+    const rowHeights = Array.from({ length: rowCount }, (_, row) =>
+      Math.max(
+        ...regularFields
+          .slice(row * columnCount, (row + 1) * columnCount)
+          .map((field) => formFieldHeightMm(field)),
+      ),
+    );
+    const bottomY = baseY + rowHeights.reduce((total, height) => total + height + 3, 0);
+    const fitsWidth = regularFields.every((field) => fieldContentWidthMm(field, colWidth) <= colWidth);
+    return { columnCount, colWidth, rowHeights, bottomY, fitsWidth };
+  });
+  const fittingLayouts = layouts.filter((layout) => layout.fitsWidth);
+  const layout =
+    fittingLayouts.find((candidate) => candidate.bottomY <= paperHeight - MARGIN_MM) ??
+    fittingLayouts.reduce(
+      (best, candidate) => (candidate.bottomY < best.bottomY ? candidate : best),
+      fittingLayouts[0] ?? layouts[0],
+    );
 
   const placements: FieldPlacement[] = [];
 
   regularFields.forEach((field, i) => {
-    const col = i % 2;
-    const row = Math.floor(i / 2);
+    const col = i % layout.columnCount;
+    const row = Math.floor(i / layout.columnCount);
     let rowY = baseY;
-    for (let r = 0; r < row; r++) rowY += rowHeights[r] + 3;
+    for (let r = 0; r < row; r++) rowY += layout.rowHeights[r] + 3;
     placements.push({
       field,
-      xMm: field.xMm ?? LEFT_MARGIN_MM + col * (colWidth + INFO_COL_GAP_MM),
+      xMm: field.xMm ?? LEFT_MARGIN_MM + col * (layout.colWidth + INFO_COL_GAP_MM),
       yMm: field.yMm ?? rowY,
-      colWidthMm: fieldContentWidthMm(field, colWidth),
+      colWidthMm: fieldContentWidthMm(field, layout.colWidth),
     });
   });
 
   let regularBottomY = baseY;
-  for (const h of rowHeights) regularBottomY += h + 3;
+  for (const h of layout.rowHeights) regularBottomY += h + 3;
+  const headingColWidth = (usableWidth - INFO_COL_GAP_MM) / 2;
 
   let headingY = Math.max(regularBottomY, baseY + 30);
   for (const field of design.fields) {
@@ -105,7 +122,7 @@ export function computeFieldPlacements(design: OpticFormDesign): FieldPlacement[
       field,
       xMm: field.xMm ?? LEFT_MARGIN_MM,
       yMm: field.yMm ?? headingY,
-      colWidthMm: fieldContentWidthMm(field, colWidth),
+      colWidthMm: fieldContentWidthMm(field, headingColWidth),
     });
     headingY += formFieldHeightMm(field) + 3;
   }

@@ -150,7 +150,7 @@ export default function RoomLists() {
             }).join('');
 
             const section = `
-              <div style="page-break-after:always; padding:8px; font-family: Arial, sans-serif; font-size:10px; background:white;">
+              <div style="page-break-after:always; padding:8px; font-family: Arial, sans-serif; font-size:10px; background:white; color:#000; color-scheme:light;">
                 <div style="text-align:center; border-bottom:1px solid #000; padding-bottom:4px; margin-bottom:6px;"><strong style="font-size:16px;">SINAV YOKLAMA LİSTESİ</strong></div>
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; font-size:10px;">
                   <div>
@@ -353,7 +353,10 @@ export default function RoomLists() {
             </div>
           </CardHeader>
           <CardContent className="flex min-h-[500px] items-start justify-center overflow-auto bg-background-secondary-default/30 p-6">
-            <div className="w-[210mm] min-h-[297mm] origin-top scale-75 bg-white px-[10mm] pb-[10mm] pt-[8mm] text-[10px] shadow-xl transition-transform md:scale-90">
+            <div
+              className="w-[210mm] min-h-[297mm] origin-top scale-75 bg-white px-[10mm] pb-[10mm] pt-[8mm] text-[10px] shadow-xl transition-transform md:scale-90"
+              style={{ color: "#000", colorScheme: "light" }}
+            >
               {/* Per-page headers are rendered inside pages to avoid duplicate titles */}
               
                 {previewPages.length > 0 ? (
@@ -372,7 +375,7 @@ export default function RoomLists() {
 
                   <table className="w-full border-collapse border border-black">
                     <thead>
-                      <tr className="bg-background-secondary-default">
+                      <tr style={{ backgroundColor: "#f2f2f2" }}>
                         <th className="border border-black p-2 w-10">S.NO</th>
                         <th className="border border-black p-2 w-20">OKUL NO</th>
                         <th className="border border-black p-2">AD SOYAD</th>

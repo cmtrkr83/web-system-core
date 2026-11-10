@@ -55,6 +55,7 @@ export default function OpticCreate() {
   const [previewScale, setPreviewScale] = useState(1);
   const [newFormName, setNewFormName] = useState("");
   const [newFormSize, setNewFormSize] = useState<"A4" | "A5">("A4");
+  const [dimensionDrafts, setDimensionDrafts] = useState<Record<string, string>>({});
 
   const previewRef = useRef<HTMLDivElement | null>(null);
   const previewAreaRef = useRef<HTMLDivElement | null>(null);
@@ -237,6 +238,36 @@ export default function OpticCreate() {
   const updateField = (id: string, changes: Partial<FormTextField>) => {
     if (!form) return;
     patch({ fields: form.fields.map((f) => (f.id === id ? { ...f, ...changes } : f)) });
+  };
+
+  const updateDimensionDraft = (id: string, dimension: "widthMm" | "heightMm", value: string) => {
+    setDimensionDrafts((prev) => ({ ...prev, [`${id}:${dimension}`]: value }));
+    if (value === "") return;
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return;
+    updateField(id, dimension === "widthMm" ? { widthMm: numericValue } : { heightMm: numericValue });
+  };
+
+  const commitDimensionDraft = (
+    id: string,
+    dimension: "widthMm" | "heightMm",
+    min: number,
+    max: number,
+  ) => {
+    const key = `${id}:${dimension}`;
+    const value = dimensionDrafts[key];
+    if (value !== undefined && value !== "") {
+      const numericValue = Number(value);
+      if (Number.isFinite(numericValue)) {
+        const clampedValue = Math.min(max, Math.max(min, numericValue));
+        updateField(id, dimension === "widthMm" ? { widthMm: clampedValue } : { heightMm: clampedValue });
+      }
+    }
+    setDimensionDrafts((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   };
 
   const removeField = (id: string) => {
@@ -447,7 +478,6 @@ export default function OpticCreate() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Öğrenci Bilgi Alanları</CardTitle>
-              <CardDescription>Form üzerinde boş bırakılan yazma alanları.</CardDescription>
             </CardHeader>
             <CardContent
               className="space-y-3"
@@ -455,18 +485,18 @@ export default function OpticCreate() {
             >
               {form.fields.map((field) => (
                 <div key={field.id} className="rounded-lg border border-separator-border/70 p-2.5 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                     <Input
-                      className="text-sm" size="small"
+                      className="min-w-0 text-sm" size="small"
                       value={field.label}
                       onChange={(e) => updateField(field.id, { label: e.target.value })}
                     />
-                    <Button variant="secondary" className="shrink-0 text-text-error-primary hover:bg-border-error-default/10 hover:text-text-error-primary" onClick={() => removeField(field.id)} iconOnly leadingIcon={Trash2} aria-label="Bilgi alanını kaldır" />
+                    <Button size="small" variant="secondary" className="shrink-0 text-text-error-primary hover:bg-border-error-default/10 hover:text-text-error-primary" onClick={() => removeField(field.id)} iconOnly leadingIcon={Trash2} aria-label="Bilgi alanını kaldır" />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-2">
+                    <div className="min-w-0">
                       <Select
-                        label={<span className="text-caption-1-medium">Tür</span>}
+                        label={<span className="block h-5 whitespace-nowrap text-caption-2-medium">Tür</span>}
                         size="sm"
                         selectedKey={isHeadingField(field) ? "heading" : isBoxField(field) ? "box" : isBookletField(field) ? "booklet" : isNumericField(field) ? "numeric" : "text"}
                         onSelectionChange={(key) => updateField(field.id, { type: String(key) as FormTextField["type"] })}
@@ -480,7 +510,7 @@ export default function OpticCreate() {
                     </div>
                     {isHeadingField(field) ? (
                       <div>
-                        <Label className="justify-between text-caption-1-medium">
+                        <Label className="min-h-5 justify-between whitespace-nowrap text-caption-2-medium">
                           Yazı Boyutu
                           <span>{field.fontSizeMm ?? HEADING_DEFAULT_FONT_MM}mm</span>
                         </Label>
@@ -495,10 +525,10 @@ export default function OpticCreate() {
                         />
                       </div>
                     ) : isBoxField(field) ? (
-                      <div>
-                        <Label className="text-caption-1-medium" htmlFor="kose-yaricapi-mm">Köşe Yarıçapı (mm)</Label>
+                      <div className="min-w-0">
+                        <Label className="min-h-5 whitespace-nowrap text-caption-2-medium" htmlFor={`kose-yaricapi-mm-${field.id}`}>Köşe yarıçapı (mm)</Label>
                         <Input
-                          id="kose-yaricapi-mm"
+                          id={`kose-yaricapi-mm-${field.id}`}
                           type="number"
                           min={0}
                           max={20}
@@ -509,10 +539,10 @@ export default function OpticCreate() {
                         />
                       </div>
                     ) : isNumericField(field) || isBookletField(field) ? (
-                      <div>
-                        <Label className="text-caption-1-medium" htmlFor="alan-2">{isBookletField(field) ? "Seçenek Sayısı" : "Sütun Sayısı"}</Label>
+                      <div className="min-w-0">
+                        <Label className="min-h-5 whitespace-nowrap text-caption-2-medium" htmlFor={`alan-sayisi-${field.id}`}>{isBookletField(field) ? "Seçenek Sayısı" : "Sütun Sayısı"}</Label>
                         <Input
-                          id="alan-2"
+                          id={`alan-sayisi-${field.id}`}
                           type="number"
                           min={isBookletField(field) ? 2 : 1}
                           max={isBookletField(field) ? 12 : 30}
@@ -529,7 +559,7 @@ export default function OpticCreate() {
                     <>
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
-                          <Label className="text-caption-1-medium" htmlFor="genislik-baslik">Genişlik</Label>
+                          <Label className="text-caption-1-medium" htmlFor={`genislik-baslik-${field.id}`}>Genişlik</Label>
                           <Checkbox
                             size="sm"
                             isSelected={field.autoWidth !== false}
@@ -539,16 +569,21 @@ export default function OpticCreate() {
                           </Checkbox>
                         </div>
                         <Input
-                          id="genislik-baslik"
+                          id={`genislik-baslik-${field.id}`}
                           type="number"
                           min={10}
                           max={200}
                           step={0.5}
                           size="small"
-                          value={field.autoWidth === false ? field.widthMm ?? 88 : ""}
+                          className="optic-form-number-input"
+                          value={field.autoWidth !== false ? "" : dimensionDrafts[`${field.id}:widthMm`] ?? field.widthMm ?? 88}
                           placeholder="Otomatik"
                           disabled={field.autoWidth !== false}
-                          onChange={(e) => updateField(field.id, { widthMm: Number(e.target.value) || 10, autoWidth: false })}
+                          onChange={(e) => {
+                            updateField(field.id, { autoWidth: false });
+                            updateDimensionDraft(field.id, "widthMm", e.target.value);
+                          }}
+                          onBlur={() => commitDimensionDraft(field.id, "widthMm", 10, 200)}
                         />
                       </div>
                       <div>
@@ -570,30 +605,34 @@ export default function OpticCreate() {
                   )}
                   {isBoxField(field) && (
                     <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-caption-1-medium" htmlFor="genislik-mm">Genişlik (mm)</Label>
+                      <div className="min-w-0">
+                        <Label className="min-h-5 whitespace-nowrap text-caption-2-medium" htmlFor={`genislik-mm-${field.id}`}>Genişlik (mm)</Label>
                         <Input
-                          id="genislik-mm"
+                          id={`genislik-mm-${field.id}`}
                           type="number"
                           min={10}
                           max={200}
                           step={0.5}
                           size="small"
-                          value={field.widthMm}
-                          onChange={(e) => updateField(field.id, { widthMm: Number(e.target.value) || 10 })}
+                          className="optic-form-number-input"
+                          value={dimensionDrafts[`${field.id}:widthMm`] ?? field.widthMm}
+                          onChange={(e) => updateDimensionDraft(field.id, "widthMm", e.target.value)}
+                          onBlur={() => commitDimensionDraft(field.id, "widthMm", 10, 200)}
                         />
                       </div>
-                      <div>
-                        <Label className="text-caption-1-medium" htmlFor="yukseklik-mm">Yükseklik (mm)</Label>
+                      <div className="min-w-0">
+                        <Label className="min-h-5 whitespace-nowrap text-caption-2-medium" htmlFor={`yukseklik-mm-${field.id}`}>Yükseklik (mm)</Label>
                         <Input
-                          id="yukseklik-mm"
+                          id={`yukseklik-mm-${field.id}`}
                           type="number"
                           min={3}
                           max={100}
                           step={0.5}
                           size="small"
-                          value={field.heightMm ?? 14}
-                          onChange={(e) => updateField(field.id, { heightMm: Number(e.target.value) || 3 })}
+                          className="optic-form-number-input"
+                          value={dimensionDrafts[`${field.id}:heightMm`] ?? field.heightMm ?? 14}
+                          onChange={(e) => updateDimensionDraft(field.id, "heightMm", e.target.value)}
+                          onBlur={() => commitDimensionDraft(field.id, "heightMm", 3, 100)}
                         />
                       </div>
                     </div>
@@ -672,18 +711,17 @@ export default function OpticCreate() {
         <Card className="min-w-0">
           <CardHeader>
             <CardTitle className="text-base">Cevap Tabloları</CardTitle>
-            <CardDescription>Her ders için baloncuk tablosu.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {form.grids.map((grid) => (
               <div key={grid.id} className="rounded-lg border border-separator-border/70 p-2.5 space-y-2">
-                <div className="flex items-center justify-between gap-2">
+                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                   <Input
-                    className="text-sm" size="small"
+                    className="min-w-0 text-sm" size="small"
                     value={grid.subject}
                     onChange={(e) => updateGrid(grid.id, { subject: e.target.value })}
                   />
-                  <Button variant="secondary" className="shrink-0 text-text-error-primary hover:bg-border-error-default/10 hover:text-text-error-primary" onClick={() => removeGrid(grid.id)} iconOnly leadingIcon={Trash2} aria-label="Ders tablosunu kaldır" />
+                  <Button size="small" variant="secondary" className="shrink-0 text-text-error-primary hover:bg-border-error-default/10 hover:text-text-error-primary" onClick={() => removeGrid(grid.id)} iconOnly leadingIcon={Trash2} aria-label="Ders tablosunu kaldır" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>

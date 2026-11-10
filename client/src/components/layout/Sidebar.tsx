@@ -57,14 +57,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       <div className="border-b border-separator-border px-5 py-5">
-        <div className="flex items-center gap-2">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-accent-500 shadow-sm">
-            <Tags className="h-5 w-5 text-text-white" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-title-3-semibold tracking-tight text-text-primary">ODM Kütük</h1>
-            <p className="mt-0.5 text-caption-2-regular text-text-tertiary">Sınav yönetim sistemi</p>
-          </div>
+        <div className="min-w-0">
+          <h1 className="text-title-3-semibold tracking-tight text-text-primary">ODM Kütük</h1>
+          <p className="mt-0.5 text-caption-2-regular text-text-tertiary">Sınav yönetim sistemi</p>
         </div>
       </div>
 
