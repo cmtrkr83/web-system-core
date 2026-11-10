@@ -58,8 +58,21 @@ shadcn token sınıfları → BoardUI semantic sınıfları, sayfa sayfa:
       hiç yoktu (`h-9 … border … bg-transparent`); BoardUI `Select`e çevrildi. Boş `value=""`
       seçenekleri RAC anahtarı olamadığı için ya `placeholder`a (form seçimi) ya `FREE_FIELD`
       gibi bir bekçi anahtara (alan bağlama) dönüştürüldü.
-- [ ] Toast (`hooks/use-toast` + `ui/toaster` → BoardUI `toast`), Dialog (2), Sheet (2), Tooltip (2), Separator, Skeleton.
-- Not: `components/ui/select.tsx` artık hiçbir yerden import edilmiyor; Faz 3 bitince silinecek.
+- [x] **Toast** (82 çağrı, 10 sayfa): `hooks/use-toast` + `ui/toaster` → BoardUI `toast`
+      (`script/migrate-boardui-toast.cjs`). `toast({ title, description, variant: "destructive" })`
+      → `toast.error(...)`, `status: "success"` → `toast.success(...)`, diğerleri `toast(...)`;
+      `useToast()` kancaları kaldırıldı. `App.tsx`'teki `Toaster` eski 3 sn süreyi korur
+      (`duration={3000}`) ve Türkçe erişilebilirlik etiketleri alır.
+- [x] **Düğme rengi kararı (kullanıcı isteği)**: sistem genelinde düğmeler `variant="ghost"`
+      (açık mavi zemin + koyu yazı, `--color-button-ghost-*`). İstisnalar:
+      il genel durum tablosundaki "HTML Yazdır" düğmeleri `secondary` kaldı.
+      Kullanıcının "eski hâli daha güzeldi" dediği düğmeler `secondary` + eski sınıflarına döndü:
+      başlangıç sınav kartı sil, `registry-split` İl Raporu / Tüm İlçeler, `room-lists`/`labels`/
+      `branch-labels` sağ üst ok düğmeleri, `optic-creation` sil/Aç. Sil düğmelerinin ikonu kırmızı
+      (`text-text-error-primary`), "Aç" yeşil tonda (`text-status-lime-text`).
+- [ ] Dialog (2), Sheet (2), Tooltip (2), Separator, Skeleton.
+- Not: `components/ui/select.tsx` ve `hooks/use-toast.ts` artık hiçbir yerden import edilmiyor;
+      Faz 3 bitince silinecek.
 - Bilinen açık (göçten önce de böyleydi): 22 etiket alanla yan yana duruyor ama `htmlFor`/`id`
       bağı yok — ekran okuyucu etiketi okumuyor. Doğru çözümü BoardUI'nin bileşik `Input label=`
       kullanımı; toplu geçiş ayrı bir iş.

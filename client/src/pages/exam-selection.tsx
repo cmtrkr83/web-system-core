@@ -1009,7 +1009,7 @@ export default function ExamSelection() {
                   <Button
                     variant="ghost"
 
-                    className="shrink-0"
+                    className="shrink-0 text-text-error-primary hover:bg-border-error-default/10 hover:text-text-error-primary"
                     onClick={(event) => {
                       event.stopPropagation();
                       void handleDeleteExam(exam.id, exam.name);

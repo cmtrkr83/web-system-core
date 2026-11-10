@@ -741,7 +741,7 @@ export default function OpticCoding() {
                       </div>
                       <Button
                         variant="ghost"
-                        className="shrink-0"
+                        className="shrink-0 text-text-error-primary hover:bg-border-error-default/10"
                         onClick={(e) => {
                           e.stopPropagation();
                           removeElement(el.id);
