@@ -5,11 +5,10 @@ import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/base/input/label";
 import { Chip } from "@/components/base/badges/chip";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectItem } from "@/components/base/select/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
+import { Divider } from "@/components/base/divider/divider";
 import { toast } from "@/components/base/toast/toast";
 import {
   Upload,
@@ -322,7 +321,7 @@ export default function Evaluation() {
         </div>
       </div>
 
-      <Separator />
+      <Divider />
 
       {/* 1. CSV Yükleme */}
       <Card>

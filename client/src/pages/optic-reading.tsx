@@ -5,7 +5,6 @@ import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/base/input/label";
 import { Chip } from "@/components/base/badges/chip";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectItem } from "@/components/base/select/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertCircle, CheckCircle2, Download, FileScan, Loader2, Save, Upload, XCircle } from "lucide-react";
@@ -582,13 +581,18 @@ export default function OpticReading() {
                 {selectedResult && (
                   <div className="border rounded-lg p-4 space-y-4">
                     {!selectedResult.success && (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Sayfa okunamadı</AlertTitle>
-                        <AlertDescription>
-                          {selectedResult.error || "Bilinmeyen hata"} (referans karesi: {selectedResult.marks_detected}/5)
-                        </AlertDescription>
-                      </Alert>
+                      <div
+                        role="alert"
+                        className="flex gap-3 rounded-2xl border border-border-error-default/30 bg-notification-error-background/50 p-4"
+                      >
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-notification-error-foreground" />
+                        <div className="space-y-1">
+                          <p className="text-caption-1-semibold text-text-primary">Sayfa okunamadı</p>
+                          <p className="text-caption-1-regular text-text-secondary">
+                            {selectedResult.error || "Bilinmeyen hata"} (referans karesi: {selectedResult.marks_detected}/5)
+                          </p>
+                        </div>
+                      </div>
                     )}
 
                     {selectedResult.success && (

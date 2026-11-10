@@ -70,7 +70,24 @@ shadcn token sınıfları → BoardUI semantic sınıfları, sayfa sayfa:
       başlangıç sınav kartı sil, `registry-split` İl Raporu / Tüm İlçeler, `room-lists`/`labels`/
       `branch-labels` sağ üst ok düğmeleri, `optic-creation` sil/Aç. Sil düğmelerinin ikonu kırmızı
       (`text-text-error-primary`), "Aç" yeşil tonda (`text-status-lime-text`).
-- [ ] Dialog (2), Sheet (2), Tooltip (2), Separator, Skeleton.
+- [x] **Dialog → Modal** (2 şaşırtmacalı `Dialog`, `exam-selection`): `components/base/modal/modal`
+      (`Modal` + `ModalHeader` + `ModalBody`). Modal kontrollü kullanılıyor (`isOpen`/`onOpenChange`),
+      tetikleyici `ModalTrigger` yerine düz `onClick` — tetikleyici karttı, `Pressable` sarmalı gerekmedi.
+      Boş durumda ikinci bir `Dialog` daha açılıyordu (aynı `open` durumu → üst üste iki katman);
+      tek `Modal`'a indirildi, buton yalnızca `setOpen(true)` yapıyor. Panel `size="xl"`, kaydırma `ModalBody`de.
+- [x] **Sheet → Drawer** (`components/layout/Sidebar`): `components/base/drawer/drawer`,
+      `placement="start"`. Masaüstü `aside` ile mobil çekmecenin içeriği `SidebarContent`te toplandı
+      (aynı başlık/menü/sürüm + tema anahtarı); `onNavigate` bağlantıya basınca çekmeceyi kapatıyor.
+- [x] **Tooltip**: hiçbir yerde tooltip yoktu, sadece `App.tsx`te sağlayıcı duruyordu — kaldırıldı.
+- [x] **Separator → Divider** (`evaluation`): `components/base/divider/divider`.
+- [x] **Alert**: `optic-reading`deki tek hata kutusu token'lı satır içi panele çevrildi
+      (`bg-notification-error-background/50` + `border-border-error-default/30`), `evaluation`daki
+      kullanılmayan import silindi.
+- Kalan `components/ui/*` kullanımı: `card` (12), `table` (3, bilinçli), `radio-group` (2),
+      `checkbox` (1 dosyada 2), `progress` (1).
+- Artık hiçbir yerden import edilmeyen (onay bekleyen) shadcn dosyaları: `select`, `label`,
+      `toast`, `toaster`, `hooks/use-toast`, `dialog`, `sheet`, `tooltip`, `separator`, `alert`,
+      `field`, `form`.
 - Not: `components/ui/select.tsx` ve `hooks/use-toast.ts` artık hiçbir yerden import edilmiyor;
       Faz 3 bitince silinecek.
 - Bilinen açık (göçten önce de böyleydi): 22 etiket alanla yan yana duruyor ama `htmlFor`/`id`

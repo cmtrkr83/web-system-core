@@ -2,7 +2,6 @@ import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/base/toast/toast";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
@@ -48,12 +47,10 @@ function App() {
   return (
     <RegistryProvider>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <TemplateCopyProvider translate={(text) => TEMPLATE_COPY_TR[text] ?? text}>
-            <Toaster duration={3000} closeLabel="Bildirimi kapat" aria-label="Bildirimler" />
-            <Router />
-          </TemplateCopyProvider>
-        </TooltipProvider>
+        <TemplateCopyProvider translate={(text) => TEMPLATE_COPY_TR[text] ?? text}>
+          <Toaster duration={3000} closeLabel="Bildirimi kapat" aria-label="Bildirimler" />
+          <Router />
+        </TemplateCopyProvider>
       </QueryClientProvider>
     </RegistryProvider>
   );

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/base/input/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Modal, ModalBody, ModalHeader } from "@/components/base/modal/modal";
 import { useRegistry, District, School, Student } from "@/context/RegistryContext";
 import { useLocation } from "wouter";
 import { Plus, BookOpen, Calendar, Clock, FileSpreadsheet, ChevronRight, ChevronLeft, Trash2, Download, X } from "lucide-react";
@@ -955,28 +955,19 @@ export default function ExamSelection() {
 
         <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-3">
           {/* Create New Exam Card */}
-          <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-            <Card className="group min-h-[280px] cursor-pointer border border-dashed border-accent-600/30 bg-accent-600/[0.03] transition-all hover:-translate-y-0.5 hover:border-accent-600/60 hover:shadow-lg">
-              <DialogTrigger asChild>
-                <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-                  <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-accent-600/10 text-accent-600 transition-transform group-hover:scale-105">
-                    <Plus className="h-6 w-6" />
-                  </div>
-                  <h3 className="mb-2 font-semibold text-text-primary">Yeni Sınav Ekle</h3>
-                  <p className="max-w-[200px] text-sm text-text-tertiary">Sınav bilgilerini ve kütük dosyasını birlikte oluşturun.</p>
-                  <span className="mt-5 text-xs font-medium text-accent-600">Başlamak için tıklayın</span>
-                </div>
-              </DialogTrigger>
-            </Card>
-
-            <DialogContent className="sm:max-w-4xl lg:max-w-5xl">
-              <DialogHeader>
-                <DialogTitle>Yeni Sınav ve Kütük Oluştur</DialogTitle>
-                <DialogDescription>Sınavı oluşturun, ardından aynı pencereden kütük dosyasını yükleyin.</DialogDescription>
-              </DialogHeader>
-              {renderWizardContent()}
-            </DialogContent>
-          </Dialog>
+          <Card
+            onClick={() => handleDialogOpenChange(true)}
+            className="group min-h-[280px] cursor-pointer border border-dashed border-accent-600/30 bg-accent-600/[0.03] transition-all hover:-translate-y-0.5 hover:border-accent-600/60 hover:shadow-lg"
+          >
+            <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+              <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-accent-600/10 text-accent-600 transition-transform group-hover:scale-105">
+                <Plus className="h-6 w-6" />
+              </div>
+              <h3 className="mb-2 font-semibold text-text-primary">Yeni Sınav Ekle</h3>
+              <p className="max-w-[200px] text-sm text-text-tertiary">Sınav bilgilerini ve kütük dosyasını birlikte oluşturun.</p>
+              <span className="mt-5 text-xs font-medium text-accent-600">Başlamak için tıklayın</span>
+            </div>
+          </Card>
 
           {/* Existing Exams */}
           {exams.map((exam) => (
@@ -1051,24 +1042,26 @@ export default function ExamSelection() {
             <BookOpen className="h-16 w-16 text-text-tertiary/30 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-text-primary mb-2">Henüz Sınav Yok</h3>
             <p className="text-text-tertiary mb-6">Başlamak için yeni bir sınav oluşturun.</p>
-            <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-              <DialogTrigger asChild>
-                <Button size="medium" variant="ghost" leadingIcon={Plus}>
-                  
-                  İlk Sınavı Oluştur
-                </Button>
-              </DialogTrigger>
-            <DialogContent className="sm:max-w-4xl lg:max-w-5xl max-h-[85vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Yeni Sınav ve Kütük Oluştur</DialogTitle>
-                  <DialogDescription>Sınavı oluşturun, ardından aynı pencereden kütük dosyasını yükleyin.</DialogDescription>
-                </DialogHeader>
-                {renderWizardContent()}
-              </DialogContent>
-            </Dialog>
+            <Button size="medium" variant="ghost" leadingIcon={Plus} onClick={() => handleDialogOpenChange(true)}>
+              İlk Sınavı Oluştur
+            </Button>
           </div>
         )}
       </div>
+
+      <Modal
+        isOpen={open}
+        onOpenChange={handleDialogOpenChange}
+        size="xl"
+        aria-label="Yeni Sınav ve Kütük Oluştur"
+      >
+        <ModalHeader
+          title="Yeni Sınav ve Kütük Oluştur"
+          description="Sınavı oluşturun, ardından aynı pencereden kütük dosyasını yükleyin."
+          closeLabel="Kapat"
+        />
+        <ModalBody>{renderWizardContent()}</ModalBody>
+      </Modal>
     </div>
   );
 }

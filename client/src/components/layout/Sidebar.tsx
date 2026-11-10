@@ -8,14 +8,13 @@ import {
   ClipboardCheck,
   QrCode,
   Menu,
-  X,
   BookOpen,
   ClipboardList,
   FilePlus2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/base/buttons/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Drawer } from "@/components/base/drawer/drawer";
 import { ThemeToggle } from "@/components/application/theme/theme-toggle";
 import { useState } from "react";
 
@@ -52,11 +51,11 @@ function NavLink({ item, location, onClick }: { item: typeof navItems[number]; l
   );
 }
 
-export function Sidebar() {
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const [location] = useLocation();
 
   return (
-    <aside className="hidden h-screen w-64 flex-col border-r border-separator-border bg-background-primary-default text-text-primary shadow-sidebar md:flex">
+    <>
       <div className="border-b border-separator-border px-5 py-5">
         <div className="flex items-center gap-2">
           <div className="flex size-9 items-center justify-center rounded-xl bg-accent-500 shadow-sm">
@@ -68,12 +67,12 @@ export function Sidebar() {
           </div>
         </div>
       </div>
-      
+
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
         {navGroups.map((group, idx) => (
           <div key={idx} className="space-y-1">
             {group.items.map((item) => (
-              <NavLink key={item.href} item={item} location={location} />
+              <NavLink key={item.href} item={item} location={location} onClick={onNavigate} />
             ))}
           </div>
         ))}
@@ -88,42 +87,40 @@ export function Sidebar() {
           <p className="mt-1">Kütük Yönetim Sistemi</p>
         </div>
       </div>
+    </>
+  );
+}
+
+export function Sidebar() {
+  return (
+    <aside className="hidden h-screen w-64 flex-col border-r border-separator-border bg-background-primary-default text-text-primary shadow-sidebar md:flex">
+      <SidebarContent />
     </aside>
   );
 }
 
 export function MobileNav() {
-  const [location] = useLocation();
   const [open, setOpen] = useState(false);
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" className="text-text-secondary md:hidden" iconOnly leadingIcon={Menu} aria-label="Menüyü aç" />
-      </SheetTrigger>
-      <SheetContent side="left" className="w-64 border-separator-border bg-background-primary-default p-0 text-text-primary">
-        <div className="border-b border-separator-border px-5 py-5">
-          <div className="flex items-center gap-2">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-accent-500 shadow-sm">
-              <Tags className="h-5 w-5 text-text-white" />
-            </div>
-            <div>
-              <h1 className="text-title-3-semibold tracking-tight text-text-primary">ODM Kütük</h1>
-              <p className="mt-0.5 text-caption-2-regular text-text-tertiary">Sınav yönetim sistemi</p>
-            </div>
-          </div>
-        </div>
-        
-        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-          {navGroups.map((group, idx) => (
-            <div key={idx} className="space-y-1">
-              {group.items.map((item) => (
-                <NavLink key={item.href} item={item} location={location} onClick={() => setOpen(false)} />
-              ))}
-            </div>
-          ))}
-        </nav>
-      </SheetContent>
-    </Sheet>
+    <>
+      <Button
+        variant="ghost"
+        className="text-text-secondary md:hidden"
+        iconOnly
+        leadingIcon={Menu}
+        aria-label="Menüyü aç"
+        onClick={() => setOpen(true)}
+      />
+      <Drawer
+        isOpen={open}
+        onOpenChange={setOpen}
+        placement="start"
+        aria-label="Ana menü"
+        className="w-64 max-w-[85vw] gap-0 rounded-none border-0 bg-background-primary-default py-0"
+      >
+        <SidebarContent onNavigate={() => setOpen(false)} />
+      </Drawer>
+    </>
   );
 }
