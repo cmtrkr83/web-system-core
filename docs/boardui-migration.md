@@ -100,9 +100,10 @@ shadcn token sınıfları → BoardUI semantic sınıfları, sayfa sayfa:
 - Artık hiçbir yerden import edilmeyen npm paketleri (silme onayı bekliyor): `vaul`, `cmdk`,
       `embla-carousel-react`, `sonner`, `input-otp`, `react-resizable-panels`, `react-day-picker`,
       `date-fns`, `react-hook-form`, `next-themes`, `tailwindcss-animate`.
-- Bilinen açık (göçten önce de böyleydi): 22 etiket alanla yan yana duruyor ama `htmlFor`/`id`
-      bağı yok — ekran okuyucu etiketi okumuyor. Doğru çözümü BoardUI'nin bileşik `Input label=`
-      kullanımı; toplu geçiş ayrı bir iş.
+- [x] Etiket ↔ alan bağı: yanındaki alanla durup bağı olmayan 18 etiket için alana `id`,
+      etikete `htmlFor` üretildi (`script/migrate-boardui-label-for.cjs`; kimlik etiket metninden,
+      Türkçe harfler sadeleşmiş, dosya içinde çakışma yok). `InputBase` kimliği gerçek `<input>`a
+      koyduğu için ekran okuyucu artık etiketi okuyor, etikete tıklayınca alana odaklanıyor.
 
 ## Faz 4 — Kapsam dışı bırakılanlar
 - Auth: yok (yerel erişim). `passport*`, `express-session` bağımlılıkları kullanılmıyor.

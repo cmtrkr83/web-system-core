@@ -494,8 +494,9 @@ export default function OpticCreate() {
                       </div>
                     ) : isBoxField(field) ? (
                       <div>
-                        <Label className="text-caption-1-medium">Köşe Yarıçapı (mm)</Label>
+                        <Label className="text-caption-1-medium" htmlFor="kose-yaricapi-mm">Köşe Yarıçapı (mm)</Label>
                         <Input
+                          id="kose-yaricapi-mm"
                           type="number"
                           min={0}
                           max={20}
@@ -507,8 +508,9 @@ export default function OpticCreate() {
                       </div>
                     ) : isNumericField(field) || isBookletField(field) ? (
                       <div>
-                        <Label className="text-caption-1-medium">{isBookletField(field) ? "Seçenek Sayısı" : "Sütun Sayısı"}</Label>
+                        <Label className="text-caption-1-medium" htmlFor="alan-2">{isBookletField(field) ? "Seçenek Sayısı" : "Sütun Sayısı"}</Label>
                         <Input
+                          id="alan-2"
                           type="number"
                           min={isBookletField(field) ? 2 : 1}
                           max={isBookletField(field) ? 12 : 30}
@@ -524,7 +526,7 @@ export default function OpticCreate() {
                   {isHeadingField(field) && (
                     <>
                       <div className="space-y-1.5">
-                        <Label className="justify-between text-caption-1-medium">
+                        <Label className="justify-between text-caption-1-medium" htmlFor="alan-3">
                           <span>Genişlik</span>
                           <label className="flex items-center gap-1 text-xs font-normal">
                             <input
@@ -537,6 +539,7 @@ export default function OpticCreate() {
                           </label>
                         </Label>
                         <Input
+                          id="alan-3"
                           type="number"
                           min={10}
                           max={200}
@@ -568,8 +571,9 @@ export default function OpticCreate() {
                   {isBoxField(field) && (
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <Label className="text-caption-1-medium">Genişlik (mm)</Label>
+                        <Label className="text-caption-1-medium" htmlFor="genislik-mm">Genişlik (mm)</Label>
                         <Input
+                          id="genislik-mm"
                           type="number"
                           min={10}
                           max={200}
@@ -580,8 +584,9 @@ export default function OpticCreate() {
                         />
                       </div>
                       <div>
-                        <Label className="text-caption-1-medium">Yükseklik (mm)</Label>
+                        <Label className="text-caption-1-medium" htmlFor="yukseklik-mm">Yükseklik (mm)</Label>
                         <Input
+                          id="yukseklik-mm"
                           type="number"
                           min={3}
                           max={100}
@@ -682,8 +687,9 @@ export default function OpticCreate() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label className="text-caption-1-medium">Soru</Label>
+                    <Label className="text-caption-1-medium" htmlFor="soru">Soru</Label>
                     <Input
+                      id="soru"
                       type="number"
                       min={1}
                       max={100}

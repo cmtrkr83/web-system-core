@@ -405,8 +405,9 @@ export default function Evaluation() {
 
               {(cikarmaYontemi === "ilk_n" || cikarmaYontemi === "son_n") && (
                 <div className="space-y-1.5">
-                  <Label>N (karakter sayısı)</Label>
+                  <Label htmlFor="n-karakter-sayisi">N (karakter sayısı)</Label>
                   <Input
+                    id="n-karakter-sayisi"
                     type="number"
                     min={1}
                     max={50}
@@ -420,16 +421,18 @@ export default function Evaluation() {
               {cikarmaYontemi === "ayirici" && (
                 <>
                   <div className="space-y-1.5">
-                    <Label>Ayırıcı</Label>
+                    <Label htmlFor="ayirici-2">Ayırıcı</Label>
                     <Input
+                      id="ayirici-2"
                       value={cikarmaAyirici}
                       onChange={(e) => setCikarmaAyirici(e.target.value)}
                       fieldClassName="w-20"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>İndeks (0'dan başlar)</Label>
+                    <Label htmlFor="indeks-0-dan-baslar">İndeks (0'dan başlar)</Label>
                     <Input
+                      id="indeks-0-dan-baslar"
                       type="number"
                       min={0}
                       max={20}

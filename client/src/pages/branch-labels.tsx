@@ -377,8 +377,9 @@ export default function BranchLabels() {
 					<CardContent className="space-y-5 p-5">
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
-								<Label>Satır Sayısı</Label>
+								<Label htmlFor="satir-sayisi">Satır Sayısı</Label>
 								<Input
+									id="satir-sayisi"
 									type="number"
 									min="1"
 									max="10"
@@ -387,8 +388,9 @@ export default function BranchLabels() {
 								/>
 							</div>
 							<div className="space-y-2">
-								<Label>Sütun Sayısı</Label>
+								<Label htmlFor="sutun-sayisi">Sütun Sayısı</Label>
 								<Input
+									id="sutun-sayisi"
 									type="number"
 									min="1"
 									max="5"
@@ -421,8 +423,9 @@ export default function BranchLabels() {
 						</div>
 
 								<div className="space-y-2 mt-2">
-									<Label>Ders Adı (Opsiyonel)</Label>
+									<Label htmlFor="ders-adi-opsiyonel">Ders Adı (Opsiyonel)</Label>
 									<Input
+										id="ders-adi-opsiyonel"
 										placeholder="Örn: Matematik"
 										value={lessonName}
 										onChange={(e) => setLessonName(e.target.value)}

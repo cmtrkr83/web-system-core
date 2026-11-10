@@ -776,8 +776,9 @@ export default function OpticCoding() {
               })}
               {selectedElement && selectedElement.kind !== "qr" && (
                 <div className="rounded-lg border border-separator-border/70 p-2.5 space-y-2">
-                  <Label className="text-caption-1-medium">Yazı Boyutu (mm)</Label>
+                  <Label className="text-caption-1-medium" htmlFor="yazi-boyutu-mm">Yazı Boyutu (mm)</Label>
                   <Input
+                    id="yazi-boyutu-mm"
                     type="number"
                     min={2}
                     max={12}
@@ -786,8 +787,9 @@ export default function OpticCoding() {
                     value={selectedElement.fontSizeMm ?? 3}
                     onChange={(e) => updateElement(selectedElement.id, { fontSizeMm: Number(e.target.value) || undefined })}
                   />
-                  <Label className="text-caption-1-medium">Harf Aralığı (mm)</Label>
+                  <Label className="text-caption-1-medium" htmlFor="harf-araligi-mm">Harf Aralığı (mm)</Label>
                   <Input
+                    id="harf-araligi-mm"
                     type="number"
                     min={0}
                     max={5}
@@ -800,8 +802,9 @@ export default function OpticCoding() {
               )}
               {selectedElement && selectedElement.kind === "qr" && (
                 <div className="rounded-lg border border-separator-border/70 p-2.5 space-y-2">
-                  <Label className="text-caption-1-medium">QR Boyutu (mm)</Label>
+                  <Label className="text-caption-1-medium" htmlFor="qr-boyutu-mm">QR Boyutu (mm)</Label>
                   <Input
+                    id="qr-boyutu-mm"
                     type="number"
                     min={QR_MIN_SIZE_MM}
                     max={QR_MAX_SIZE_MM}
