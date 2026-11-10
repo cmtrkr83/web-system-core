@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/base/input/label";
+import { Select, SelectItem } from "@/components/base/select/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -337,16 +338,14 @@ export default function OpticCreate() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="new-form-size">Kağıt Boyutu</Label>
-                <select
-                  id="new-form-size"
-                  className="h-9 w-full rounded-md border border-border-button-default bg-transparent px-3 text-sm"
-                  value={newFormSize}
-                  onChange={(e) => setNewFormSize(e.target.value as "A4" | "A5")}
+                <Select
+                  label="Kağıt Boyutu"
+                  selectedKey={newFormSize}
+                  onSelectionChange={(key) => setNewFormSize(String(key) as "A4" | "A5")}
                 >
-                  <option value="A4">A4</option>
-                  <option value="A5">A5</option>
-                </select>
+                  <SelectItem id="A4">A4</SelectItem>
+                  <SelectItem id="A5">A5</SelectItem>
+                </Select>
               </div>
               <Button
                 className="w-full"
@@ -400,11 +399,11 @@ export default function OpticCreate() {
       <div className="flex items-end gap-4 rounded-lg border bg-background-primary-default px-4 py-2 shadow-sm">
         <div className="flex items-end gap-3">
           <div className="shrink-0 space-y-1">
-            <Label htmlFor="form-name" className="text-xs">Form Adı</Label>
+            <Label htmlFor="form-name" className="text-caption-1-medium">Form Adı</Label>
             <Input id="form-name" fieldClassName="w-72" size="small" value={form.name} onChange={(e) => patch({ name: e.target.value })} />
           </div>
           <div className="shrink-0 space-y-1">
-            <Label htmlFor="form-title" className="text-xs">Form Başlığı</Label>
+            <Label htmlFor="form-title" className="text-caption-1-medium">Form Başlığı</Label>
             <Input
               id="form-title"
               fieldClassName="w-56" size="small"
@@ -414,16 +413,16 @@ export default function OpticCreate() {
             />
           </div>
           <div className="shrink-0 space-y-1">
-            <Label htmlFor="form-size" className="text-xs">Kağıt Boyutu</Label>
-            <select
-              id="form-size"
-              className="h-8 w-24 rounded-md border border-border-button-default bg-transparent px-2 text-sm"
-              value={form.paperSize}
-              onChange={(e) => patch({ paperSize: e.target.value as "A4" | "A5" })}
+            <Select
+              label={<span className="text-caption-1-medium">Kağıt Boyutu</span>}
+              selectedKey={form.paperSize}
+              size="sm"
+              className="w-24"
+              onSelectionChange={(key) => patch({ paperSize: String(key) as "A4" | "A5" })}
             >
-              <option value="A4">A4</option>
-              <option value="A5">A5</option>
-            </select>
+              <SelectItem id="A4">A4</SelectItem>
+              <SelectItem id="A5">A5</SelectItem>
+            </Select>
           </div>
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap">
@@ -466,22 +465,22 @@ export default function OpticCreate() {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label className="text-xs">Tür</Label>
-                      <select
-                        className="h-7 w-full rounded-md border border-border-button-default bg-transparent px-2 text-xs"
-                        value={isHeadingField(field) ? "heading" : isBoxField(field) ? "box" : isBookletField(field) ? "booklet" : isNumericField(field) ? "numeric" : "text"}
-                        onChange={(e) => updateField(field.id, { type: e.target.value as FormTextField["type"] })}
+                      <Select
+                        label={<span className="text-caption-1-medium">Tür</span>}
+                        size="sm"
+                        selectedKey={isHeadingField(field) ? "heading" : isBoxField(field) ? "box" : isBookletField(field) ? "booklet" : isNumericField(field) ? "numeric" : "text"}
+                        onSelectionChange={(key) => updateField(field.id, { type: String(key) as FormTextField["type"] })}
                       >
-                        <option value="text">Metin</option>
-                        <option value="numeric">Sayısal Alan</option>
-                        <option value="booklet">Kitapçık</option>
-                        <option value="box">Kutu</option>
-                        <option value="heading">Yazı</option>
-                      </select>
+                        <SelectItem id="text">Metin</SelectItem>
+                        <SelectItem id="numeric">Sayısal Alan</SelectItem>
+                        <SelectItem id="booklet">Kitapçık</SelectItem>
+                        <SelectItem id="box">Kutu</SelectItem>
+                        <SelectItem id="heading">Yazı</SelectItem>
+                      </Select>
                     </div>
                     {isHeadingField(field) ? (
                       <div>
-                        <Label className="flex justify-between text-xs">
+                        <Label className="justify-between text-caption-1-medium">
                           Yazı Boyutu
                           <span>{field.fontSizeMm ?? HEADING_DEFAULT_FONT_MM}mm</span>
                         </Label>
@@ -497,7 +496,7 @@ export default function OpticCreate() {
                       </div>
                     ) : isBoxField(field) ? (
                       <div>
-                        <Label className="text-xs">Köşe Yarıçapı (mm)</Label>
+                        <Label className="text-caption-1-medium">Köşe Yarıçapı (mm)</Label>
                         <Input
                           type="number"
                           min={0}
@@ -510,7 +509,7 @@ export default function OpticCreate() {
                       </div>
                     ) : isNumericField(field) || isBookletField(field) ? (
                       <div>
-                        <Label className="text-xs">{isBookletField(field) ? "Seçenek Sayısı" : "Sütun Sayısı"}</Label>
+                        <Label className="text-caption-1-medium">{isBookletField(field) ? "Seçenek Sayısı" : "Sütun Sayısı"}</Label>
                         <Input
                           type="number"
                           min={isBookletField(field) ? 2 : 1}
@@ -527,7 +526,7 @@ export default function OpticCreate() {
                   {isHeadingField(field) && (
                     <>
                       <div className="space-y-1.5">
-                        <Label className="flex justify-between text-xs">
+                        <Label className="justify-between text-caption-1-medium">
                           <span>Genişlik</span>
                           <label className="flex items-center gap-1 text-xs font-normal">
                             <input
@@ -552,7 +551,7 @@ export default function OpticCreate() {
                         />
                       </div>
                       <div>
-                        <Label className="flex justify-between text-xs">
+                        <Label className="justify-between text-caption-1-medium">
                           Harf Aralığı
                           <span>{field.letterSpacingMm ?? 0}mm</span>
                         </Label>
@@ -571,7 +570,7 @@ export default function OpticCreate() {
                   {isBoxField(field) && (
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <Label className="text-xs">Genişlik (mm)</Label>
+                        <Label className="text-caption-1-medium">Genişlik (mm)</Label>
                         <Input
                           type="number"
                           min={10}
@@ -583,7 +582,7 @@ export default function OpticCreate() {
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">Yükseklik (mm)</Label>
+                        <Label className="text-caption-1-medium">Yükseklik (mm)</Label>
                         <Input
                           type="number"
                           min={3}
@@ -685,7 +684,7 @@ export default function OpticCreate() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label className="text-xs">Soru</Label>
+                    <Label className="text-caption-1-medium">Soru</Label>
                     <Input
                       type="number"
                       min={1}
@@ -696,15 +695,15 @@ export default function OpticCreate() {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs">Seçenek</Label>
-                    <select
-                      className="h-7 w-full rounded-md border border-border-button-default bg-transparent px-2 text-xs"
-                      value={grid.optionCount}
-                      onChange={(e) => updateGrid(grid.id, { optionCount: Number(e.target.value) as 4 | 5 })}
+                    <Select
+                      label={<span className="text-caption-1-medium">Seçenek</span>}
+                      size="sm"
+                      selectedKey={grid.optionCount}
+                      onSelectionChange={(key) => updateGrid(grid.id, { optionCount: Number(key) as 4 | 5 })}
                     >
-                      <option value={4}>4 (A-D)</option>
-                      <option value={5}>5 (A-E)</option>
-                    </select>
+                      <SelectItem id={4}>4 (A-D)</SelectItem>
+                      <SelectItem id={5}>5 (A-E)</SelectItem>
+                    </Select>
                   </div>
                 </div>
               </div>

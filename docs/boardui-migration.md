@@ -49,9 +49,20 @@ shadcn token sınıfları → BoardUI semantic sınıfları, sayfa sayfa:
       boyutu ve yüzeyi bileşen kendi veriyor. `script/format-jsx-elements.cjs` taşınan blokları
       yeniden biçimlendiriyor (proje formatlayıcısı yok).
       Yerel bir rötuş: `SelectValue`'a `data-placeholder:text-text-tertiary` eklendi.
-- [ ] Label (51) — BoardUI Label'ı TextField bağlamında çalışır; ya `<Input label>` ile birleşir ya kalır.
+- [x] **Label** (51 etiket, 9 sayfa): `components/base/input/label` (React Aria `Label`, `isRequired`
+      ile yıldızı kendisi çizer). shadcn'in `text-xs`/`flex items-center gap-2` gibi yinelemeleri
+      BoardUI tipilerine çevrildi: `text-xs`→`text-caption-1-medium`, `text-xs font-semibold`→
+      `text-caption-1-semibold`; `flex items-center` zaten bileşende var, sınıfardan silindi.
+      `Sınav Adı *` gibi elle yazılan yıldızlar `isRequired` oldu.
+- [x] **Yerli `<select>`ler** (9 adet, optik oluşturma + kodlama): shadcn değillerdi ama tasarımı
+      hiç yoktu (`h-9 … border … bg-transparent`); BoardUI `Select`e çevrildi. Boş `value=""`
+      seçenekleri RAC anahtarı olamadığı için ya `placeholder`a (form seçimi) ya `FREE_FIELD`
+      gibi bir bekçi anahtara (alan bağlama) dönüştürüldü.
 - [ ] Toast (`hooks/use-toast` + `ui/toaster` → BoardUI `toast`), Dialog (2), Sheet (2), Tooltip (2), Separator, Skeleton.
 - Not: `components/ui/select.tsx` artık hiçbir yerden import edilmiyor; Faz 3 bitince silinecek.
+- Bilinen açık (göçten önce de böyleydi): 22 etiket alanla yan yana duruyor ama `htmlFor`/`id`
+      bağı yok — ekran okuyucu etiketi okumuyor. Doğru çözümü BoardUI'nin bileşik `Input label=`
+      kullanımı; toplu geçiş ayrı bir iş.
 
 ## Faz 4 — Kapsam dışı bırakılanlar
 - Auth: yok (yerel erişim). `passport*`, `express-session` bağımlılıkları kullanılmıyor.

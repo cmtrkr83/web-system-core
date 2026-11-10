@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/base/input/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useRegistry, District, School, Student } from "@/context/RegistryContext";
 import { useLocation } from "wouter";
@@ -698,7 +698,7 @@ export default function ExamSelection() {
         {currentStep === 1 && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="name">Sınav Adı *</Label>
+              <Label htmlFor="name" isRequired>Sınav Adı</Label>
               <Input
                 id="name"
                 name="name"
@@ -710,7 +710,7 @@ export default function ExamSelection() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="date">Sınav Tarihi *</Label>
+              <Label htmlFor="date" isRequired>Sınav Tarihi</Label>
               <Input
                 id="date"
                 name="date"

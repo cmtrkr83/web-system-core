@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/base/buttons/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Select, SelectItem } from "@/components/base/select/select";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/base/input/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FileText, Printer, Eye, ChevronLeft, ChevronRight, MapPin, School, ListChecks } from "lucide-react";
 import jsPDF from "jspdf";
@@ -276,7 +276,7 @@ export default function RoomLists() {
           </CardHeader>
           <CardContent className="space-y-5 p-5">
             <div className="space-y-2.5">
-              <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+              <Label className="gap-2 text-caption-1-semibold uppercase tracking-wide text-text-tertiary">
                 <MapPin className="h-3.5 w-3.5 text-accent-600" />
                 İlçe Seçimi
               </Label>
@@ -293,7 +293,7 @@ export default function RoomLists() {
             </div>
 
             <div className="space-y-2.5">
-              <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+              <Label className="gap-2 text-caption-1-semibold uppercase tracking-wide text-text-tertiary">
                 <School className="h-3.5 w-3.5 text-accent-600" />
                 Okul Seçimi
               </Label>

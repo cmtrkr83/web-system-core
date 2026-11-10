@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/base/buttons/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { InputBase as Input } from "@/components/base/input/input";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/base/input/label";
 import { Select, SelectItem } from "@/components/base/select/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Printer, Eye, Palette, ChevronLeft, ChevronRight, MapPin, School, Tags } from "lucide-react";
@@ -401,7 +401,7 @@ export default function BranchLabels() {
 						</div>
 
 						<div className="grid gap-4 mt-2">
-							<div className="space-y-2.5"><Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary"><MapPin className="h-3.5 w-3.5 text-accent-600" />İlçe Seçimi</Label>
+							<div className="space-y-2.5"><Label className="gap-2 text-caption-1-semibold uppercase tracking-wide text-text-tertiary"><MapPin className="h-3.5 w-3.5 text-accent-600" />İlçe Seçimi</Label>
 								<Select
 									selectedKey={selectedDistrict || "all"}
 									onSelectionChange={(key) => { const v = String(key); setSelectedDistrict(v === "all" ? "" : v); setSelectedSchool(""); setCurrentPage(0); }}
@@ -410,7 +410,7 @@ export default function BranchLabels() {
 									<SelectItem id="all">Tüm İlçeler</SelectItem>{ctxDistricts.map(d => <SelectItem key={d.id} id={d.id}>{d.name}</SelectItem>)}
 								</Select>
 							</div>
-							<div className="space-y-2.5"><Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary"><School className="h-3.5 w-3.5 text-accent-600" />Okul Seçimi</Label>
+							<div className="space-y-2.5"><Label className="gap-2 text-caption-1-semibold uppercase tracking-wide text-text-tertiary"><School className="h-3.5 w-3.5 text-accent-600" />Okul Seçimi</Label>
 								<Select
 									selectedKey={selectedSchool || "all"}
 									onSelectionChange={(key) => { const v = String(key); setSelectedSchool(v === "all" ? "" : v); setCurrentPage(0); }}
@@ -435,7 +435,7 @@ export default function BranchLabels() {
 								</div>
 
 						<div className="space-y-3">
-							<Label className="flex items-center gap-2">
+							<Label className="gap-2">
 								<Palette className="w-4 h-4" />
 								Renk Şeması
 							</Label>

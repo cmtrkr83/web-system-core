@@ -3,7 +3,7 @@ import { Button } from "@/components/base/buttons/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Select, SelectItem } from "@/components/base/select/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/base/input/label";
 import { ClipboardCheck, FileCheck, FileSignature, MapPin, FileDown } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -321,7 +321,7 @@ export default function Reports() {
             </p>
             <div className="space-y-4 rounded-xl border border-separator-border/70 bg-background-secondary-default/20 p-4">
                <div className="space-y-2.5">
-                <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                <Label className="gap-2 text-caption-1-semibold uppercase tracking-wide text-text-tertiary">
                     <MapPin className="h-3.5 w-3.5 text-accent-600" />
                     İlçe Filtresi
                 </Label>

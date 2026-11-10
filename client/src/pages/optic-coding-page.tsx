@@ -3,7 +3,8 @@ import { useRegistry, type Student } from "@/context/RegistryContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/base/input/label";
+import { Select, SelectItem } from "@/components/base/select/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   buildOpticFormHtml,
@@ -31,6 +32,8 @@ import {
 import { AlertCircle, FileDown, GripVertical, Plus, Printer, QrCode, Trash2 } from "lucide-react";
 
 const DRAG_SNAP_MM = 1;
+/** Alan listesinde "bağlı değil" seçeneğinin anahtarı (boş RAC anahtarı olamaz). */
+const FREE_FIELD = "__free";
 const OVERLAY_W_MM = 45;
 const OVERLAY_H_MM = 11;
 const QR_MIN_SIZE_MM = 10;
@@ -483,20 +486,18 @@ export default function OpticCoding() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="form-select">Form</Label>
-                  <select
-                    id="form-select"
-                    className="h-9 w-full rounded-md border border-border-button-default bg-transparent px-3 text-sm"
-                    value={selectedFormId}
-                    onChange={(e) => handleSelectForm(e.target.value)}
+                  <Select
+                    label="Form"
+                    placeholder="Seçin…"
+                    selectedKey={selectedFormId || undefined}
+                    onSelectionChange={(key) => handleSelectForm(String(key))}
                   >
-                    <option value="">Seçin...</option>
                     {formDesigns.map((d) => (
-                      <option key={d.id} value={d.id}>
+                      <SelectItem key={d.id} id={d.id}>
                         {d.name} ({d.paperSize})
-                      </option>
+                      </SelectItem>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 {selectedDesign && (
                   <div className="rounded-md bg-background-secondary-default p-3 text-sm">
@@ -569,59 +570,53 @@ export default function OpticCoding() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="district-filter">İlçe</Label>
-                  <select
-                    id="district-filter"
-                    className="h-9 w-full rounded-md border border-border-button-default bg-transparent px-3 text-sm"
-                    value={districtId}
-                    onChange={(e) => {
-                      setDistrictId(e.target.value);
+                  <Select
+                    label="İlçe"
+                    selectedKey={districtId}
+                    onSelectionChange={(key) => {
+                      setDistrictId(String(key));
                       setSchoolId("all");
                       setClassName("all");
                     }}
                   >
-                    <option value="all">Tümü</option>
+                    <SelectItem id="all">Tümü</SelectItem>
                     {districts.map((d) => (
-                      <option key={d.id} value={d.id}>
+                      <SelectItem key={d.id} id={d.id}>
                         {d.name}
-                      </option>
+                      </SelectItem>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="school-filter">Okul</Label>
-                  <select
-                    id="school-filter"
-                    className="h-9 w-full rounded-md border border-border-button-default bg-transparent px-3 text-sm"
-                    value={schoolId}
-                    onChange={(e) => {
-                      setSchoolId(e.target.value);
+                  <Select
+                    label="Okul"
+                    selectedKey={schoolId}
+                    onSelectionChange={(key) => {
+                      setSchoolId(String(key));
                       setClassName("all");
                     }}
                   >
-                    <option value="all">Tümü</option>
+                    <SelectItem id="all">Tümü</SelectItem>
                     {visibleSchools.map((s) => (
-                      <option key={s.id} value={s.id}>
+                      <SelectItem key={s.id} id={s.id}>
                         {s.code} - {s.name}
-                      </option>
+                      </SelectItem>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="class-filter">Şube</Label>
-                  <select
-                    id="class-filter"
-                    className="h-9 w-full rounded-md border border-border-button-default bg-transparent px-3 text-sm"
-                    value={className}
-                    onChange={(e) => setClassName(e.target.value)}
+                  <Select
+                    label="Şube"
+                    selectedKey={className}
+                    onSelectionChange={(key) => setClassName(String(key))}
                   >
-                    <option value="all">Tümü</option>
+                    <SelectItem id="all">Tümü</SelectItem>
                     {classOptions.map((item) => (
-                      <option key={item} value={item}>
+                      <SelectItem key={item} id={item}>
                         {item}
-                      </option>
+                      </SelectItem>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <div className="rounded-md bg-background-secondary-default p-3 text-sm">
                   Seçilen öğrenci: <strong>{filteredStudents.length}</strong>
@@ -756,26 +751,34 @@ export default function OpticCoding() {
                       ></Button>
                     </div>
                     {el.kind !== "qr" && (
-                      <select
-                        className="h-8 w-full rounded-md border border-border-button-default bg-transparent px-2 text-xs"
-                        value={el.boundFieldId ?? ""}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => updateElement(el.id, { boundFieldId: e.target.value || undefined })}
-                      >
-                        <option value="">— Serbest (etiket + değer) —</option>
-                        {selectedDesign?.fields.filter((f) => !isHeadingField(f)).map((f) => (
-                          <option key={f.id} value={f.id}>
-                            Bağla: {f.label || "(isimsiz alan)"}
-                          </option>
-                        ))}
-                      </select>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          size="sm"
+                          aria-label="Alan bağlamı"
+                          selectedKey={el.boundFieldId ?? FREE_FIELD}
+                          onSelectionChange={(key) =>
+                            updateElement(el.id, {
+                              boundFieldId: String(key) === FREE_FIELD ? undefined : String(key),
+                            })
+                          }
+                        >
+                          <SelectItem id={FREE_FIELD}>— Serbest (etiket + değer) —</SelectItem>
+                          {selectedDesign?.fields
+                            .filter((f) => !isHeadingField(f))
+                            .map((f) => (
+                              <SelectItem key={f.id} id={f.id}>
+                                Bağla: {f.label || "(isimsiz alan)"}
+                              </SelectItem>
+                            ))}
+                        </Select>
+                      </div>
                     )}
                   </div>
                 );
               })}
               {selectedElement && selectedElement.kind !== "qr" && (
                 <div className="rounded-lg border border-separator-border/70 p-2.5 space-y-2">
-                  <Label className="text-xs">Yazı Boyutu (mm)</Label>
+                  <Label className="text-caption-1-medium">Yazı Boyutu (mm)</Label>
                   <Input
                     type="number"
                     min={2}
@@ -785,7 +788,7 @@ export default function OpticCoding() {
                     value={selectedElement.fontSizeMm ?? 3}
                     onChange={(e) => updateElement(selectedElement.id, { fontSizeMm: Number(e.target.value) || undefined })}
                   />
-                  <Label className="text-xs">Harf Aralığı (mm)</Label>
+                  <Label className="text-caption-1-medium">Harf Aralığı (mm)</Label>
                   <Input
                     type="number"
                     min={0}
@@ -799,7 +802,7 @@ export default function OpticCoding() {
               )}
               {selectedElement && selectedElement.kind === "qr" && (
                 <div className="rounded-lg border border-separator-border/70 p-2.5 space-y-2">
-                  <Label className="text-xs">QR Boyutu (mm)</Label>
+                  <Label className="text-caption-1-medium">QR Boyutu (mm)</Label>
                   <Input
                     type="number"
                     min={QR_MIN_SIZE_MM}
