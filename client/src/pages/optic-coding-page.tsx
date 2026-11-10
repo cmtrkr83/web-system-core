@@ -5,7 +5,7 @@ import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/base/input/label";
 import { Select, SelectItem } from "@/components/base/select/select";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/components/base/toast/toast";
 import {
   buildOpticFormHtml,
   fetchFormDesigns,
@@ -59,7 +59,6 @@ function generateCodingId(): string {
 
 export default function OpticCoding() {
   const { districts, schools, students, isLoaded } = useRegistry();
-  const { toast } = useToast();
 
   const [formDesigns, setFormDesigns] = useState<OpticFormDesign[]>([]);
   const [selectedFormId, setSelectedFormId] = useState<string>("");
@@ -380,11 +379,11 @@ export default function OpticCoding() {
 
   const exportPdf = async () => {
     if (!isLoaded || filteredStudents.length === 0) {
-      toast({ title: "Hata", description: "Yazdırılacak öğrenci bulunamadı.", variant: "destructive" });
+      toast.error("Hata", { description: "Yazdırılacak öğrenci bulunamadı." });
       return;
     }
     if (!selectedDesign) {
-      toast({ title: "Hata", description: "Bir optik form seçilmelidir.", variant: "destructive" });
+      toast.error("Hata", { description: "Bir optik form seçilmelidir." });
       return;
     }
 
@@ -413,20 +412,20 @@ export default function OpticCoding() {
       a.download = "optik-kodlama.pdf";
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "PDF Oluşturuldu", description: `${filteredStudents.length} öğrenci için kaydedildi.`, status: "success" });
+      toast.success("PDF Oluşturuldu", { description: `${filteredStudents.length} öğrenci için kaydedildi.` });
     } catch {
       setExporting(null);
-      toast({ title: "PDF hatası", description: "PDF oluşturulamadı.", variant: "destructive" });
+      toast.error("PDF hatası", { description: "PDF oluşturulamadı." });
     }
   };
 
   const printAll = async () => {
     if (!isLoaded || filteredStudents.length === 0) {
-      toast({ title: "Hata", description: "Yazdırılacak öğrenci bulunamadı.", variant: "destructive" });
+      toast.error("Hata", { description: "Yazdırılacak öğrenci bulunamadı." });
       return;
     }
     if (!selectedDesign) {
-      toast({ title: "Hata", description: "Bir optik form seçilmelidir.", variant: "destructive" });
+      toast.error("Hata", { description: "Bir optik form seçilmelidir." });
       return;
     }
 
@@ -437,12 +436,12 @@ export default function OpticCoding() {
         ),
       );
       if (!openPrintWindow(pages, selectedDesign.paperSize)) {
-        toast({ title: "Hata", description: "Yazdırma penceresi açılamadı.", variant: "destructive" });
+        toast.error("Hata", { description: "Yazdırma penceresi açılamadı." });
         return;
       }
-      toast({ title: "Yazdırma Başlatıldı", description: `${filteredStudents.length} öğrenci için hazırlandı.` });
+      toast("Yazdırma Başlatıldı", { description: `${filteredStudents.length} öğrenci için hazırlandı.` });
     } catch {
-      toast({ title: "Hata", description: "QR kodlar oluşturulamadı.", variant: "destructive" });
+      toast.error("Hata", { description: "QR kodlar oluşturulamadı." });
     }
   };
 
@@ -460,7 +459,7 @@ export default function OpticCoding() {
             
             Yazdır
           </Button>
-          <Button variant="secondary" onClick={exportPdf} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting} leadingIcon={FileDown}>
+          <Button variant="ghost" onClick={exportPdf} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting} leadingIcon={FileDown}>
             
             {exporting ? `PDF ${exporting.done}/${exporting.total}` : "PDF"}
           </Button>
@@ -741,7 +740,6 @@ export default function OpticCoding() {
                         </div>
                       </div>
                       <Button
-
                         variant="ghost"
                         className="shrink-0"
                         onClick={(e) => {

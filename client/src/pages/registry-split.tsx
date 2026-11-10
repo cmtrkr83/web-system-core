@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Chip } from "@/components/base/badges/chip";
 import { Download, AlertCircle, Printer } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/components/base/toast/toast";
 import { useRegistry } from "@/context/RegistryContext";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -12,7 +12,6 @@ import JSZip from "jszip";
 
 export default function RegistrySplit() {
   const [bulkSaving, setBulkSaving] = useState(false);
-  const { toast } = useToast();
   const { districts, schools, students, isLoaded } = useRegistry();
 
   const specialKeywords = [
@@ -29,11 +28,7 @@ export default function RegistrySplit() {
 
   const handlePrintAllDistricts = async () => {
     if (!isLoaded || districtList.length === 0) {
-      toast({
-        title: "Hata",
-        description: "Kaydedilecek ilçe verisi bulunamadı.",
-        variant: "destructive"
-      });
+      toast.error("Hata", { description: "Kaydedilecek ilçe verisi bulunamadı." });
       return;
     }
 
@@ -56,17 +51,10 @@ export default function RegistrySplit() {
       anchor.click();
       URL.revokeObjectURL(downloadUrl);
 
-      toast({
-        title: "ZIP indirildi",
-        description: `${successCount} ilçe raporu tek ZIP dosyasında hazırlandı.`,
-      });
+      toast("ZIP indirildi", { description: `${successCount} ilçe raporu tek ZIP dosyasında hazırlandı.` });
     } catch (error) {
       console.error("Toplu ilçe raporu oluşturma hatası:", error);
-      toast({
-        title: "Hata",
-        description: "İlçe raporları ZIP dosyası oluşturulurken bir hata oluştu.",
-        variant: "destructive",
-      });
+      toast.error("Hata", { description: "İlçe raporları ZIP dosyası oluşturulurken bir hata oluştu." });
     } finally {
       setBulkSaving(false);
     }
@@ -83,11 +71,7 @@ export default function RegistrySplit() {
   const handlePrintTable = () => {
     try {
       if (!isLoaded || districtList.length === 0) {
-        toast({
-          title: "Hata",
-          description: "Yazdırılacak veri bulunamadı.",
-          variant: "destructive"
-        });
+        toast.error("Hata", { description: "Yazdırılacak veri bulunamadı." });
         return;
       }
 
@@ -136,11 +120,7 @@ export default function RegistrySplit() {
       const printWindow = window.open('', '_blank', 'width=1024,height=768');
 
       if (!printWindow) {
-        toast({
-          title: "Hata",
-          description: "Yazdırma penceresi açılamadı. Tarayıcı engellemiş olabilir.",
-          variant: "destructive"
-        });
+        toast.error("Hata", { description: "Yazdırma penceresi açılamadı. Tarayıcı engellemiş olabilir." });
         return;
       }
 
@@ -166,16 +146,9 @@ export default function RegistrySplit() {
       printWindow.focus();
       printWindow.print();
 
-      toast({
-        title: "Yazdırma Açıldı",
-        description: "İlçe listesi başarıyla yazdırıldı.",
-      });
+      toast("Yazdırma Açıldı", { description: "İlçe listesi başarıyla yazdırıldı." });
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Yazdırma sırasında bir hata oluştu.",
-        variant: "destructive"
-      });
+      toast.error("Hata", { description: "Yazdırma sırasında bir hata oluştu." });
     }
   };
 
@@ -249,11 +222,7 @@ export default function RegistrySplit() {
   const handlePrintDistrictHtml = (districtId: string, districtName: string) => {
     const schoolData = getDistrictSchoolData(districtId);
     if (schoolData.length === 0) {
-      toast({
-        title: "Hata",
-        description: "Yazdırılacak okul verisi bulunamadı.",
-        variant: "destructive"
-      });
+      toast.error("Hata", { description: "Yazdırılacak okul verisi bulunamadı." });
       return;
     }
 
@@ -261,11 +230,7 @@ export default function RegistrySplit() {
     const printWindow = window.open('', '_blank', 'width=1024,height=768');
 
     if (!printWindow) {
-      toast({
-        title: "Hata",
-        description: "Yazdırma penceresi açılamadı. Tarayıcı engellemiş olabilir.",
-        variant: "destructive"
-      });
+      toast.error("Hata", { description: "Yazdırma penceresi açılamadı. Tarayıcı engellemiş olabilir." });
       return;
     }
 
@@ -291,9 +256,9 @@ export default function RegistrySplit() {
     printWindow.focus();
     try {
       printWindow.print();
-      toast({ title: "Başarılı", description: `"${districtName}" yazdırılıyor.`, status: "success" });
+      toast.success("Başarılı", { description: `"${districtName}" yazdırılıyor.` });
     } catch {
-      toast({ title: "Hata", description: "Yazdırma sırasında hata oluştu.", variant: "destructive" });
+      toast.error("Hata", { description: "Yazdırma sırasında hata oluştu." });
     }
   };
 
@@ -352,18 +317,11 @@ export default function RegistrySplit() {
       anchor.download = `${toSafeFileName(districtName)}-Kutuk.pdf`;
       anchor.click();
       URL.revokeObjectURL(downloadUrl);
-      toast({
-        title: "PDF indirildi",
-        description: `${districtName} ilçesi kütüğü başarıyla indirildi.`,
-      });
+      toast("PDF indirildi", { description: `${districtName} ilçesi kütüğü başarıyla indirildi.` });
       return true;
     } catch (error) {
       console.error("İlçe PDF oluşturma hatası:", error);
-      toast({
-        title: "Hata",
-        description: error instanceof Error ? error.message : "PDF oluşturulurken bir hata oluştu.",
-        variant: "destructive",
-      });
+      toast.error("Hata", { description: error instanceof Error ? error.message : "PDF oluşturulurken bir hata oluştu." });
       return false;
     }
   };

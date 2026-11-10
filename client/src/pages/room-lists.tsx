@@ -8,10 +8,9 @@ import { FileText, Printer, Eye, ChevronLeft, ChevronRight, MapPin, School, List
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useRegistry, type Student } from "@/context/RegistryContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/components/base/toast/toast";
 
 export default function RoomLists() {
-  const { toast } = useToast();
   const { districts, schools, students, isLoaded } = useRegistry();
   const [selectedDistrict, setSelectedDistrict] = useState<string>("all");
   const [selectedSchool, setSelectedSchool] = useState<string>("all");
@@ -193,7 +192,7 @@ export default function RoomLists() {
       }
 
       if (htmlSections.length === 0) {
-        toast({ title: "Öğrenci bulunamadı", description: "Yazdırılacak öğrenci bulunamadı.", variant: "destructive" });
+        toast.error("Öğrenci bulunamadı", { description: "Yazdırılacak öğrenci bulunamadı." });
         return;
       }
 
@@ -242,9 +241,9 @@ export default function RoomLists() {
       }
 
       pdf.save(filename);
-      toast({ title: "Başarılı", description: "Salon listesi PDF olarak kaydedildi.", status: "success" });
+      toast.success("Başarılı", { description: "Salon listesi PDF olarak kaydedildi." });
     } catch (error) {
-      toast({ title: "Hata", description: "PDF oluşturulurken hata oluştu.", variant: "destructive" });
+      toast.error("Hata", { description: "PDF oluşturulurken hata oluştu." });
     }
   };
 

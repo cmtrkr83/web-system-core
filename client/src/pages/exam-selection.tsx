@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useRegistry, District, School, Student } from "@/context/RegistryContext";
 import { useLocation } from "wouter";
 import { Plus, BookOpen, Calendar, Clock, FileSpreadsheet, ChevronRight, ChevronLeft, Trash2, Download, X } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/components/base/toast/toast";
 import { Select, SelectItem } from "@/components/base/select/select";
 import { Chip } from "@/components/base/badges/chip";
 import { FileUpload } from "@/components/base/file-upload/file-upload";
@@ -177,7 +177,6 @@ export default function ExamSelection() {
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const { toast } = useToast();
 
   // Exam creation state
   const [examData, setExamData] = useState({
@@ -268,21 +267,13 @@ export default function ExamSelection() {
       await refreshRegistryData();
     } catch (error) {
       console.error("Geçici sınav geri alma hatası:", error);
-      toast({
-        title: "Hata",
-        description: "Geçici sınav temizlenemedi.",
-        variant: "destructive",
-      });
+      toast.error("Hata", { description: "Geçici sınav temizlenemedi." });
     }
   };
 
   const handleCreateExam = async () => {
     if (!examData.name.trim() || !examData.date.trim()) {
-      toast({
-        title: "Uyarı",
-        description: "Sınav adı ve tarihi boş bırakılamaz.",
-        variant: "destructive",
-      });
+      toast.error("Uyarı", { description: "Sınav adı ve tarihi boş bırakılamaz." });
       return;
     }
 
@@ -302,11 +293,7 @@ export default function ExamSelection() {
       await selectExam(newExam.id);
       setCreatedExamId(newExam.id);
 
-      toast({
-        title: "Başarılı",
-        description: `"${newExam.name}" sınavı oluşturuldu. Şimdi kütük dosyasını yükleyin.`,
-        status: "success",
-      });
+      toast.success("Başarılı", { description: `"${newExam.name}" sınavı oluşturuldu. Şimdi kütük dosyasını yükleyin.` });
 
       setCurrentStep(2);
     } catch (error) {
@@ -321,11 +308,7 @@ export default function ExamSelection() {
         }
       }
       
-      toast({
-        title: "Hata",
-        description: error instanceof Error ? error.message : "Sınav oluşturulamadı.",
-        variant: "destructive",
-      });
+      toast.error("Hata", { description: error instanceof Error ? error.message : "Sınav oluşturulamadı." });
     } finally {
       setLoading(false);
     }
@@ -365,16 +348,9 @@ export default function ExamSelection() {
         setExtraColumns(new Set(columns));
         setCurrentStep(3);
 
-        toast({
-          title: "Excel Okundu",
-          description: `${columns.length} sütun tespit edildi. Sütunları eşleştirin.`,
-        });
+        toast("Excel Okundu", { description: `${columns.length} sütun tespit edildi. Sütunları eşleştirin.` });
       } catch (error) {
-        toast({
-          title: "Excel Okunamadı",
-          description: error instanceof Error ? error.message : "Dosya işlenemedi.",
-          variant: "destructive",
-        });
+        toast.error("Excel Okunamadı", { description: error instanceof Error ? error.message : "Dosya işlenemedi." });
         setFile(null);
       } finally {
         setAnalyzing(false);
@@ -382,11 +358,7 @@ export default function ExamSelection() {
     };
 
     reader.onerror = () => {
-      toast({
-        title: "Dosya Okuma Hatası",
-        description: "Excel dosyası okunamadı.",
-        variant: "destructive",
-      });
+      toast.error("Dosya Okuma Hatası", { description: "Excel dosyası okunamadı." });
       setAnalyzing(false);
       setFile(null);
     };
@@ -421,11 +393,7 @@ export default function ExamSelection() {
     const missingMapping = requiredMappings.find(([key]) => !columnMapping[key]);
 
     if (missingMapping) {
-      toast({
-        title: "Eksik Eşleştirme",
-        description: `${missingMapping[1]} sütununu seçmelisiniz. Eksik alanlar için standart şablonu kullanın.`,
-        variant: "destructive",
-      });
+      toast.error("Eksik Eşleştirme", { description: `${missingMapping[1]} sütununu seçmelisiniz. Eksik alanlar için standart şablonu kullanın.` });
       return;
     }
 
@@ -456,11 +424,7 @@ export default function ExamSelection() {
         invalidRows.length > 0 ? `${invalidRows.length} satırda ilçe, kurum kodu, öğrenci ID veya ad eksik` : "",
         duplicateIds.size > 0 ? `${duplicateIds.size} tekrarlı öğrenci ID` : "",
       ].filter(Boolean).join("; ");
-      toast({
-        title: "Excel doğrulaması başarısız",
-        description: `${details}. Standart şablonu indirip eksik verileri tamamlayın.`,
-        variant: "destructive",
-      });
+      toast.error("Excel doğrulaması başarısız", { description: `${details}. Standart şablonu indirip eksik verileri tamamlayın.` });
       return;
     }
 
@@ -556,11 +520,7 @@ export default function ExamSelection() {
 
   const handleFinalizeRegistryUpload = async () => {
     if (!createdExamId || !preparedRegistryData || !file) {
-      toast({
-        title: "Eksik Bilgi",
-        description: "Lütfen önce sınavı ve kütük dosyasını tamamlayın.",
-        variant: "destructive",
-      });
+      toast.error("Eksik Bilgi", { description: "Lütfen önce sınavı ve kütük dosyasını tamamlayın." });
       return;
     }
 
@@ -576,11 +536,7 @@ export default function ExamSelection() {
       await loadExams();
       setRegistryUploaded(true);
 
-      toast({
-        title: "Başarılı",
-        description: "Kütük verileri seçili sınav için kaydedildi.",
-        status: "success",
-      });
+      toast.success("Başarılı", { description: "Kütük verileri seçili sınav için kaydedildi." });
 
       setOpen(false);
       resetWizard();
@@ -590,11 +546,7 @@ export default function ExamSelection() {
       if (createdExamId) {
         await rollbackTemporaryExam(createdExamId, previousSelectedExamId);
       }
-      toast({
-        title: "Hata",
-        description: error instanceof Error ? error.message : "Kütük yüklenemedi.",
-        variant: "destructive",
-      });
+      toast.error("Hata", { description: error instanceof Error ? error.message : "Kütük yüklenemedi." });
     } finally {
       setAnalyzing(false);
     }
@@ -606,11 +558,7 @@ export default function ExamSelection() {
       await selectExam(examId);
       setLocation("/dashboard");
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Sınav seçilemedi.",
-        variant: "destructive",
-      });
+      toast.error("Hata", { description: "Sınav seçilemedi." });
     } finally {
       setLoading(false);
     }
@@ -629,17 +577,9 @@ export default function ExamSelection() {
       await loadExams();
       await refreshRegistryData();
 
-      toast({
-        title: "Başarılı",
-        description: `"${examName}" sınavı silindi.`,
-        status: "success",
-      });
+      toast.success("Başarılı", { description: `"${examName}" sınavı silindi.` });
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: error instanceof Error ? error.message : "Sınav silinemedi.",
-        variant: "destructive",
-      });
+      toast.error("Hata", { description: error instanceof Error ? error.message : "Sınav silinemedi." });
     } finally {
       setLoading(false);
     }
@@ -736,7 +676,7 @@ export default function ExamSelection() {
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <Button variant="secondary" leadingIcon={ChevronLeft} onClick={() => handleDialogOpenChange(false)} disabled={loading}>
+              <Button variant="ghost" leadingIcon={ChevronLeft} onClick={() => handleDialogOpenChange(false)} disabled={loading}>
                 İptal
               </Button>
               <Button leadingIcon={ChevronRight} onClick={handleCreateExam} disabled={loading} variant="ghost">
@@ -765,7 +705,7 @@ export default function ExamSelection() {
                 <p className="text-caption-2-regular text-text-tertiary">
                   XLS, XLSX · En fazla 20 MB
                 </p>
-                <Button type="button" variant="secondary" leadingIcon={Download} onClick={downloadRegistryTemplate} disabled={analyzing}>
+                <Button type="button" variant="ghost" leadingIcon={Download} onClick={downloadRegistryTemplate} disabled={analyzing}>
                   Standart Şablonu İndir
                 </Button>
               </div>
@@ -779,7 +719,7 @@ export default function ExamSelection() {
             </div>
 
             <div className="flex justify-between gap-3 pt-2">
-              <Button variant="secondary" onClick={() => setCurrentStep(1)} disabled={loading || analyzing} leadingIcon={ChevronLeft}>
+              <Button variant="ghost" onClick={() => setCurrentStep(1)} disabled={loading || analyzing} leadingIcon={ChevronLeft}>
                 
                 Geri
               </Button>
@@ -883,7 +823,7 @@ export default function ExamSelection() {
             </div>
 
             <div className="flex justify-between gap-3 pt-2">
-              <Button variant="secondary" onClick={() => setCurrentStep(2)} disabled={loading || analyzing} leadingIcon={ChevronLeft}>
+              <Button variant="ghost" onClick={() => setCurrentStep(2)} disabled={loading || analyzing} leadingIcon={ChevronLeft}>
                 
                 Geri
               </Button>
@@ -924,7 +864,7 @@ export default function ExamSelection() {
             </div>
 
             <div className="flex justify-between gap-3 pt-2">
-              <Button variant="secondary" onClick={() => setCurrentStep(3)} disabled={loading || analyzing} leadingIcon={ChevronLeft}>
+              <Button variant="ghost" onClick={() => setCurrentStep(3)} disabled={loading || analyzing} leadingIcon={ChevronLeft}>
                 
                 Geri
               </Button>
@@ -985,7 +925,7 @@ export default function ExamSelection() {
             )}
 
             <div className="flex justify-between gap-3 pt-2">
-              <Button variant="secondary" onClick={() => setCurrentStep(4)} disabled={loading || analyzing} leadingIcon={ChevronLeft}>
+              <Button variant="ghost" onClick={() => setCurrentStep(4)} disabled={loading || analyzing} leadingIcon={ChevronLeft}>
                 
                 Geri
               </Button>
@@ -1069,7 +1009,7 @@ export default function ExamSelection() {
                   <Button
                     variant="ghost"
 
-                    className="shrink-0 text-text-tertiary hover:bg-border-error-default/10 hover:text-text-error-primary"
+                    className="shrink-0"
                     onClick={(event) => {
                       event.stopPropagation();
                       void handleDeleteExam(exam.id, exam.name);
@@ -1096,7 +1036,7 @@ export default function ExamSelection() {
                 {/* Select Button */}
                 <Button
                   className="w-full mt-4"
-                  variant={exam.isActive === "1" ? "primary" : "secondary"}
+                  variant="ghost"
                   disabled={loading}
                 >
                   {exam.isActive === "1" ? "Devam Et" : "Seç"}

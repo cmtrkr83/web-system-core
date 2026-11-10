@@ -10,7 +10,7 @@ import { Select, SelectItem } from "@/components/base/select/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/components/base/toast/toast";
 import {
   Upload,
   FileSpreadsheet,
@@ -85,7 +85,6 @@ function parseCsv(text: string): string[][] {
 const answerOptions: AnswerChar[] = ["A", "B", "C", "D", "E"];
 
 export default function Evaluation() {
-  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -107,7 +106,7 @@ export default function Evaluation() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.name.endsWith(".csv")) {
-      toast({ title: "Geçersiz dosya", description: "Lütfen CSV dosyası seçin.", variant: "destructive" });
+      toast.error("Geçersiz dosya", { description: "Lütfen CSV dosyası seçin." });
       return;
     }
     setCsvFile(file);
@@ -131,7 +130,7 @@ export default function Evaluation() {
       const rawRows = parseCsv(cleanText);
 
       if (rawRows.length < 2) {
-        toast({ title: "CSV hatası", description: "En az bir başlık ve bir veri satırı gerekli.", variant: "destructive" });
+        toast.error("CSV hatası", { description: "En az bir başlık ve bir veri satırı gerekli." });
         setParsing(false);
         return;
       }
@@ -150,7 +149,7 @@ export default function Evaluation() {
       }
 
       if (idxDosya === -1 || idxQuestions.length === 0) {
-        toast({ title: "CSV formatı hatalı", description: "'Dosya' ve 'Soru N' sütunları bulunamadı.", variant: "destructive" });
+        toast.error("CSV formatı hatalı", { description: "'Dosya' ve 'Soru N' sütunları bulunamadı." });
         setParsing(false);
         return;
       }
@@ -185,7 +184,7 @@ export default function Evaluation() {
       }
 
       if (parsed.length === 0) {
-        toast({ title: "Veri bulunamadı", description: "CSV'de öğrenci satırı yok.", variant: "destructive" });
+        toast.error("Veri bulunamadı", { description: "CSV'de öğrenci satırı yok." });
         setParsing(false);
         return;
       }
@@ -201,9 +200,9 @@ export default function Evaluation() {
 
       extractKitapcikTurleri(parsed, "tum", "", "");
 
-      toast({ title: `${parsed.length} öğrenci yüklendi`, description: `${detectedQ} soru tespit edildi.` });
+      toast(`${parsed.length} öğrenci yüklendi`, { description: `${detectedQ} soru tespit edildi.` });
     } catch (err) {
-      toast({ title: "CSV ayrıştırma hatası", description: String(err), variant: "destructive" });
+      toast.error("CSV ayrıştırma hatası", { description: String(err) });
     }
     setParsing(false);
   }, [csvFile, toast]);
@@ -270,7 +269,7 @@ export default function Evaluation() {
 
   const handleCompare = useCallback(() => {
     if (students.length === 0 || answerKeys.length === 0) {
-      toast({ title: "Veri eksik", description: "Öğrenci cevapları ve cevap anahtarı gerekli.", variant: "destructive" });
+      toast.error("Veri eksik", { description: "Öğrenci cevapları ve cevap anahtarı gerekli." });
       return;
     }
 
@@ -289,7 +288,7 @@ export default function Evaluation() {
     });
 
     setSonuclar(results);
-    toast({ title: "Karşılaştırma tamam", description: `${results.length} öğrenci değerlendirildi.`, status: "success" });
+    toast.success("Karşılaştırma tamam", { description: `${results.length} öğrenci değerlendirildi.` });
   }, [students, answerKeys, toast]);
 
   const sonucToCsv = useCallback(() => {
@@ -646,7 +645,7 @@ export default function Evaluation() {
               </div>
             </div>
 
-            <Button variant="secondary" onClick={sonucToCsv} leadingIcon={Download}>
+            <Button variant="ghost" onClick={sonucToCsv} leadingIcon={Download}>
               
               CSV Olarak İndir
             </Button>

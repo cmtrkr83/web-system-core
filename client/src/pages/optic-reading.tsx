@@ -10,7 +10,7 @@ import { Select, SelectItem } from "@/components/base/select/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertCircle, CheckCircle2, Download, FileScan, Loader2, Save, Upload, XCircle } from "lucide-react";
 
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/components/base/toast/toast";
 import { pdfToJpegFiles } from "@/lib/optic/pdf-renderer";
 import { downloadCsv } from "@/lib/optic/csv-export";
 import {
@@ -81,7 +81,6 @@ function csvCell(value: string): string {
 }
 
 export default function OpticReading() {
-  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [designs, setDesigns] = useState<OpticFormDesign[]>([]);
@@ -146,7 +145,7 @@ export default function OpticReading() {
           images.push(...(await pdfToJpegFiles(pdf)));
         }
       } catch {
-        toast({ title: "PDF hatası", description: "PDF sayfaları dönüştürülemedi.", variant: "destructive" });
+        toast.error("PDF hatası", { description: "PDF sayfaları dönüştürülemedi." });
         setIsConvertingPdf(false);
         return;
       }
@@ -154,7 +153,7 @@ export default function OpticReading() {
     }
 
     if (images.length === 0) {
-      toast({ title: "Geçersiz dosya", description: "JPEG, PNG veya PDF dosyası seçin.", variant: "destructive" });
+      toast.error("Geçersiz dosya", { description: "JPEG, PNG veya PDF dosyası seçin." });
       return;
     }
 
@@ -178,11 +177,11 @@ export default function OpticReading() {
 
   const readAll = useCallback(async () => {
     if (!design) {
-      toast({ title: "Form seçilmedi", description: "Önce bir optik form tasarımı seçin.", variant: "destructive" });
+      toast.error("Form seçilmedi", { description: "Önce bir optik form tasarımı seçin." });
       return;
     }
     if (files.length === 0) {
-      toast({ title: "Dosya seçilmedi", description: "En az bir görsel seçin.", variant: "destructive" });
+      toast.error("Dosya seçilmedi", { description: "En az bir görsel seçin." });
       return;
     }
 
@@ -238,14 +237,10 @@ export default function OpticReading() {
       setSelected(firstOk >= 0 ? firstOk : 0);
 
       const okCount = collected.filter((r) => r.success).length;
-      toast({
-        title: `${okCount}/${collected.length} sayfa okundu`,
-        description: okCount === collected.length ? "Tüm sayfalar başarıyla okundu." : "Bazı sayfalar okunamadı.",
-        status: okCount === collected.length ? "success" : "warning",
-      });
+      toast.success(`${okCount}/${collected.length} sayfa okundu`, { description: okCount === collected.length ? "Tüm sayfalar başarıyla okundu." : "Bazı sayfalar okunamadı." });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Okuma hatası";
-      toast({ title: "Okuma hatası", description: msg, variant: "destructive" });
+      toast.error("Okuma hatası", { description: msg });
     } finally {
       setIsReading(false);
       setProgress({ phase: "upload", done: 0, total: 0 });
@@ -277,7 +272,7 @@ export default function OpticReading() {
         setSelectedOverlay(data[0]?.overlay_base64 ?? null);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Overlay alınamadı";
-        toast({ title: "Overlay hatası", description: msg, variant: "destructive" });
+        toast.error("Overlay hatası", { description: msg });
       } finally {
         setOverlayLoading(false);
       }
@@ -305,7 +300,7 @@ export default function OpticReading() {
   const handleSave = async () => {
     const ok = results.filter((r) => r.success);
     if (ok.length === 0) {
-      toast({ title: "Kaydedilecek sonuç yok", variant: "destructive" });
+      toast.error("Kaydedilecek sonuç yok");
       return;
     }
     setIsSaving(true);
@@ -349,13 +344,10 @@ export default function OpticReading() {
           body: JSON.stringify({ scans }),
         });
       if (res.ok) saved = ok.length;
-      toast({
-        title: `${saved}/${ok.length} kayıt kaydedildi`,
-        status: saved === ok.length ? "success" : "warning",
-      });
+      toast.success(`${saved}/${ok.length} kayıt kaydedildi`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Kaydetme hatası";
-      toast({ title: "Kaydetme hatası", description: msg, variant: "destructive" });
+      toast.error("Kaydetme hatası", { description: msg });
     } finally {
       setIsSaving(false);
     }
@@ -493,7 +485,7 @@ export default function OpticReading() {
                     {results.filter((r) => r.success).length}/{results.length}
                   </span>
                 </div>
-                <Button className="w-full" variant="secondary" onClick={handleCsv} disabled={!results.some((r) => r.success)} leadingIcon={Download}>
+                <Button className="w-full" variant="ghost" onClick={handleCsv} disabled={!results.some((r) => r.success)} leadingIcon={Download}>
                   
                   CSV İndir
                 </Button>
@@ -612,7 +604,7 @@ export default function OpticReading() {
                             </div>
                           ) : (
                             <Button
-                              variant="secondary"
+                              variant="ghost"
                               className="w-full"
                               onClick={() => selected !== null && loadOverlay(selected)}
                               disabled={overlayLoading}

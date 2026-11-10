@@ -8,7 +8,7 @@ import { ClipboardCheck, FileCheck, FileSignature, MapPin, FileDown } from "luci
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useRegistry } from "@/context/RegistryContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/components/base/toast/toast";
 
 const sanitizeFileName = (text: string): string =>
   text
@@ -27,7 +27,6 @@ const sanitizeFileName = (text: string): string =>
     .replace(/\s+/g, "_");
 
 export default function Reports() {
-  const { toast } = useToast();
   const { districts, schools, students, isLoaded, exams, selectedExamId } = useRegistry();
   const selectedExam = exams.find((e) => e.id === selectedExamId);
 
@@ -64,7 +63,7 @@ export default function Reports() {
 
       document.body.removeChild(tempDiv);
     } catch (error) {
-      toast({ title: "Hata", description: "PDF oluşturulamadı.", variant: "destructive" });
+      toast.error("Hata", { description: "PDF oluşturulamadı." });
     }
   };
 
@@ -103,7 +102,7 @@ export default function Reports() {
 
       pdf.save(fileName);
     } catch (error) {
-      toast({ title: "Hata", description: "PDF oluşturulamadı.", variant: "destructive" });
+      toast.error("Hata", { description: "PDF oluşturulamadı." });
     }
   };
 
@@ -163,7 +162,7 @@ export default function Reports() {
   // İlçe tutanağı oluştur
   const handleCreateDistrictReport = async () => {
     if (!isLoaded || districts.length === 0) {
-      toast({ title: "Veri yok", description: "Lütfen önce veri yükleyin.", variant: "destructive" });
+      toast.error("Veri yok", { description: "Lütfen önce veri yükleyin." });
       return;
     }
 
@@ -191,14 +190,14 @@ export default function Reports() {
     const today = new Date().toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
     await saveHtmlAsPdf(html, `Ilce_Teslim_Tutanagi_${today.replace(/\./g, "-")}.pdf`);
     setGenerated(true);
-    toast({ title: "Başarılı", description: "İlçe teslim tutanağı PDF olarak kaydedildi.", status: "success" });
+    toast.success("Başarılı", { description: "İlçe teslim tutanağı PDF olarak kaydedildi." });
   };
 
   // Okul tutanağı oluştur
   const handleCreateSchoolReport = async () => {
     // Boş şablon ise veri kontrolü yapma
     if (!isBlankTemplate && (!isLoaded || schools.length === 0)) {
-      toast({ title: "Veri yok", description: "Lütfen önce veri yükleyin veya boş şablon seçeneğini işaretleyin.", variant: "destructive" });
+      toast.error("Veri yok", { description: "Lütfen önce veri yükleyin veya boş şablon seçeneğini işaretleyin." });
       return;
     }
 
@@ -255,7 +254,7 @@ export default function Reports() {
     const filename = `Okul_Teslim_Tutanagi_${districtName.replace(/\s+/g, "_")}_${today.replace(/\./g, "-")}.pdf`;
     await saveHtmlPagesAsPdf(htmlPages, filename);
     setGenerated(true);
-    toast({ title: "Başarılı", description: "Okul teslim tutanağı PDF olarak kaydedildi.", status: "success" });
+    toast.success("Başarılı", { description: "Okul teslim tutanağı PDF olarak kaydedildi." });
   };
 
   return (
@@ -297,7 +296,7 @@ export default function Reports() {
             </div>
           </CardContent>
           <CardFooter className="mt-auto border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
-            <Button className="w-full rounded-xl shadow-sm" leadingIcon={FileDown} onClick={handleCreateDistrictReport} disabled={!isLoaded || districts.length === 0} variant="secondary">
+            <Button className="w-full rounded-xl" leadingIcon={FileDown} onClick={handleCreateDistrictReport} disabled={!isLoaded || districts.length === 0} variant="ghost">
               İlçe Tutanağı Oluştur
             </Button>
           </CardFooter>
@@ -346,7 +345,7 @@ export default function Reports() {
             </div>
           </CardContent>
           <CardFooter className="mt-auto border-t border-separator-border/60 bg-background-secondary-default/10 p-5">
-            <Button className="w-full rounded-xl shadow-sm" leadingIcon={FileDown} onClick={handleCreateSchoolReport} disabled={!isBlankTemplate && (!isLoaded || schools.length === 0)} variant="secondary">
+            <Button className="w-full rounded-xl" leadingIcon={FileDown} onClick={handleCreateSchoolReport} disabled={!isBlankTemplate && (!isLoaded || schools.length === 0)} variant="ghost">
               Okul Tutanaklarını Oluştur
             </Button>
           </CardFooter>

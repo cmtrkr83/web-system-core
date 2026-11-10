@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Printer, Eye, Palette, ChevronLeft, ChevronRight, MapPin, School, Tags } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRegistry } from "@/context/RegistryContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/components/base/toast/toast";
 
 const colorSchemes = [
 	{ id: "blue", name: "Mavi", primary: "bg-blue-200", border: "border-blue-300", bg: "bg-blue-50", text: "text-blue-900" },
@@ -31,7 +31,6 @@ interface Branch {
 }
 
 export default function BranchLabels() {
-	const { toast } = useToast();
 	const safe = (value: string) =>
 		String(value ?? "")
 			.replace(/&/g, "&amp;")
@@ -134,15 +133,14 @@ export default function BranchLabels() {
 	const handleNextPage = () => setCurrentPage((p) => Math.min(totalPages - 1, p + 1));
 	const headerPrefix = lessonName.trim();
 
-
 	function handleHtmlPrint() {
 		if (!isLoaded) {
-			toast({ title: "Veri yüklenmemiş", description: "Lütfen Başlangıç sayfasından Excel dosyası yükleyin.", variant: "destructive" });
+			toast.error("Veri yüklenmemiş", { description: "Lütfen Başlangıç sayfasından Excel dosyası yükleyin." });
 			return;
 		}
 
 		if (!pages || pages.length === 0) {
-			toast({ title: "Etiket bulunamadı", description: "Yazdırılacak etiket bulunamadı.", variant: "destructive" });
+			toast.error("Etiket bulunamadı", { description: "Yazdırılacak etiket bulunamadı." });
 			return;
 		}
 
@@ -263,7 +261,7 @@ export default function BranchLabels() {
 
 		const printWindow = window.open("", "_blank", "width=1200,height=900");
 		if (!printWindow) {
-			toast({ title: "Pencere açılamadı", description: "Yazdırma penceresi açılamadı. Tarayıcı engelleyicisini kontrol edin.", variant: "destructive" });
+			toast.error("Pencere açılamadı", { description: "Yazdırma penceresi açılamadı. Tarayıcı engelleyicisini kontrol edin." });
 			return;
 		}
 
@@ -286,9 +284,9 @@ export default function BranchLabels() {
 		try {
 			printWindow.print();
 		} catch {
-			toast({ title: "Hata", description: "Yazdırma sırasında hata oluştu.", variant: "destructive" });
+			toast.error("Hata", { description: "Yazdırma sırasında hata oluştu." });
 		}
-		toast({ title: "Başarılı", description: "Yazdırma sayfası hazırlandı.", status: "success" });
+		toast.success("Başarılı", { description: "Yazdırma sayfası hazırlandı." });
 	}
 
 	const currentScheme = colorSchemes.find(s => s.id === scheme) || colorSchemes[0];

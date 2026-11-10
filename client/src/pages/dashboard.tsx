@@ -70,7 +70,7 @@ export default function Dashboard() {
           )}
         </div>
         <div className="flex flex-col gap-3">
-          <Button variant="secondary" size="small" onClick={() => setLocation("/")} leadingIcon={BookOpen}>
+          <Button variant="ghost" size="small" onClick={() => setLocation("/")} leadingIcon={BookOpen}>
             
             Başlangıça Dön
           </Button>

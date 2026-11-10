@@ -4,7 +4,7 @@ import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/base/input/label";
 import { Select, SelectItem } from "@/components/base/select/select";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/components/base/toast/toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   buildOpticFormHtml,
@@ -47,7 +47,6 @@ interface SavedForm {
 }
 
 export default function OpticCreate() {
-  const { toast } = useToast();
   const [forms, setForms] = useState<SavedForm[]>([]);
   const [form, setForm] = useState<OpticFormDesign | null>(null);
   const [saving, setSaving] = useState(false);
@@ -260,10 +259,10 @@ export default function OpticCreate() {
         version: form.version ?? 1,
       };
       await apiRequest("POST", "/api/optics/form-designs", payload);
-      toast({ title: "Form kaydedildi", description: `"${form.name}" kaydedildi.`, status: "success" });
+      toast.success("Form kaydedildi", { description: `"${form.name}" kaydedildi.` });
       await loadForms();
     } catch {
-      toast({ title: "Kayıt hatası", description: "Form kaydedilemedi.", variant: "destructive" });
+      toast.error("Kayıt hatası", { description: "Form kaydedilemedi." });
     } finally {
       setSaving(false);
     }
@@ -287,29 +286,29 @@ export default function OpticCreate() {
       a.download = `${form.name.replace(/[^\w\s-]/g, "").trim() || "optic-form"}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "PDF Oluşturuldu", description: "Optik form PDF olarak indirildi.", status: "success" });
+      toast.success("PDF Oluşturuldu", { description: "Optik form PDF olarak indirildi." });
     } catch {
-      toast({ title: "PDF hatası", description: "PDF oluşturulamadı.", variant: "destructive" });
+      toast.error("PDF hatası", { description: "PDF oluşturulamadı." });
     }
   };
 
   const printForm = () => {
     if (!form) return;
     if (!openPrintWindow([previewHtml], form.paperSize)) {
-      toast({ title: "Hata", description: "Yazdırma penceresi açılamadı.", variant: "destructive" });
+      toast.error("Hata", { description: "Yazdırma penceresi açılamadı." });
       return;
     }
-    toast({ title: "Yazdırma Başlatıldı", description: `"${form.name}" yazdırma için hazırlandı.` });
+    toast("Yazdırma Başlatıldı", { description: `"${form.name}" yazdırma için hazırlandı.` });
   };
 
   const deleteForm = async (id: string, name: string) => {
     if (!window.confirm(`"${name}" formu silinecek. Emin misiniz?`)) return;
     try {
       await apiRequest("DELETE", `/api/optics/form-designs/${id}`);
-      toast({ title: "Form silindi", description: `"${name}" silindi.` });
+      toast("Form silindi", { description: `"${name}" silindi.` });
       await loadForms();
     } catch {
-      toast({ title: "Silme hatası", description: "Form silinemedi.", variant: "destructive" });
+      toast.error("Silme hatası", { description: "Form silinemedi." });
     }
   };
 
@@ -351,7 +350,7 @@ export default function OpticCreate() {
                 className="w-full"
                 onClick={() => setForm(createDefaultForm(newFormName.trim() || "Yeni Optik Form", newFormSize))} variant="ghost" leadingIcon={Plus}
               >
-                
+
                 Formu Oluştur
               </Button>
             </CardContent>
@@ -374,14 +373,13 @@ export default function OpticCreate() {
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Button
-
                       variant="ghost"
-                      className="text-text-tertiary hover:text-text-error-primary"
+
                       title="Formu sil"
                       aria-label="Formu sil"
                       onClick={() => deleteForm(f.id, f.name)} iconOnly leadingIcon={Trash2}
                     ></Button>
-                    <Button size="small" variant="secondary" onClick={() => setForm({ ...f })}>
+                    <Button size="small" variant="ghost" onClick={() => setForm({ ...f })}>
                       Aç
                     </Button>
                   </div>
@@ -426,16 +424,16 @@ export default function OpticCreate() {
           </div>
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap">
-          <Button size="small" variant="secondary" leadingIcon={Move} onClick={() => setForm(null)}>
+          <Button size="small" variant="ghost" leadingIcon={Move} onClick={() => setForm(null)}>
             ← Form Listesi
           </Button>
-          <Button size="small" leadingIcon={Printer} onClick={printForm} variant="secondary">
+          <Button size="small" leadingIcon={Printer} onClick={printForm} variant="ghost">
             Yazdır
           </Button>
-          <Button size="small" variant="secondary" leadingIcon={FileDown} onClick={exportPdf}>
+          <Button size="small" variant="ghost" leadingIcon={FileDown} onClick={exportPdf}>
             PDF
           </Button>
-          <Button size="small" variant="secondary" leadingIcon={Save} onClick={saveForm} disabled={saving}>
+          <Button size="small" variant="ghost" leadingIcon={Save} onClick={saveForm} disabled={saving}>
             {saving ? "Kaydediliyor..." : "Kaydet"}
           </Button>
         </div>
@@ -597,8 +595,8 @@ export default function OpticCreate() {
                   )}
                 </div>
               ))}
-              <Button variant="secondary" className="w-full" onClick={addField} leadingIcon={Plus}>
-                
+              <Button variant="ghost" className="w-full" onClick={addField} leadingIcon={Plus}>
+
                 Bilgi Alanı Ekle
               </Button>
             </CardContent>
@@ -708,8 +706,8 @@ export default function OpticCreate() {
                 </div>
               </div>
             ))}
-            <Button variant="secondary" className="w-full" onClick={addGrid} leadingIcon={Plus}>
-              
+            <Button variant="ghost" className="w-full" onClick={addGrid} leadingIcon={Plus}>
+
               Ders Tablosu Ekle
             </Button>
           </CardContent>
