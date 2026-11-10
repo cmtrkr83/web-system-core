@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/base/input/label";
+import { Checkbox } from "@/components/base/checkbox/checkbox";
+import { Switch } from "@/components/base/switch/switch";
+import { Textarea } from "@/components/base/textarea/textarea";
 import { Modal, ModalBody, ModalHeader } from "@/components/base/modal/modal";
 import { useRegistry, District, School, Student } from "@/context/RegistryContext";
 import { useLocation } from "wouter";
@@ -12,6 +15,7 @@ import { Select, SelectItem } from "@/components/base/select/select";
 import { Chip } from "@/components/base/badges/chip";
 import { FileUpload } from "@/components/base/file-upload/file-upload";
 import { apiRequest } from "@/lib/queryClient";
+import { cx } from "@/utils/cx";
 import * as XLSX from "xlsx";
 
 interface ColumnMapping {
@@ -661,19 +665,14 @@ export default function ExamSelection() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Açıklama</Label>
-              <textarea
-                id="description"
-                name="description"
-                placeholder="Sınav hakkında notlar..."
-                value={examData.description}
-                onChange={handleInputChange}
-                disabled={loading}
-                className="min-h-[96px] w-full rounded-md border border-border-button-default bg-background-full px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-border-focus-ring/50 disabled:opacity-50"
-                rows={4}
-              />
-            </div>
+            <Textarea
+              label="Açıklama"
+              placeholder="Sınav hakkında notlar..."
+              value={examData.description}
+              onChange={(value) => setExamData((prev) => ({ ...prev, description: value }))}
+              isDisabled={loading}
+              rows={4}
+            />
 
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="ghost" leadingIcon={ChevronLeft} onClick={() => handleDialogOpenChange(false)} disabled={loading}>
@@ -789,27 +788,26 @@ export default function ExamSelection() {
                 {excelColumns.filter(c => !Object.values(columnMapping).includes(c)).map((column) => {
                   const isSelected = extraColumns.has(column);
                   return (
-                    <label
+                    <Checkbox
                       key={column}
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer transition-colors ${
+                      size="sm"
+                      isSelected={isSelected}
+                      onChange={() => {
+                        const next = new Set(extraColumns);
+                        if (next.has(column)) next.delete(column);
+                        else next.add(column);
+                        setExtraColumns(next);
+                      }}
+                      className={cx(
+                        "w-full items-center rounded-lg border px-3 py-2 transition-colors",
                         isSelected
-                          ? "border-accent-600 bg-accent-600/5 text-text-primary"
-                          : "border-separator-border text-text-tertiary hover:border-border-button-hover/30"
-                      }`}
+                          ? "border-accent-600 bg-accent-600/5"
+                          : "border-separator-border hover:border-border-button-hover/30",
+                        "[&>span:last-child]:min-w-0 [&>span:last-child]:flex-1",
+                      )}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => {
-                          const next = new Set(extraColumns);
-                          if (next.has(column)) next.delete(column);
-                          else next.add(column);
-                          setExtraColumns(next);
-                        }}
-                        className="rounded border-border-button-default"
-                      />
-                      <span className="truncate">{column}</span>
-                    </label>
+                      <span className="block min-w-0 truncate">{column}</span>
+                    </Checkbox>
                   );
                 })}
               </div>
@@ -845,21 +843,12 @@ export default function ExamSelection() {
                     <span className="font-medium">hafif, ağır, zihinsel, işitme</span> geçen şubeler kapsam dışı bırakılır.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={excludeSpecialNeeds}
-                  onClick={() => setExcludeSpecialNeeds((prev) => !prev)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus-ring/50 ${
-                    excludeSpecialNeeds ? "bg-accent-600" : "bg-background-secondary-default"
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                      excludeSpecialNeeds ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
+                <Switch
+                  className="shrink-0"
+                  isSelected={excludeSpecialNeeds}
+                  onChange={setExcludeSpecialNeeds}
+                  aria-label="Özel gereksinimli öğrencileri dahil etme"
+                />
               </div>
             </div>
 

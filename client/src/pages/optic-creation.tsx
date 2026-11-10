@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/base/input/label";
+import { Checkbox } from "@/components/base/checkbox/checkbox";
+import { Slider } from "@/components/base/slider/slider";
 import { Select, SelectItem } from "@/components/base/select/select";
 import { toast } from "@/components/base/toast/toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -482,14 +484,14 @@ export default function OpticCreate() {
                           Yazı Boyutu
                           <span>{field.fontSizeMm ?? HEADING_DEFAULT_FONT_MM}mm</span>
                         </Label>
-                        <input
-                          type="range"
-                          min={HEADING_MIN_FONT_MM}
-                          max={HEADING_MAX_FONT_MM}
+                        <Slider
+                          aria-label="Yazı boyutu"
+                          minValue={HEADING_MIN_FONT_MM}
+                          maxValue={HEADING_MAX_FONT_MM}
                           step={0.5}
-                          className="w-full"
+                          showTooltip={false}
                           value={field.fontSizeMm ?? HEADING_DEFAULT_FONT_MM}
-                          onChange={(e) => updateField(field.id, { fontSizeMm: Number(e.target.value) })}
+                          onChange={(value) => updateField(field.id, { fontSizeMm: value })}
                         />
                       </div>
                     ) : isBoxField(field) ? (
@@ -526,20 +528,18 @@ export default function OpticCreate() {
                   {isHeadingField(field) && (
                     <>
                       <div className="space-y-1.5">
-                        <Label className="justify-between text-caption-1-medium" htmlFor="alan-3">
-                          <span>Genişlik</span>
-                          <label className="flex items-center gap-1 text-xs font-normal">
-                            <input
-                              type="checkbox"
-                              className="h-3.5 w-3.5"
-                              checked={field.autoWidth !== false}
-                              onChange={(e) => updateField(field.id, { autoWidth: e.target.checked })}
-                            />
+                        <div className="flex items-center justify-between gap-2">
+                          <Label className="text-caption-1-medium" htmlFor="genislik-baslik">Genişlik</Label>
+                          <Checkbox
+                            size="sm"
+                            isSelected={field.autoWidth !== false}
+                            onChange={(isSelected) => updateField(field.id, { autoWidth: isSelected })}
+                          >
                             Otomatik
-                          </label>
-                        </Label>
+                          </Checkbox>
+                        </div>
                         <Input
-                          id="alan-3"
+                          id="genislik-baslik"
                           type="number"
                           min={10}
                           max={200}
@@ -556,14 +556,14 @@ export default function OpticCreate() {
                           Harf Aralığı
                           <span>{field.letterSpacingMm ?? 0}mm</span>
                         </Label>
-                        <input
-                          type="range"
-                          min={0}
-                          max={5}
+                        <Slider
+                          aria-label="Harf aralığı"
+                          minValue={0}
+                          maxValue={5}
                           step={0.1}
-                          className="w-full"
+                          showTooltip={false}
                           value={field.letterSpacingMm ?? 0}
-                          onChange={(e) => updateField(field.id, { letterSpacingMm: Number(e.target.value) })}
+                          onChange={(value) => updateField(field.id, { letterSpacingMm: value })}
                         />
                       </div>
                     </>

@@ -97,13 +97,30 @@ shadcn token sınıfları → BoardUI semantic sınıfları, sayfa sayfa:
       Artık uygulama kodunda shadcn köprü token'ı kullanan sınıf yok; köprü yine de duruyor.
 - [x] **Kullanılmayan shadcn dosyaları silindi** (53 dosya + `hooks/use-toast.ts`);
       `components/ui/` yalnızca `card.tsx` ve `table.tsx` kaldı.
-- Artık hiçbir yerden import edilmeyen npm paketleri (silme onayı bekliyor): `vaul`, `cmdk`,
-      `embla-carousel-react`, `sonner`, `input-otp`, `react-resizable-panels`, `react-day-picker`,
-      `date-fns`, `react-hook-form`, `next-themes`, `tailwindcss-animate`.
+- Shadcn dönemi paketleri kaldırıldı (31 `@radix-ui/*`, `class-variance-authority`,
+      `@hookform/resolvers`, `tw-animate-css`, `framer-motion`, `vaul`, `cmdk`, `embla-carousel-react`,
+      `sonner`, `input-otp`, `react-resizable-panels`, `react-day-picker`, `date-fns`,
+      `react-hook-form`, `next-themes`, `tailwindcss-animate`).
+- Hâlâ hiçbir yerden import edilmeyenler (silme onayı bekliyor): `passport`, `passport-local`,
+      `express-session`, `memorystore`, `ws`, `jsqr`, `jspdf-autotable`, `zod-validation-error`,
+      `@jridgewell/trace-mapping`.
 - [x] Etiket ↔ alan bağı: yanındaki alanla durup bağı olmayan 18 etiket için alana `id`,
       etikete `htmlFor` üretildi (`script/migrate-boardui-label-for.cjs`; kimlik etiket metninden,
       Türkçe harfler sadeleşmiş, dosya içinde çakışma yok). `InputBase` kimliği gerçek `<input>`a
       koyduğu için ekran okuyucu artık etiketi okuyor, etikete tıklayınca alana odaklanıyor.
+- [x] **Son yerli kontroller** (`exam-selection`, `optic-creation`): uygulama kodunda native form
+      öğesi kalmadı.
+  - `<textarea>` → `components/base/textarea/textarea` (`Textarea`: `label`, `rows`, `isDisabled`;
+    RAC `onChange` metnin kendisini verir, `e.target.value` yok).
+  - Excel "Ek Sütunlar" kutucukları → `Checkbox`: kartın kendisi bileşen oldu (RAC kökü `<label>`
+    olduğundan bütün kutu tıklanabilir), seçim rengi `className`le verildi.
+  - Elle yazılmış `role="switch"` anahtarı → `components/base/switch/switch`
+    (`isSelected`/`onChange`).
+  - İki `type="range"` (yazı boyutu, harf aralığı) → `components/base/slider/slider` (`Slider`:
+    `minValue`/`maxValue`/`step`, `showTooltip={false}` — sayı okuması üstteki `Label`da duruyor).
+    Bileşen registry'den kuruldu: `npx boardui add slider --dir client/src --yes`.
+  - "Otomatik" kutusu `<Label>` içinde iç içe `<label>` üretiyordu (geçersiz HTML); satır ikiye
+    bölünüp `Label` + `Checkbox` yan yana kondu.
 
 ## Faz 4 — Kapsam dışı bırakılanlar
 - Auth: yok (yerel erişim). `passport*`, `express-session` bağımlılıkları kullanılmıyor.
