@@ -94,7 +94,9 @@ export function escapeHtml(value: string): string {
 }
 
 export interface PdfPageRenderOptions {
-  pages: string[];
+  pages?: string[];
+  totalPages?: number;
+  getPage?: (index: number) => string | Promise<string>;
   widthPx: number;
   heightPx: number;
   widthMm: number;
@@ -108,15 +110,21 @@ export async function createPdfFromPages(options: PdfPageRenderOptions): Promise
   const { default: html2canvas } = await import("html2canvas");
   const { PDFDocument } = await import("pdf-lib");
 
+  const totalPages = options.totalPages ?? options.pages?.length ?? 0;
+  if (totalPages === 0 || (!options.getPage && !options.pages)) {
+    throw new Error("PDF için en az bir sayfa gerekli");
+  }
+
   const dpi = options.renderDpi ?? 300;
   const pageWidthPt = mmToPt(options.widthMm);
   const pageHeightPt = mmToPt(options.heightMm);
   const pdfDoc = await PDFDocument.create();
 
-  for (let i = 0; i < options.pages.length; i++) {
+  for (let i = 0; i < totalPages; i++) {
     const wrapper = document.createElement("div");
-    wrapper.innerHTML = options.pages[i];
+    wrapper.innerHTML = await options.getPage?.(i) ?? options.pages?.[i] ?? "";
     const pageEl = wrapper.firstElementChild as HTMLElement;
+    if (!pageEl) throw new Error(`PDF sayfası oluşturulamadı: ${i + 1}`);
     pageEl.style.width = `${options.widthPx}px`;
     pageEl.style.height = `${options.heightPx}px`;
     pageEl.style.background = "#ffffff";
@@ -125,6 +133,7 @@ export async function createPdfFromPages(options: PdfPageRenderOptions): Promise
     pageEl.style.top = "0";
     document.body.appendChild(pageEl);
 
+    let canvas: HTMLCanvasElement | undefined;
     try {
       const imgs = Array.from(pageEl.querySelectorAll("img"));
       await Promise.all(
@@ -138,23 +147,34 @@ export async function createPdfFromPages(options: PdfPageRenderOptions): Promise
         }),
       );
 
-      const canvas = await html2canvas(pageEl, {
+      const renderedCanvas = await html2canvas(pageEl, {
         scale: dpi / 96,
         useCORS: true,
         logging: false,
         width: options.widthPx,
         height: options.heightPx,
       });
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-      const imgBytes = Uint8Array.from(atob(imgData.split(",")[1]), (c) => c.charCodeAt(0));
+      canvas = renderedCanvas;
+      const imageBlob = await new Promise<Blob>((resolve, reject) => {
+        renderedCanvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error("PDF sayfası görüntüsü oluşturulamadı"))),
+          "image/jpeg",
+          0.92,
+        );
+      });
+      const imgBytes = new Uint8Array(await imageBlob.arrayBuffer());
       const image = await pdfDoc.embedJpg(imgBytes);
       const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
       page.drawImage(image, { x: 0, y: 0, width: pageWidthPt, height: pageHeightPt });
     } finally {
+      if (canvas) {
+        canvas.width = 0;
+        canvas.height = 0;
+      }
       document.body.removeChild(pageEl);
     }
 
-    options.onProgress?.(i + 1, options.pages.length);
+    options.onProgress?.(i + 1, totalPages);
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
@@ -162,29 +182,64 @@ export async function createPdfFromPages(options: PdfPageRenderOptions): Promise
   return new Blob([pdfBytes], { type: "application/pdf" });
 }
 
-export function openPrintWindow(pages: string[], paperSize: PaperSize): boolean {
-  const printWindow = window.open("", "_blank", "width=1200,height=900");
-  if (!printWindow) return false;
-  const pageSections = pages.map((page) => `<section class="optic-page">${page}</section>`).join("");
-  printWindow.document.write(
-    `<!doctype html><html lang="tr"><head><meta charset="UTF-8" /><style>@page{size:${paperSize} portrait;margin:0;}html,body{margin:0;padding:0;}body{background:#fff;}.optic-page{page-break-after:always;}.optic-page:last-child{page-break-after:auto;}</style></head><body>${pageSections}</body></html>`,
-  );
-  printWindow.document.close();
-  printWindow.focus();
-  try {
-    printWindow.print();
-  } catch {
-    // ignore
-  }
-  return true;
+export interface PrintDocument {
+  appendPage(pageHtml: string): Promise<void>;
+  print(): void;
+  close(): void;
 }
 
+export function openPrintWindow(paperSize: PaperSize, documentTitle = "Optik Form"): PrintDocument | null {
+  const printWindow = window.open("", "_blank", "width=1200,height=900");
+  if (!printWindow) return null;
+  printWindow.document.open();
+  printWindow.document.write(
+    `<!doctype html><html lang="tr"><head><meta charset="UTF-8" /><title>${escapeHtml(documentTitle)}</title><style>@page{size:${paperSize} portrait;margin:0;}html,body{margin:0;padding:0;}body{background:#fff;}.optic-page{page-break-after:always;}.optic-page:last-child{page-break-after:auto;}</style></head><body></body></html>`,
+  );
+  printWindow.document.close();
+
+  return {
+    async appendPage(pageHtml) {
+      if (printWindow.closed) throw new Error("Yazdırma penceresi kapatıldı");
+      const wrapper = printWindow.document.createElement("div");
+      wrapper.innerHTML = pageHtml;
+      const page = wrapper.firstElementChild;
+      if (!page) throw new Error("Yazdırma sayfası oluşturulamadı");
+      const section = printWindow.document.createElement("section");
+      section.className = "optic-page";
+      section.append(page);
+      printWindow.document.body.append(section);
+
+      await Promise.all(
+        Array.from(section.querySelectorAll("img")).map((img) => {
+          if (img.complete) return Promise.resolve();
+          return new Promise<void>((resolve) => {
+            img.addEventListener("load", () => resolve(), { once: true });
+            img.addEventListener("error", () => resolve(), { once: true });
+          });
+        }),
+      );
+    },
+    print() {
+      printWindow.focus();
+      printWindow.print();
+    },
+    close() {
+      printWindow.close();
+    },
+  };
+}
+
+const QR_CACHE_LIMIT = 128;
 const qrCache = new Map<string, string>();
 
 export async function buildQrDataUrl(text: string, widthPx = 600): Promise<string> {
   const key = `${widthPx}:${text}`;
   const cached = qrCache.get(key);
-  if (cached) return cached;
+  if (cached) {
+    qrCache.delete(key);
+    qrCache.set(key, cached);
+    return cached;
+  }
   const { default: QRCode } = await import("qrcode");
   const dataUrl = await QRCode.toDataURL(text, {
     width: widthPx,
@@ -192,5 +247,9 @@ export async function buildQrDataUrl(text: string, widthPx = 600): Promise<strin
     errorCorrectionLevel: "M",
   });
   qrCache.set(key, dataUrl);
+  if (qrCache.size > QR_CACHE_LIMIT) {
+    const oldestKey = qrCache.keys().next().value;
+    if (oldestKey !== undefined) qrCache.delete(oldestKey);
+  }
   return dataUrl;
 }

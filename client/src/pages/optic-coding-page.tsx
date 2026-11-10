@@ -11,7 +11,6 @@ import {
   buildOpticFormHtml,
   fetchFormDesigns,
   isHeadingField,
-  PDF_RENDER_DPI,
   QR_DEFAULT_SIZE_MM,
   type OpticFormDesign,
   type OpticFormFill,
@@ -19,7 +18,6 @@ import {
 } from "@/lib/optic-form";
 import {
   buildQrDataUrl,
-  createPdfFromPages,
   extractExcelColumns,
   findDistrict,
   findSchool,
@@ -30,7 +28,7 @@ import {
   resolveColumnValue,
   snapToGrid,
 } from "@/lib/optic-coding";
-import { AlertCircle, FileDown, GripVertical, Plus, Printer, QrCode, Save, Trash2 } from "lucide-react";
+import { AlertCircle, GripVertical, Plus, Printer, QrCode, Save, Trash2 } from "lucide-react";
 
 const DRAG_SNAP_MM = 1;
 /** Alan listesinde "bağlı değil" seçeneğinin anahtarı (boş RAC anahtarı olamaz). */
@@ -39,7 +37,7 @@ const OVERLAY_W_MM = 45;
 const OVERLAY_H_MM = 11;
 const QR_MIN_SIZE_MM = 10;
 const QR_MAX_SIZE_MM = 60;
-const QR_RENDER_PX = 600;
+const QR_RENDER_PX = 300;
 
 interface CodingElement {
   id: string;
@@ -69,7 +67,10 @@ export default function OpticCoding() {
   const [districtId, setDistrictId] = useState<string>("all");
   const [schoolId, setSchoolId] = useState<string>("all");
   const [className, setClassName] = useState<string>("all");
+  const [batchSizeInput, setBatchSizeInput] = useState("100");
+  const [nextPrintIndex, setNextPrintIndex] = useState(0);
   const [exporting, setExporting] = useState<{ done: number; total: number } | null>(null);
+  const lastProgressUpdate = useRef(0);
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [previewScale, setPreviewScale] = useState(1);
@@ -229,6 +230,18 @@ export default function OpticCoding() {
     return scopedStudents.filter((s) => s.class === className);
   }, [scopedStudents, className]);
 
+  useEffect(() => {
+    setNextPrintIndex(0);
+  }, [selectedExamId, districtId, schoolId, className, students.length]);
+
+  const parsedBatchSize = Number.parseInt(batchSizeInput, 10);
+  const batchSize = Number.isFinite(parsedBatchSize)
+    ? Math.min(500, Math.max(50, parsedBatchSize))
+    : 100;
+  const printStart = filteredStudents.length
+    ? Math.min(nextPrintIndex, filteredStudents.length - 1)
+    : 0;
+  const printEnd = Math.min(printStart + batchSize, filteredStudents.length);
   const paper = selectedDesign ? PAPER_DIMENSIONS[selectedDesign.paperSize] : PAPER_DIMENSIONS.A4;
   const previewWidthPx = mmToPx(paper.widthMm);
   const previewHeightPx = mmToPx(paper.heightMm);
@@ -283,6 +296,30 @@ export default function OpticCoding() {
     },
     [elements, schools, districts],
   );
+
+  const buildStudentContent = useCallback(
+    async (student: Student) => ({
+      fill: buildFill(student),
+      overlays: await buildOverlays(student),
+    }),
+    [buildFill, buildOverlays],
+  );
+
+  const buildStudentPage = useCallback(
+    async (student: Student) => {
+      if (!selectedDesign) throw new Error("Optik form seçilmedi");
+      const { fill, overlays } = await buildStudentContent(student);
+      return buildOpticFormHtml(selectedDesign, fill, overlays);
+    },
+    [selectedDesign, buildStudentContent],
+  );
+
+  const reportProgress = useCallback((done: number, total: number) => {
+    const now = Date.now();
+    if (done < total && now - lastProgressUpdate.current < 200) return;
+    lastProgressUpdate.current = now;
+    setExporting({ done, total });
+  }, []);
 
   const [previewHtml, setPreviewHtml] = useState("");
 
@@ -450,7 +487,7 @@ export default function OpticCoding() {
     addElement(col, { xMm, yMm });
   };
 
-  const exportPdf = async () => {
+  const preparePrintBatch = async () => {
     if (!isLoaded || filteredStudents.length === 0) {
       toast.error("Hata", { description: "Yazdırılacak öğrenci bulunamadı." });
       return;
@@ -460,63 +497,41 @@ export default function OpticCoding() {
       return;
     }
 
-    try {
-      setExporting({ done: 0, total: filteredStudents.length });
-      const pages = await Promise.all(
-        filteredStudents.map(async (student) =>
-          buildOpticFormHtml(selectedDesign, buildFill(student), await buildOverlays(student)),
-        ),
-      );
-      const blob = await createPdfFromPages({
-        pages,
-        widthPx: previewWidthPx,
-        heightPx: previewHeightPx,
-        widthMm: paper.widthMm,
-        heightMm: paper.heightMm,
-        paperSize: selectedDesign.paperSize,
-        renderDpi: PDF_RENDER_DPI,
-        onProgress: (done, total) => setExporting({ done, total }),
-      });
-      setExporting(null);
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "optik-kodlama.pdf";
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("PDF Oluşturuldu", { description: `${filteredStudents.length} öğrenci için kaydedildi.` });
-    } catch {
-      setExporting(null);
-      toast.error("PDF hatası", { description: "PDF oluşturulamadı." });
-    }
-  };
-
-  const printAll = async () => {
-    if (!isLoaded || filteredStudents.length === 0) {
-      toast.error("Hata", { description: "Yazdırılacak öğrenci bulunamadı." });
-      return;
-    }
-    if (!selectedDesign) {
-      toast.error("Hata", { description: "Bir optik form seçilmelidir." });
+    const start = printStart;
+    const end = printEnd;
+    const batchStudents = filteredStudents.slice(start, end);
+    const title = `optik-kodlama-${String(start + 1).padStart(5, "0")}-${String(end).padStart(5, "0")}`;
+    const printDocument = openPrintWindow(selectedDesign.paperSize, title);
+    if (!printDocument) {
+      toast.error("Hata", { description: "Yazdırma penceresi açılamadı." });
       return;
     }
 
     try {
-      const pages = await Promise.all(
-        filteredStudents.map(async (student) =>
-          buildOpticFormHtml(selectedDesign, buildFill(student), await buildOverlays(student)),
-        ),
-      );
-      if (!openPrintWindow(pages, selectedDesign.paperSize)) {
-        toast.error("Hata", { description: "Yazdırma penceresi açılamadı." });
-        return;
+      setExporting({ done: 0, total: batchStudents.length });
+      for (let index = 0; index < batchStudents.length; index++) {
+        await printDocument.appendPage(await buildStudentPage(batchStudents[index]));
+        reportProgress(index + 1, batchStudents.length);
+        if ((index + 1) % 10 === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
       }
-      toast("Yazdırma Başlatıldı", { description: `${filteredStudents.length} öğrenci için hazırlandı.` });
-    } catch {
-      toast.error("Hata", { description: "QR kodlar oluşturulamadı." });
+      printDocument.print();
+      setNextPrintIndex(end >= filteredStudents.length ? 0 : end);
+      toast("Yazdırma başlatıldı", {
+        description: `${start + 1}–${end} / ${filteredStudents.length} öğrenci yazdırma için hazırlandı.`,
+      });
+    } catch (error) {
+      printDocument.close();
+      toast.error("Yazdırma hatası", {
+        description: error instanceof Error ? error.message : "Sayfalar hazırlanamadı.",
+      });
+    } finally {
+      setExporting(null);
     }
   };
+
+  const printAll = () => preparePrintBatch();
 
   const boundCount = useMemo(() => elements.filter((el) => el.boundFieldId).length, [elements]);
 
@@ -527,7 +542,7 @@ export default function OpticCoding() {
           <h1 className="text-title-1-semibold text-text-primary">Optik Kodlama</h1>
           <p className="mt-1 text-body-regular text-text-secondary">Excel sütunlarını seçip optik form üzerine yerleştirin.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Button
             onClick={saveCodingProfile}
             disabled={!selectedDesign || !selectedExamId || savingProfile || !!exporting}
@@ -536,13 +551,31 @@ export default function OpticCoding() {
           >
             {savingProfile ? "Kaydediliyor..." : "Yerleşimi Kaydet"}
           </Button>
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <Label htmlFor="export-batch-size" className="shrink-0 whitespace-nowrap">
+              Dilim başına öğrenci
+            </Label>
+            <Input
+              id="export-batch-size"
+              aria-label="Dilim başına öğrenci sayısı"
+              className="w-20"
+              type="number"
+              min={50}
+              max={500}
+              step={50}
+              value={batchSizeInput}
+              onChange={(event) => setBatchSizeInput(event.target.value)}
+              onBlur={() => setBatchSizeInput(String(batchSize))}
+              disabled={!!exporting}
+            />
+          </div>
           <Button onClick={printAll} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting} variant="ghost" leadingIcon={Printer}>
             
-            Yazdır
-          </Button>
-          <Button variant="ghost" onClick={exportPdf} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting} leadingIcon={FileDown}>
-            
-            {exporting ? `PDF ${exporting.done}/${exporting.total}` : "PDF"}
+            {exporting
+              ? `Yazdırma ${exporting.done}/${exporting.total}`
+              : filteredStudents.length
+                ? `Yazdır ${printStart + 1}–${printEnd}/${filteredStudents.length}`
+                : "Yazdır"}
           </Button>
         </div>
       </div>

@@ -327,11 +327,20 @@ export default function OpticCreate() {
 
   const printForm = () => {
     if (!form) return;
-    if (!openPrintWindow([previewHtml], form.paperSize)) {
+    const printDocument = openPrintWindow(form.paperSize);
+    if (!printDocument) {
       toast.error("Hata", { description: "Yazdırma penceresi açılamadı." });
       return;
     }
-    toast("Yazdırma Başlatıldı", { description: `"${form.name}" yazdırma için hazırlandı.` });
+    void printDocument.appendPage(previewHtml).then(() => {
+      printDocument.print();
+      toast("Yazdırma Başlatıldı", { description: `"${form.name}" yazdırma için hazırlandı.` });
+    }).catch((error: unknown) => {
+      printDocument.close();
+      toast.error("Yazdırma hatası", {
+        description: error instanceof Error ? error.message : "Optik form hazırlanamadı.",
+      });
+    });
   };
 
   const deleteForm = async (id: string, name: string) => {

@@ -245,7 +245,7 @@ export interface OpticManifest {
 export function buildOpticFormManifest(design: OpticFormDesign): OpticManifest {
   const paperWidth = design.paperSize === "A4" ? 210 : 148;
   const paperHeight = design.paperSize === "A4" ? 297 : 210;
-  const borderMm = (BUBBLE_BORDER_PX * 25.4) / 96;
+  const borderMm = BUBBLE_BORDER_MM;
 
   const grids: OpticManifestGrid[] = computeGridPlacements(design).map(({ grid, xMm, yMm, widthMm, heightMm }) => {
     const letters = optionLetters(grid.optionCount);
@@ -371,6 +371,7 @@ const BUBBLE_PITCH_MM = 5;
 const NUM_COL_MM = 5;
 const ROW_HEIGHT_MM = 5;
 const BUBBLE_BORDER_PX = 0.5;
+const BUBBLE_BORDER_MM = (BUBBLE_BORDER_PX * 25.4) / 96;
 const BUBBLE_BORDER_COLOR = "#F4A9C4";
 const ROW_STRIPE_COLOR = "rgba(244, 169, 196, 0.18)";
 const DIGIT_ROWS_PER_COLUMN = 10;
