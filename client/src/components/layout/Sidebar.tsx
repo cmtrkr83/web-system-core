@@ -78,7 +78,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <ThemeToggle appearance="sidebar-segmented" transitionDuration={0} />
         </div>
         <div className="rounded-xl bg-background-secondary-default px-3 py-2.5 text-caption-2-regular text-text-tertiary">
-          <p className="text-caption-1-semibold text-text-primary">Versiyon 2.2.2</p>
+          <p className="text-caption-1-semibold text-text-primary">Versiyon 2.2.3</p>
           <p className="mt-1">Kütük Yönetim Sistemi</p>
         </div>
       </div>

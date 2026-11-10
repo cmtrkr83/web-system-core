@@ -1025,17 +1025,6 @@ export default function ExamSelection() {
           ))}
         </div>
 
-        {/* Empty State */}
-        {exams.length === 0 && (
-          <div className="text-center py-12">
-            <BookOpen className="h-16 w-16 text-text-tertiary/30 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-text-primary mb-2">Henüz Sınav Yok</h3>
-            <p className="text-text-tertiary mb-6">Başlamak için yeni bir sınav oluşturun.</p>
-            <Button size="medium" variant="ghost" leadingIcon={Plus} onClick={() => handleDialogOpenChange(true)}>
-              İlk Sınavı Oluştur
-            </Button>
-          </div>
-        )}
       </div>
 
       <Modal

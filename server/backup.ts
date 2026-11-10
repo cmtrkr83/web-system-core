@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
-import { cp, mkdir, readdir, rm, stat } from "fs/promises";
+import { randomUUID } from "crypto";
+import { cp, mkdir, readdir, rm, stat, writeFile } from "fs/promises";
 import path from "path";
 
 export async function createLocalBackup(options: {
@@ -9,7 +10,8 @@ export async function createLocalBackup(options: {
   uploadsPath: string;
   backupRoot: string;
 }): Promise<{ id: string; path: string }> {
-  const id = new Date().toISOString().replace(/[:.]/g, "-");
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const id = `${timestamp}-${randomUUID().slice(0, 8)}`;
   const backupPath = path.join(options.backupRoot, id);
   await mkdir(backupPath, { recursive: true });
 
@@ -24,8 +26,34 @@ export async function createLocalBackup(options: {
 
   await backupDatabase(options.databasePath, "local.db");
   await backupDatabase(options.opticDatabasePath, "optic-readings.sqlite");
-  await cp(options.formDesignsPath, path.join(backupPath, "optic-form-designs.json"), { force: true });
-  await cp(options.uploadsPath, path.join(backupPath, "optic_uploads"), { recursive: true, force: true });
+  const optionalSources = [
+    { source: options.formDesignsPath, destination: path.join(backupPath, "optic-form-designs.json"), kind: "file" },
+    { source: options.uploadsPath, destination: path.join(backupPath, "optic_uploads"), kind: "directory" },
+  ] as const;
+  for (const { source, destination, kind } of optionalSources) {
+    let info;
+    try {
+      info = await stat(source);
+    } catch (error) {
+      if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "ENOENT") {
+        throw error;
+      }
+    }
+
+    if (!info) {
+      if (kind === "file") {
+        await writeFile(destination, "[]\n", "utf-8");
+      } else {
+        await mkdir(destination, { recursive: true });
+      }
+      continue;
+    }
+
+    if ((kind === "file" && !info.isFile()) || (kind === "directory" && !info.isDirectory())) {
+      throw new Error(`Beklenen yedek kaynağı türü geçersiz: ${source}`);
+    }
+    await cp(source, destination, { recursive: kind === "directory", force: true });
+  }
 
   return { id, path: backupPath };
 }
