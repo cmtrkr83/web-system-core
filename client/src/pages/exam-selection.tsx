@@ -1007,8 +1007,7 @@ export default function ExamSelection() {
                   </div>
 
                   <Button
-                    variant="ghost"
-
+                    variant="secondary"
                     className="shrink-0 text-text-error-primary hover:bg-border-error-default/10 hover:text-text-error-primary"
                     onClick={(event) => {
                       event.stopPropagation();

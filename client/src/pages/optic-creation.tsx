@@ -373,7 +373,7 @@ export default function OpticCreate() {
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       className="text-text-error-primary hover:bg-border-error-default/10 hover:text-text-error-primary"
                       title="Formu sil"
                       aria-label="Formu sil"
@@ -459,7 +459,7 @@ export default function OpticCreate() {
                       value={field.label}
                       onChange={(e) => updateField(field.id, { label: e.target.value })}
                     />
-                    <Button variant="ghost" className="shrink-0 text-text-error-primary hover:bg-border-error-default/10" onClick={() => removeField(field.id)} iconOnly leadingIcon={Trash2} aria-label="Bilgi alanını kaldır" />
+                    <Button variant="secondary" className="shrink-0 text-text-error-primary hover:bg-border-error-default/10 hover:text-text-error-primary" onClick={() => removeField(field.id)} iconOnly leadingIcon={Trash2} aria-label="Bilgi alanını kaldır" />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -678,7 +678,7 @@ export default function OpticCreate() {
                     value={grid.subject}
                     onChange={(e) => updateGrid(grid.id, { subject: e.target.value })}
                   />
-                  <Button variant="ghost" className="shrink-0 text-text-error-primary hover:bg-border-error-default/10" onClick={() => removeGrid(grid.id)} iconOnly leadingIcon={Trash2} aria-label="Ders tablosunu kaldır" />
+                  <Button variant="secondary" className="shrink-0 text-text-error-primary hover:bg-border-error-default/10 hover:text-text-error-primary" onClick={() => removeGrid(grid.id)} iconOnly leadingIcon={Trash2} aria-label="Ders tablosunu kaldır" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>

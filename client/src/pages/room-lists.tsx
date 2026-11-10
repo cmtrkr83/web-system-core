@@ -334,7 +334,6 @@ export default function RoomLists() {
                   onClick={() => setPreviewIndex((p) => Math.max(0, p - 1))}
                   disabled={previewPages.length === 0 || previewIndex === 0}
                   variant="secondary"
-
                   className="rounded-lg text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary disabled:opacity-40"
                   aria-label="Önceki sayfa"
                   title="Önceki sayfa" iconOnly leadingIcon={ChevronLeft}
@@ -347,7 +346,6 @@ export default function RoomLists() {
                   onClick={() => setPreviewIndex((p) => Math.min(previewPages.length - 1, p + 1))}
                   disabled={previewPages.length === 0 || previewIndex >= previewPages.length - 1}
                   variant="secondary"
-
                   className="rounded-lg text-text-tertiary hover:bg-background-secondary-default hover:text-text-primary disabled:opacity-40"
                   aria-label="Sonraki sayfa"
                   title="Sonraki sayfa" iconOnly leadingIcon={ChevronRight}
