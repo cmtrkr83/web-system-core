@@ -3,7 +3,6 @@ import { Button } from "@/components/base/buttons/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Select, SelectItem } from "@/components/base/select/select";
 import { Label } from "@/components/base/input/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { FileText, Printer, Eye, ChevronLeft, ChevronRight, MapPin, School, ListChecks } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";

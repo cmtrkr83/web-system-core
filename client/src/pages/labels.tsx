@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/base/input/label";
 import { Select, SelectItem } from "@/components/base/select/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Radio, RadioGroup } from "@/components/base/radio/radio";
 import { Printer, Eye, Palette, ChevronLeft, ChevronRight, MapPin, School, Tags } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRegistry } from "@/context/RegistryContext";
@@ -456,22 +456,21 @@ export default function Labels() {
 								Renk Şeması
 							</Label>
 							<RadioGroup
-								defaultValue="blue"
+								aria-label="Renk şeması"
 								value={scheme}
-								onValueChange={setScheme}
+								onChange={setScheme}
 								className="grid grid-cols-3 gap-2"
 							>
 								{colorSchemes.map((s) => (
-									<div key={s.id}>
-										<RadioGroupItem value={s.id} id={s.id} className="peer sr-only" />
-										<Label
-											htmlFor={s.id}
-											className="flex flex-col items-center justify-between rounded-md border-2 border-separator-border bg-background-primary-default p-2 hover:bg-background-secondary-default hover:text-text-primary peer-data-[state=checked]:border-accent-600 cursor-pointer transition-all"
-										>
-											<div className={cn("w-full h-8 rounded mb-2 border", s.primary || "bg-white", s.border)}></div>
-											<span className="text-xs font-medium">{s.name}</span>
-										</Label>
-									</div>
+									<Radio
+										key={s.id}
+										value={s.id}
+										aria-label={s.name}
+										className="relative w-full flex-col items-stretch gap-0 rounded-2lg border-2 border-border-button-default bg-background-primary-default p-2 transition-colors hover:bg-background-primary-hover data-[selected]:border-accent-600 [&>span:first-child]:absolute [&>span:first-child]:end-1.5 [&>span:first-child]:top-1.5 [&>span:last-child]:block [&>span:last-child]:w-full"
+									>
+										<span className={cn("mb-2 block h-8 w-full rounded border", s.primary || "bg-white", s.border)} />
+										<span className="block text-caption-1-medium">{s.name}</span>
+									</Radio>
 								))}
 							</RadioGroup>
 						</div>

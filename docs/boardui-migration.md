@@ -83,19 +83,28 @@ shadcn token sınıfları → BoardUI semantic sınıfları, sayfa sayfa:
 - [x] **Alert**: `optic-reading`deki tek hata kutusu token'lı satır içi panele çevrildi
       (`bg-notification-error-background/50` + `border-border-error-default/30`), `evaluation`daki
       kullanılmayan import silindi.
-- Kalan `components/ui/*` kullanımı: `card` (12), `table` (3, bilinçli), `radio-group` (2),
-      `checkbox` (1 dosyada 2), `progress` (1).
-- Artık hiçbir yerden import edilmeyen (onay bekleyen) shadcn dosyaları: `select`, `label`,
-      `toast`, `toaster`, `hooks/use-toast`, `dialog`, `sheet`, `tooltip`, `separator`, `alert`,
-      `field`, `form`.
-- Not: `components/ui/select.tsx` ve `hooks/use-toast.ts` artık hiçbir yerden import edilmiyor;
-      Faz 3 bitince silinecek.
+- [x] **Radio** (`labels`, `branch-labels` renk şeması): `components/base/radio/radio`
+      (`RadioGroup` + `Radio`). Renk şeması kartı korundu: `Radio` kartın tamamı olacak şekilde
+      sınıflandı (`data-[selected]:border-accent-600`), nokta `[&>span:first-child]` ile sağ üste
+      taşındı. `value`/`onValueChange` → `value`/`onChange`; `RadioGroupItem + sr-only + peer` hilesi gitti.
+- [x] **Checkbox** (`reports`): `components/base/checkbox/checkbox` — React Aria kökü `<label>`
+      olduğu için ayrı `Label htmlFor` gerekmedi; başlık + açıklama çocuk olarak verildi.
+      `room-lists`teki kullanılmayan import silindi.
+- [x] **Progress** (`evaluation`): `components/base/progress/progress` (`ProgressBar`);
+      satır sayısı henüz bilinmiyorken `isIndeterminate` (eski 0% çubuğu yerine tarama animasyonu).
+- [x] **Card** shadcn dosyası kaldı (BoardUI'de karşılığı yok) — token'ları BoardUI'ye çevrildi
+      (`bg-background-primary-default`, `border-separator-border`, `text-text-tertiary`).
+      Artık uygulama kodunda shadcn köprü token'ı kullanan sınıf yok; köprü yine de duruyor.
+- [x] **Kullanılmayan shadcn dosyaları silindi** (53 dosya + `hooks/use-toast.ts`);
+      `components/ui/` yalnızca `card.tsx` ve `table.tsx` kaldı.
+- Artık hiçbir yerden import edilmeyen npm paketleri (silme onayı bekliyor): `vaul`, `cmdk`,
+      `embla-carousel-react`, `sonner`, `input-otp`, `react-resizable-panels`, `react-day-picker`,
+      `date-fns`, `react-hook-form`, `next-themes`, `tailwindcss-animate`.
 - Bilinen açık (göçten önce de böyleydi): 22 etiket alanla yan yana duruyor ama `htmlFor`/`id`
       bağı yok — ekran okuyucu etiketi okumuyor. Doğru çözümü BoardUI'nin bileşik `Input label=`
       kullanımı; toplu geçiş ayrı bir iş.
 
 ## Faz 4 — Kapsam dışı bırakılanlar
 - Auth: yok (yerel erişim). `passport*`, `express-session` bağımlılıkları kullanılmıyor.
-- `components/ui/*` dosyaları henüz silinmiyor: `alert-dialog`, `input-group`, `pagination`,
-  `sidebar`, `calendar`, `carousel` içinde hâlâ `ui/button` import'u var (kullanılmıyorlar ama
-  Faz 3 tamamlanana dek köprü onları taşıyor).
+- `components/ui/` yalnızca `card.tsx` (BoardUI'de kart yok) ve `table.tsx` (registry `table`
+  React Aria koleksiyon modeli istiyor, bu tablolar koştullu kolon + `colSpan` ile çiziliyor).

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/base/buttons/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Select, SelectItem } from "@/components/base/select/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/base/checkbox/checkbox";
 import { Label } from "@/components/base/input/label";
 import { ClipboardCheck, FileCheck, FileSignature, MapPin, FileDown } from "lucide-react";
 import jsPDF from "jspdf";
@@ -335,12 +335,17 @@ export default function Reports() {
                   ))}
                 </Select>
                </div>
-               <div className="flex items-start gap-3 rounded-lg border border-separator-border/60 bg-background-full p-3">
-                  <Checkbox id="blank" className="mt-0.5" checked={isBlankTemplate} onCheckedChange={(checked) => setIsBlankTemplate(checked === true)} />
-                  <div className="space-y-0.5">
-                    <Label htmlFor="blank" className="cursor-pointer font-medium">Boş şablon olarak indir</Label>
-                    <p className="text-xs text-text-tertiary">Okul adları olmadan boş tutanak sayfaları oluşturur.</p>
-                  </div>
+               <div className="rounded-lg border border-separator-border/60 bg-background-full p-3">
+                  <Checkbox
+                    isSelected={isBlankTemplate}
+                    onChange={setIsBlankTemplate}
+                    className="items-start"
+                  >
+                    <span className="flex flex-col gap-0.5">
+                      <span className="text-caption-1-semibold text-text-primary">Boş şablon olarak indir</span>
+                      <span className="text-caption-2-regular text-text-tertiary">Okul adları olmadan boş tutanak sayfaları oluşturur.</span>
+                    </span>
+                  </Checkbox>
                </div>
             </div>
           </CardContent>

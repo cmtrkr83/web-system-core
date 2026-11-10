@@ -7,7 +7,7 @@ import { Label } from "@/components/base/input/label";
 import { Chip } from "@/components/base/badges/chip";
 import { Select, SelectItem } from "@/components/base/select/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Progress } from "@/components/ui/progress";
+import { ProgressBar } from "@/components/base/progress/progress";
 import { Divider } from "@/components/base/divider/divider";
 import { toast } from "@/components/base/toast/toast";
 import {
@@ -360,8 +360,10 @@ export default function Evaluation() {
                   <Loader2 className="w-4 h-4 animate-spin" />
                 )}
               </div>
-              <Progress
+              <ProgressBar
+                aria-label="CSV ayrıştırma ilerlemesi"
                 value={parsingProgress.total > 0 ? (parsingProgress.current / parsingProgress.total) * 100 : 0}
+                isIndeterminate={parsingProgress.total === 0}
               />
             </div>
           )}
