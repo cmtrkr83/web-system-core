@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/base/buttons/button";
 import { InputBase as Input } from "@/components/base/input/input";
@@ -29,6 +29,16 @@ interface ColumnMapping {
   class: string;
   grade: string;
   province: string;
+}
+
+interface RegistryImportHistoryItem {
+  id: string;
+  sourceFileName: string;
+  sourceRows: number;
+  importedRows: number;
+  excludedRows: number;
+  safetyBackupId: string;
+  loadedAt: string;
 }
 
 const initialColumnMapping: ColumnMapping = {
@@ -137,13 +147,6 @@ const detectColumnMapping = (columns: string[]): ColumnMapping => {
   return result;
 };
 
-const createSafeKey = (value: string, fallback: string): string => {
-  const key = normalizeHeader(value)
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return key || fallback;
-};
-
 const downloadRegistryTemplate = () => {
   const headers = [
     "İlçe",
@@ -181,6 +184,39 @@ export default function ExamSelection() {
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [importHistory, setImportHistory] = useState<RegistryImportHistoryItem[]>([]);
+  const [importHistoryError, setImportHistoryError] = useState("");
+
+  const loadImportHistory = useCallback(async (examId: string | null, signal?: AbortSignal) => {
+    if (!examId) {
+      setImportHistory([]);
+      setImportHistoryError("");
+      return;
+    }
+
+    setImportHistory([]);
+    setImportHistoryError("");
+    try {
+      const response = await fetch(`/api/registry/imports?examId=${encodeURIComponent(examId)}`, {
+        credentials: "include",
+        cache: "no-store",
+        signal,
+      });
+      if (!response.ok) throw new Error("Excel içe aktarma geçmişi alınamadı");
+      setImportHistory((await response.json()) as RegistryImportHistoryItem[]);
+      setImportHistoryError("");
+    } catch (error) {
+      if (signal?.aborted) return;
+      console.error("Excel içe aktarma geçmişi yüklenemedi:", error);
+      setImportHistoryError(error instanceof Error ? error.message : "Geçmiş alınamadı");
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadImportHistory(selectedExamId, controller.signal);
+    return () => controller.abort();
+  }, [loadImportHistory, selectedExamId]);
 
   // Exam creation state
   const [examData, setExamData] = useState({
@@ -211,13 +247,13 @@ export default function ExamSelection() {
   const [previousSelectedExamId, setPreviousSelectedExamId] = useState<string | null>(null);
   const [registryUploaded, setRegistryUploaded] = useState(false);
   const [rawData, setRawData] = useState<Record<string, any>[]>([]);
-  const [stats, setStats] = useState({ districts: 0, schools: 0, students: 0 });
+  const [stats, setStats] = useState({ districts: 0, schools: 0, students: 0, sourceRows: 0, excludedRows: 0 });
   const [preparedRegistryData, setPreparedRegistryData] = useState<{
     districts: District[];
     schools: School[];
     students: Student[];
   } | null>(null);
-  const [excludeSpecialNeeds, setExcludeSpecialNeeds] = useState(true);
+  const [excludeSpecialNeeds, setExcludeSpecialNeeds] = useState(false);
   const [extraColumns, setExtraColumns] = useState<Set<string>>(new Set());
 
   const resetWizard = () => {
@@ -236,9 +272,9 @@ export default function ExamSelection() {
     setPreviousSelectedExamId(null);
     setRegistryUploaded(false);
     setRawData([]);
-    setStats({ districts: 0, schools: 0, students: 0 });
+    setStats({ districts: 0, schools: 0, students: 0, sourceRows: 0, excludedRows: 0 });
     setPreparedRegistryData(null);
-    setExcludeSpecialNeeds(true);
+    setExcludeSpecialNeeds(false);
     setExtraColumns(new Set());
   };
 
@@ -282,10 +318,10 @@ export default function ExamSelection() {
     }
 
     setLoading(true);
+    let newlyCreatedExamId: string | null = null;
+    const examToRestore = selectedExamId;
     try {
-      if (!previousSelectedExamId) {
-        setPreviousSelectedExamId(selectedExamId);
-      }
+      setPreviousSelectedExamId(examToRestore);
 
       const newExam = await createExam({
         name: examData.name,
@@ -293,20 +329,25 @@ export default function ExamSelection() {
         description: examData.description,
         uploadMode: "free",
       });
+      newlyCreatedExamId = newExam.id;
+      setCreatedExamId(newExam.id);
 
       await selectExam(newExam.id);
-      setCreatedExamId(newExam.id);
 
       toast.success("Başarılı", { description: `"${newExam.name}" sınavı oluşturuldu. Şimdi kütük dosyasını yükleyin.` });
 
       setCurrentStep(2);
     } catch (error) {
       console.error("Sınav oluşturma hatası:", error);
-      
-      if (createdExamId) {
+      if (newlyCreatedExamId) {
         try {
-          await apiRequest("DELETE", `/api/exams/${createdExamId}`);
+          await apiRequest("DELETE", `/api/exams/${newlyCreatedExamId}`);
           await loadExams();
+          if (examToRestore) {
+            await selectExam(examToRestore);
+          } else {
+            await refreshRegistryData(null);
+          }
         } catch (deleteError) {
           console.error("Oluşturulan sınav temizlenemedi:", deleteError);
         }
@@ -335,7 +376,7 @@ export default function ExamSelection() {
         const workbook = XLSX.read(event.target?.result, { type: "array" });
         const firstSheet = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheet];
-        const rows = XLSX.utils.sheet_to_json(worksheet) as Record<string, any>[];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false }) as Record<string, any>[];
 
         if (rows.length === 0) {
           throw new Error("Excel dosyası veri içermiyor.");
@@ -441,8 +482,9 @@ export default function ExamSelection() {
     const districtSet = new Set<string>();
     const schoolMap = new Map<string, { id: string; code: string; name: string; district: string }>();
     const students: Student[] = [];
+    let excludedRows = 0;
 
-    rawData.forEach((row, index) => {
+    rawData.forEach((row) => {
       const studentId = String(row[studentIdCol] ?? "").trim();
       if (!studentId) return;
 
@@ -474,11 +516,13 @@ export default function ExamSelection() {
       if (provinceInfo && columnMapping.province) extraData[columnMapping.province] = provinceInfo;
       if (studentId && columnMapping.studentNumber) extraData[columnMapping.studentNumber] = studentId;
 
-      if (excludeSpecialNeeds && isExcludedSchool(schoolName)) return;
-      if (excludeSpecialNeeds && isExcludedBranch(classInfo)) return;
+      if (excludeSpecialNeeds && (isExcludedSchool(schoolName) || isExcludedBranch(classInfo))) {
+        excludedRows += 1;
+        return;
+      }
 
       districtSet.add(district);
-      const schoolKey = `${createSafeKey(district, "district")}-${createSafeKey(schoolCode, `row-${index + 1}`)}`;
+      const schoolKey = `${encodeURIComponent(district)}-${encodeURIComponent(schoolCode)}`;
       if (!schoolMap.has(schoolKey)) {
         schoolMap.set(schoolKey, {
           id: `school-${schoolKey}`,
@@ -489,7 +533,7 @@ export default function ExamSelection() {
       }
 
       students.push({
-        id: `student-${createSafeKey(studentId, `row-${index + 1}`)}-${index + 1}`,
+        id: `student-${encodeURIComponent(studentId)}`,
         fullName: studentName,
         studentNo: studentId,
         schoolId: `school-${schoolKey}`,
@@ -500,24 +544,31 @@ export default function ExamSelection() {
       });
     });
 
-    let districts: District[];
-    let schools: School[];
-
-    if (schoolMap.size > 0) {
-      districts = Array.from(districtSet).map((name) => ({
-        id: `district-${createSafeKey(name, "unknown")}`,
-        name,
-      }));
-      schools = Array.from(schoolMap.values()).map((info) => {
-        const district = districts.find((item) => item.name === info.district);
-        return { id: info.id, name: info.name, districtId: district?.id || "", code: info.code };
+    if (students.length === 0) {
+      toast.error("Aktarılacak öğrenci yok", {
+        description: excludedRows > 0
+          ? `${excludedRows} satır filtrelendi. Filtreyi kapatıp tekrar deneyin.`
+          : "Excel dosyasında aktarılabilir öğrenci bulunamadı.",
       });
-    } else {
-      districts = [{ id: "d1", name: "Genel" }];
-      schools = [{ id: "free", name: "Serbest Yükleme", districtId: "d1", code: "free" }];
+      return;
     }
 
-    setStats({ districts: districts.length, schools: schools.length, students: students.length });
+    const districts: District[] = Array.from(districtSet).map((name) => ({
+      id: `district-${encodeURIComponent(name)}`,
+      name,
+    }));
+    const schools: School[] = Array.from(schoolMap.values()).map((info) => {
+      const district = districts.find((item) => item.name === info.district);
+      return { id: info.id, name: info.name, districtId: district?.id || "", code: info.code };
+    });
+
+    setStats({
+      districts: districts.length,
+      schools: schools.length,
+      students: students.length,
+      sourceRows: rawData.length,
+      excludedRows,
+    });
     setPreparedRegistryData({ districts, schools, students });
     setCurrentStep(5);
   };
@@ -529,16 +580,22 @@ export default function ExamSelection() {
     }
 
     setAnalyzing(true);
+    let registryCommitted = false;
     try {
       await selectExam(createdExamId);
       await apiRequest("POST", "/api/registry/replace", {
+        examId: createdExamId,
+        sourceRows: stats.sourceRows,
+        excludedRows: stats.excludedRows,
         ...preparedRegistryData,
         sourceFileName: file.name,
       });
 
+      registryCommitted = true;
+      setRegistryUploaded(true);
+      await loadImportHistory(createdExamId);
       await refreshRegistryData();
       await loadExams();
-      setRegistryUploaded(true);
 
       toast.success("Başarılı", { description: "Kütük verileri seçili sınav için kaydedildi." });
 
@@ -547,10 +604,19 @@ export default function ExamSelection() {
       setLocation("/dashboard");
     } catch (error) {
       console.error("Kütük yükleme hatası:", error);
-      if (createdExamId) {
+      if (createdExamId && !registryCommitted) {
         await rollbackTemporaryExam(createdExamId, previousSelectedExamId);
       }
-      toast.error("Hata", { description: error instanceof Error ? error.message : "Kütük yüklenemedi." });
+      toast.error(
+        registryCommitted ? "Kütük kaydedildi, ancak ekran yenilenemedi" : "Hata",
+        {
+          description: error instanceof Error
+            ? error.message
+            : registryCommitted
+              ? "Sayfayı yenileyip sınavı tekrar açın."
+              : "Kütük yüklenemedi.",
+        },
+      );
     } finally {
       setAnalyzing(false);
     }
@@ -837,7 +903,7 @@ export default function ExamSelection() {
             <div className="rounded-xl border bg-background-secondary-default/20 p-5 space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-text-primary">Özel Gereksinimli Öğrencileri Dahil Etme</p>
+                  <p className="text-sm font-medium text-text-primary">Özel gereksinimli öğrencileri kapsam dışında bırak</p>
                   <p className="text-xs text-text-tertiary">
                     Okul adında <span className="font-medium">uygulama</span> veya <span className="font-medium">kademe</span> geçen okullar ile şube adında{" "}
                     <span className="font-medium">hafif, ağır, zihinsel, işitme</span> geçen şubeler kapsam dışı bırakılır.
@@ -847,7 +913,7 @@ export default function ExamSelection() {
                   className="shrink-0"
                   isSelected={excludeSpecialNeeds}
                   onChange={setExcludeSpecialNeeds}
-                  aria-label="Özel gereksinimli öğrencileri dahil etme"
+                  aria-label="Özel gereksinimli öğrencileri kapsam dışında bırak"
                 />
               </div>
             </div>
@@ -866,7 +932,11 @@ export default function ExamSelection() {
 
         {currentStep === 5 && (
           <div className="space-y-4 overflow-x-hidden">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <div className="rounded-xl border bg-background-full px-3 py-3">
+                <p className="text-xs text-text-tertiary">Excel satırı</p>
+                <p className="mt-1 text-xl font-bold">{stats.sourceRows}</p>
+              </div>
               <div className="rounded-xl border bg-background-full px-3 py-3">
                 <p className="text-xs text-text-tertiary">İlçe</p>
                 <p className="mt-1 text-xl font-bold">{stats.districts}</p>
@@ -878,6 +948,10 @@ export default function ExamSelection() {
               <div className="rounded-xl border bg-background-full px-3 py-3">
                 <p className="text-xs text-text-tertiary">Öğrenci</p>
                 <p className="mt-1 text-xl font-bold">{stats.students}</p>
+              </div>
+              <div className="rounded-xl border bg-background-full px-3 py-3">
+                <p className="text-xs text-text-tertiary">Filtrelenen</p>
+                <p className="mt-1 text-xl font-bold">{stats.excludedRows}</p>
               </div>
             </div>
 
@@ -1025,6 +1099,31 @@ export default function ExamSelection() {
           ))}
         </div>
 
+        {selectedExamId && (importHistory.length > 0 || importHistoryError) && (
+          <Card className="mx-auto mt-8 max-w-6xl">
+            <CardHeader>
+              <CardTitle className="text-base">Excel içe aktarma geçmişi</CardTitle>
+              <CardDescription>Seçili sınav için son 20 içe aktarma kaydı.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {importHistoryError ? (
+                <p role="alert" className="text-sm text-text-error-primary">{importHistoryError}</p>
+              ) : (
+                importHistory.map((item) => (
+                  <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-separator-border px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-text-primary">{item.sourceFileName || "Excel dosyası"}</p>
+                      <p className="text-xs text-text-tertiary">
+                        {new Date(item.loadedAt).toLocaleString("tr-TR")} · {item.importedRows} öğrenci · {item.excludedRows} filtrelenen / {item.sourceRows} satır
+                      </p>
+                    </div>
+                    <p className="text-xs text-text-tertiary">Yedek: {item.safetyBackupId}</p>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Modal

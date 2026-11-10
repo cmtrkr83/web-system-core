@@ -6,6 +6,7 @@ import { InputBase as Input } from "@/components/base/input/input";
 import { Label } from "@/components/base/input/label";
 import { Select, SelectItem } from "@/components/base/select/select";
 import { toast } from "@/components/base/toast/toast";
+import { apiRequest } from "@/lib/queryClient";
 import {
   buildOpticFormHtml,
   fetchFormDesigns,
@@ -29,7 +30,7 @@ import {
   resolveColumnValue,
   snapToGrid,
 } from "@/lib/optic-coding";
-import { AlertCircle, FileDown, GripVertical, Plus, Printer, QrCode, Trash2 } from "lucide-react";
+import { AlertCircle, FileDown, GripVertical, Plus, Printer, QrCode, Save, Trash2 } from "lucide-react";
 
 const DRAG_SNAP_MM = 1;
 /** Alan listesinde "bağlı değil" seçeneğinin anahtarı (boş RAC anahtarı olamaz). */
@@ -58,7 +59,7 @@ function generateCodingId(): string {
 }
 
 export default function OpticCoding() {
-  const { districts, schools, students, isLoaded } = useRegistry();
+  const { districts, schools, students, isLoaded, selectedExamId } = useRegistry();
 
   const [formDesigns, setFormDesigns] = useState<OpticFormDesign[]>([]);
   const [selectedFormId, setSelectedFormId] = useState<string>("");
@@ -69,6 +70,7 @@ export default function OpticCoding() {
   const [schoolId, setSchoolId] = useState<string>("all");
   const [className, setClassName] = useState<string>("all");
   const [exporting, setExporting] = useState<{ done: number; total: number } | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const [previewScale, setPreviewScale] = useState(1);
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -116,6 +118,77 @@ export default function OpticCoding() {
     setSelectedFormId(id);
     setElements([]);
     setSelectedElementId(null);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    setElements([]);
+    if (!selectedExamId || !selectedDesign) return;
+
+    const query = new URLSearchParams({
+      examId: selectedExamId,
+      formDesignId: selectedDesign.id,
+    });
+    fetch(`/api/optics/coding-profiles?${query}`, { credentials: "include", cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Kodlama profili alınamadı");
+        return response.json() as Promise<{
+          profile: {
+            formVersion: number;
+            manifestHash: string;
+            elements: CodingElement[];
+          } | null;
+        }>;
+      })
+      .then(({ profile }) => {
+        if (cancelled || !profile) return;
+        if (
+          profile.formVersion !== (selectedDesign.version ?? 1) ||
+          profile.manifestHash !== (selectedDesign.manifestHash ?? "")
+        ) {
+          toast.error("Kodlama profili eski", {
+            description: "Optik form değişti. Eski yerleşimi kontrol edip yeniden kaydedin.",
+          });
+          return;
+        }
+        setElements(profile.elements);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        console.error("Kodlama profili yüklenemedi:", error);
+        toast.error("Kodlama profili yüklenemedi", {
+          description: error instanceof Error ? error.message : "Sunucu hatası",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedExamId, selectedDesign?.id, selectedDesign?.version, selectedDesign?.manifestHash]);
+
+  const saveCodingProfile = async () => {
+    if (!selectedExamId || !selectedDesign) {
+      toast.error("Sınav/form seçilmedi", { description: "Kaydetmek için sınav ve optik form seçin." });
+      return;
+    }
+
+    setSavingProfile(true);
+    try {
+      await apiRequest("PUT", "/api/optics/coding-profiles", {
+        examId: selectedExamId,
+        formDesignId: selectedDesign.id,
+        formVersion: selectedDesign.version ?? 1,
+        manifestHash: selectedDesign.manifestHash ?? "",
+        elements,
+      });
+      toast.success("Kodlama profili kaydedildi");
+    } catch (error) {
+      toast.error("Kodlama profili kaydedilemedi", {
+        description: error instanceof Error ? error.message : "Sunucu hatası",
+      });
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   useEffect(() => {
@@ -455,6 +528,14 @@ export default function OpticCoding() {
           <p className="mt-1 text-body-regular text-text-secondary">Excel sütunlarını seçip optik form üzerine yerleştirin.</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            onClick={saveCodingProfile}
+            disabled={!selectedDesign || !selectedExamId || savingProfile || !!exporting}
+            variant="ghost"
+            leadingIcon={Save}
+          >
+            {savingProfile ? "Kaydediliyor..." : "Yerleşimi Kaydet"}
+          </Button>
           <Button onClick={printAll} disabled={!selectedDesign || filteredStudents.length === 0 || !!exporting} variant="ghost" leadingIcon={Printer}>
             
             Yazdır

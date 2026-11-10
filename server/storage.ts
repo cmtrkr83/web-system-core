@@ -27,15 +27,36 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getRegistryData(examId: string): Promise<ReplaceRegistryPayload & { loadedAt: string; sourceFileName: string }>;
+  findRegistryStudentByNumber(examId: string, studentNo: string): Promise<typeof registryStudents.$inferSelect | undefined>;
   getRegistrySummary(examId: string): Promise<{ districts: number; schools: number; students: number; sourceFileName: string; loadedAt: string }>;
   getRegistryStudents(examId: string, schoolId: string | undefined, page: number, pageSize: number): Promise<{ students: Array<typeof registryStudents.$inferSelect>; total: number }>;
   validateRegistryPayload(payload: ReplaceRegistryPayload): string[];
-  replaceRegistryData(payload: ReplaceRegistryPayload, examId: string): Promise<void>;
+  replaceRegistryData(
+    payload: ReplaceRegistryPayload,
+    examId: string,
+    importMetadata?: RegistryImportMetadata,
+  ): Promise<void>;
+  getRegistryImportHistory(examId: string): Promise<RegistryImportHistoryItem[]>;
   clearRegistryData(examId: string): Promise<void>;
   getExams(): Promise<Exam[]>;
   createExam(exam: InsertExam): Promise<Exam>;
   setActiveExam(examId: string): Promise<void>;
   deleteExam(examId: string): Promise<void>;
+}
+
+export interface RegistryImportMetadata {
+  sourceFileName: string;
+  contentHash: string;
+  sourceRows: number;
+  excludedRows: number;
+  safetyBackupId: string;
+}
+
+export interface RegistryImportHistoryItem extends RegistryImportMetadata {
+  id: string;
+  examId: string;
+  importedRows: number;
+  loadedAt: string;
 }
 
 export class MemStorage implements IStorage {
@@ -68,8 +89,16 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async replaceRegistryData(_payload: ReplaceRegistryPayload, _examId: string): Promise<void> {
+  async replaceRegistryData(
+    _payload: ReplaceRegistryPayload,
+    _examId: string,
+    _importMetadata?: RegistryImportMetadata,
+  ): Promise<void> {
     return;
+  }
+
+  async getRegistryImportHistory(_examId: string): Promise<RegistryImportHistoryItem[]> {
+    return [];
   }
 
   validateRegistryPayload(_payload: ReplaceRegistryPayload): string[] {
@@ -84,6 +113,13 @@ export class MemStorage implements IStorage {
       sourceFileName: "",
       loadedAt: "",
     };
+  }
+
+  async findRegistryStudentByNumber(
+    _examId: string,
+    _studentNo: string,
+  ): Promise<typeof registryStudents.$inferSelect | undefined> {
+    return undefined;
   }
 
   async getRegistrySummary(_examId: string) {
@@ -151,6 +187,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   private db;
+  private sqlite!: InstanceType<typeof Database>;
 
   constructor(dbPath: string) {
     // Ensure the directory exists
@@ -160,6 +197,7 @@ export class DrizzleStorage implements IStorage {
     }
 
     const sqlite = new Database(dbPath);
+    this.sqlite = sqlite;
 
     // Create tables first
     sqlite.exec(`
@@ -205,6 +243,19 @@ export class DrizzleStorage implements IStorage {
         source_file_name TEXT NOT NULL DEFAULT '',
         loaded_at TEXT NOT NULL DEFAULT ''
       );
+      CREATE TABLE IF NOT EXISTS registry_imports (
+        id TEXT PRIMARY KEY,
+        exam_id TEXT NOT NULL,
+        source_file_name TEXT NOT NULL DEFAULT '',
+        content_hash TEXT NOT NULL,
+        source_rows INTEGER NOT NULL DEFAULT 0,
+        imported_rows INTEGER NOT NULL DEFAULT 0,
+        excluded_rows INTEGER NOT NULL DEFAULT 0,
+        safety_backup_id TEXT NOT NULL DEFAULT '',
+        loaded_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_registry_imports_exam_loaded
+        ON registry_imports(exam_id, loaded_at DESC);
     `);
 
     const ensureColumn = (tableName: string, columnName: string, columnSql: string) => {
@@ -377,7 +428,11 @@ export class DrizzleStorage implements IStorage {
     return user;
   }
 
-  async replaceRegistryData(payload: ReplaceRegistryPayload, examId: string): Promise<void> {
+  async replaceRegistryData(
+    payload: ReplaceRegistryPayload,
+    examId: string,
+    importMetadata?: RegistryImportMetadata,
+  ): Promise<void> {
     const chunkSize = 500;
     const chunkArray = <T,>(arr: T[], size: number): T[][] => {
       const chunks: T[][] = [];
@@ -414,7 +469,45 @@ export class DrizzleStorage implements IStorage {
         loadedAt: new Date().toISOString(),
       };
       tx.insert(registryMeta).values(meta).run();
+
+      if (importMetadata) {
+        this.sqlite.prepare(`
+          INSERT INTO registry_imports (
+            id, exam_id, source_file_name, content_hash, source_rows,
+            imported_rows, excluded_rows, safety_backup_id, loaded_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          randomUUID(),
+          examId,
+          importMetadata.sourceFileName,
+          importMetadata.contentHash,
+          importMetadata.sourceRows,
+          payload.students.length,
+          importMetadata.excludedRows,
+          importMetadata.safetyBackupId,
+          meta.loadedAt,
+        );
+      }
     });
+  }
+
+  async getRegistryImportHistory(examId: string): Promise<RegistryImportHistoryItem[]> {
+    return this.sqlite.prepare(`
+      SELECT
+        id,
+        exam_id AS examId,
+        source_file_name AS sourceFileName,
+        content_hash AS contentHash,
+        source_rows AS sourceRows,
+        imported_rows AS importedRows,
+        excluded_rows AS excludedRows,
+        safety_backup_id AS safetyBackupId,
+        loaded_at AS loadedAt
+      FROM registry_imports
+      WHERE exam_id = ?
+      ORDER BY loaded_at DESC
+      LIMIT 20
+    `).all(examId) as RegistryImportHistoryItem[];
   }
 
   validateRegistryPayload(payload: ReplaceRegistryPayload): string[] {
@@ -484,6 +577,15 @@ export class DrizzleStorage implements IStorage {
       sourceFileName: meta[0]?.sourceFileName || "",
       loadedAt: meta[0]?.loadedAt || "",
     };
+  }
+
+  async findRegistryStudentByNumber(examId: string, studentNo: string) {
+    const result = await this.db
+      .select()
+      .from(registryStudents)
+      .where(and(eq(registryStudents.examId, examId), eq(registryStudents.studentNo, studentNo)))
+      .limit(1);
+    return result[0];
   }
 
   async getRegistrySummary(examId: string) {
@@ -574,6 +676,7 @@ export class DrizzleStorage implements IStorage {
       tx.delete(registrySchools).where(eq(registrySchools.examId, examId)).run();
       tx.delete(registryDistricts).where(eq(registryDistricts.examId, examId)).run();
       tx.delete(registryMeta).where(eq(registryMeta.examId, examId)).run();
+      this.sqlite.prepare("DELETE FROM registry_imports WHERE exam_id = ?").run(examId);
 
       tx.delete(exams).where(eq(exams.id, examId)).run();
     });

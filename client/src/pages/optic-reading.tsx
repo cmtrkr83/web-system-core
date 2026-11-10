@@ -10,8 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertCircle, CheckCircle2, Download, FileScan, Loader2, Save, Upload, XCircle } from "lucide-react";
 
 import { toast } from "@/components/base/toast/toast";
+import { useRegistry } from "@/context/RegistryContext";
 import { pdfToJpegFiles } from "@/lib/optic/pdf-renderer";
 import { downloadCsv } from "@/lib/optic/csv-export";
+import { apiRequest } from "@/lib/queryClient";
 import {
   buildOpticFormManifest,
   fetchFormDesigns,
@@ -52,21 +54,56 @@ interface ReadResult {
   error?: string;
 }
 
+interface SavedScan {
+  id: string;
+  createdAt: string;
+  fileName: string;
+  tcNo: string;
+  qr: string;
+  registryStudentId: string;
+  matchStatus: "matched" | "unmatched";
+  confidence: number;
+  scoreTotal: number | null;
+  correctCount: number;
+  incorrectCount: number;
+  blankCount: number;
+  answerCount: number;
+}
+
+interface AnswerKeyRecord {
+  answers: Record<string, string[]>;
+  correctPoints: number;
+  incorrectPoints: number;
+  blankPoints: number;
+}
+
 function confidenceColor(c: number): string {
   if (c >= 0.6) return "text-status-lime-text";
   if (c >= 0.3) return "text-status-orange-text";
   return "text-status-rose-text";
 }
 
-function classifyField(f: FieldRead): "tcNo" | "booklet" | "examId" {
+function classifyField(f: FieldRead): "studentNo" | "booklet" | "examCode" | null {
   if (f.type === "booklet") return "booklet";
   const label = f.label.toLocaleUpperCase("tr-TR");
-  if (label.includes("KİMLİK") || f.id === "field-tc") return "tcNo";
-  return "examId";
+  if (
+    f.id === "field-tc" ||
+    label.includes("KİMLİK") ||
+    label.includes("ÖĞRENCİ") ||
+    label.includes("NUMARA") ||
+    label.includes("NUMARASI")
+  ) return "studentNo";
+  if (label.includes("SINAV")) return "examCode";
+  return null;
 }
 
 function fieldValue(field: FieldRead): string {
   return field.value;
+}
+
+function studentIdentifier(result: ReadResult): string {
+  const field = result.fields.find((item) => classifyField(item) === "studentNo");
+  return field?.value.trim() || result.qr.trim();
 }
 
 function optionLetters(count: number): string[] {
@@ -80,6 +117,7 @@ function csvCell(value: string): string {
 }
 
 export default function OpticReading() {
+  const { selectedExamId, students } = useRegistry();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [designs, setDesigns] = useState<OpticFormDesign[]>([]);
@@ -99,6 +137,12 @@ export default function OpticReading() {
   const [selectedOverlay, setSelectedOverlay] = useState<string | null>(null);
   const [overlayLoading, setOverlayLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [answerKeyDraft, setAnswerKeyDraft] = useState<Record<string, string>>({});
+  const [scoreRules, setScoreRules] = useState({ correctPoints: "1", incorrectPoints: "0", blankPoints: "0" });
+  const [isLoadingAnswerKey, setIsLoadingAnswerKey] = useState(false);
+  const [isSavingAnswerKey, setIsSavingAnswerKey] = useState(false);
+  const [savedScans, setSavedScans] = useState<SavedScan[]>([]);
+  const [savedScansError, setSavedScansError] = useState("");
 
   const design = useMemo(() => designs.find((d) => d.id === designId) ?? null, [designs, designId]);
 
@@ -112,6 +156,176 @@ export default function OpticReading() {
   useEffect(() => {
     if (design) setManifest(design.manifest ?? buildOpticFormManifest(design));
   }, [design]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedExamId || !design) {
+      setAnswerKeyDraft({});
+      setIsLoadingAnswerKey(false);
+      return;
+    }
+
+    setIsLoadingAnswerKey(true);
+    setAnswerKeyDraft(Object.fromEntries(design.grids.map((grid) => [grid.subject, ""])));
+    setScoreRules({ correctPoints: "1", incorrectPoints: "0", blankPoints: "0" });
+    const query = new URLSearchParams({
+      examId: selectedExamId,
+      formDesignId: design.id,
+      formVersion: String(design.version ?? 1),
+    });
+    fetch(`/api/optics/answer-keys?${query}`, { credentials: "include", cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Cevap anahtarı alınamadı");
+        return response.json() as Promise<{ answerKey: AnswerKeyRecord | null }>;
+      })
+      .then(({ answerKey }) => {
+        if (cancelled || !answerKey) return;
+        setAnswerKeyDraft(Object.fromEntries(
+          design.grids.map((grid) => [
+            grid.subject,
+            (answerKey.answers[grid.subject] ?? []).join(""),
+          ]),
+        ));
+        setScoreRules({
+          correctPoints: String(answerKey.correctPoints),
+          incorrectPoints: String(answerKey.incorrectPoints),
+          blankPoints: String(answerKey.blankPoints),
+        });
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        console.error("Cevap anahtarı yüklenemedi:", error);
+        toast.error("Cevap anahtarı alınamadı", {
+          description: error instanceof Error ? error.message : "Sunucu hatası",
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingAnswerKey(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedExamId, design?.id, design?.version]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedExamId) {
+      setSavedScans([]);
+      setSavedScansError("");
+      return;
+    }
+    fetch(`/api/optics/scans?examId=${encodeURIComponent(selectedExamId)}`, {
+      credentials: "include",
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Kayıtlı optik sonuçları alınamadı");
+        return response.json() as Promise<SavedScan[]>;
+      })
+      .then((scans) => {
+        if (!cancelled) {
+          setSavedScans(scans);
+          setSavedScansError("");
+        }
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        console.error("Kayıtlı optik sonuçları yüklenemedi:", error);
+        setSavedScansError(error instanceof Error ? error.message : "Sonuçlar alınamadı");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedExamId]);
+
+  const answerKeyData = useMemo(() => {
+    if (!design || design.grids.length === 0) return null;
+    const answers: Record<string, string[]> = {};
+    for (const grid of design.grids) {
+      const value = (answerKeyDraft[grid.subject] ?? "").replace(/\s/g, "").toUpperCase();
+      const allowed = new Set(optionLetters(grid.optionCount));
+      if (value.length !== grid.questionCount || Array.from(value).some((letter) => !allowed.has(letter))) {
+        return null;
+      }
+      answers[grid.subject] = Array.from(value);
+    }
+    return answers;
+  }, [answerKeyDraft, design]);
+
+  const calculateScore = useCallback((result: ReadResult) => {
+    if (!answerKeyData) return null;
+    const rules = {
+      correct: Number(scoreRules.correctPoints),
+      incorrect: Number(scoreRules.incorrectPoints),
+      blank: Number(scoreRules.blankPoints),
+    };
+    if (Object.values(rules).some((value) => !Number.isFinite(value))) return null;
+
+    let correct = 0;
+    let incorrect = 0;
+    let blank = 0;
+    let score = 0;
+    for (const grid of result.grids) {
+      const key = answerKeyData[grid.subject];
+      if (!key) return null;
+      for (const answer of grid.answers) {
+        const expected = key[answer.no - 1];
+        if (!expected) return null;
+        if (!answer.answer) {
+          blank += 1;
+          score += rules.blank;
+        } else if (answer.answer.toUpperCase() === expected) {
+          correct += 1;
+          score += rules.correct;
+        } else {
+          incorrect += 1;
+          score += rules.incorrect;
+        }
+      }
+    }
+    return { correct, incorrect, blank, score };
+  }, [answerKeyData, scoreRules]);
+
+  const saveAnswerKey = async () => {
+    if (!selectedExamId || !design) {
+      toast.error("Sınav/form seçilmedi", { description: "Cevap anahtarı için sınav ve optik form seçin." });
+      return;
+    }
+    if (!answerKeyData) {
+      toast.error("Cevap anahtarı eksik", {
+        description: "Her ders için bütün soruların doğru seçeneğini girin. Örnek: ABCDE...",
+      });
+      return;
+    }
+    const correctPoints = Number(scoreRules.correctPoints);
+    const incorrectPoints = Number(scoreRules.incorrectPoints);
+    const blankPoints = Number(scoreRules.blankPoints);
+    if (![correctPoints, incorrectPoints, blankPoints].every(Number.isFinite)) {
+      toast.error("Puanlama geçersiz", { description: "Doğru, yanlış ve boş puanlarını kontrol edin." });
+      return;
+    }
+
+    setIsSavingAnswerKey(true);
+    try {
+      await apiRequest("PUT", "/api/optics/answer-keys", {
+        examId: selectedExamId,
+        formDesignId: design.id,
+        formVersion: design.version ?? 1,
+        answers: answerKeyData,
+        correctPoints,
+        incorrectPoints,
+        blankPoints,
+      });
+      toast.success("Cevap anahtarı kaydedildi");
+    } catch (error) {
+      toast.error("Cevap anahtarı kaydedilemedi", {
+        description: error instanceof Error ? error.message : "Sunucu hatası",
+      });
+    } finally {
+      setIsSavingAnswerKey(false);
+    }
+  };
 
   useEffect(() => {
     setSelectedOverlay(null);
@@ -302,13 +516,16 @@ export default function OpticReading() {
       toast.error("Kaydedilecek sonuç yok");
       return;
     }
+    if (!selectedExamId) {
+      toast.error("Sınav seçilmedi", { description: "Optik sonuçları kaydetmeden önce bir sınav seçin." });
+      return;
+    }
     setIsSaving(true);
-    let saved = 0;
+    let savedOnServer = false;
     try {
       const scans = ok.map((r) => {
-        const tcField = r.fields.find((f) => classifyField(f) === "tcNo");
         const bookletField = r.fields.find((f) => classifyField(f) === "booklet");
-        const examField = r.fields.find((f) => classifyField(f) === "examId");
+        const identifier = studentIdentifier(r);
         const answersTotal = r.grids.reduce((s, g) => s + g.answers.length, 0);
         const confSum = r.grids.reduce((s, g) => s + g.answers.reduce((a, b) => a + b.confidence, 0), 0);
 
@@ -319,9 +536,9 @@ export default function OpticReading() {
           formDesignId: design?.id ?? "",
           formVersion: design?.version ?? 1,
           manifestHash: design?.manifestHash ?? "",
-          tcNo: tcField?.value ?? "",
+          tcNo: identifier,
           booklet: bookletField?.value ?? "",
-          examId: examField?.value ?? "",
+          examId: selectedExamId,
           confidence: answersTotal > 0 ? confSum / answersTotal : 0,
           results: r.grids.map((g) => ({
             pageIndex: 0,
@@ -339,14 +556,31 @@ export default function OpticReading() {
       });
       const res = await fetch("/api/optics/scans/batch", {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scans }),
         });
-      if (res.ok) saved = ok.length;
-      toast.success(`${saved}/${ok.length} kayıt kaydedildi`);
+      const responseBody = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(typeof responseBody.message === "string" ? responseBody.message : "Optik sonuçları kaydedilemedi");
+      }
+      const saved = Number(responseBody.count) || 0;
+      const skipped = Number(responseBody.skipped) || 0;
+      savedOnServer = true;
+      const savedResponse = await fetch(`/api/optics/scans?examId=${encodeURIComponent(selectedExamId)}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!savedResponse.ok) throw new Error("Kayıtlı sonuçlar yenilenemedi");
+      setSavedScans((await savedResponse.json()) as SavedScan[]);
+      toast.success(`${saved}/${ok.length} kayıt eklendi`, {
+        description: `${Number(responseBody.matched) || 0} öğrenci eşleşti; ${skipped} tekrar kayıt atlandı.`,
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Kaydetme hatası";
-      toast.error("Kaydetme hatası", { description: msg });
+      toast.error(savedOnServer ? "Sonuçlar kaydedildi, ancak liste yenilenemedi" : "Kaydetme hatası", {
+        description: msg,
+      });
     } finally {
       setIsSaving(false);
     }
@@ -359,17 +593,24 @@ export default function OpticReading() {
     const fieldLabels = ok[0].fields.map((f) => f.label);
     const subjects = ok[0].grids.map((g) => g.subject);
 
-    const header = ["Dosya", "QR", ...fieldLabels, ...subjects.map((s) => `${s} Cevap`), "Cevaplanan"];
+    const header = ["Dosya", "QR", "Eşleşen Öğrenci", ...fieldLabels, ...subjects.map((s) => `${s} Cevap`), "Cevaplanan", "Doğru", "Yanlış", "Boş", "Puan"];
     const rows = ok.map((r) => {
+      const score = calculateScore(r);
+      const match = students.find((student) => student.studentNo === studentIdentifier(r));
       const cells = [
         r.file_name,
         r.qr,
+        match?.fullName ?? "",
         ...r.fields.map((f) => fieldValue(f)),
         ...subjects.map((s) => {
           const g = r.grids.find((gr) => gr.subject === s);
           return g ? g.answers.map((a) => a.answer).join(",") : "";
         }),
         String(r.grids.reduce((sum, g) => sum + g.answers.filter((a) => a.answer).length, 0)),
+        score ? String(score.correct) : "",
+        score ? String(score.incorrect) : "",
+        score ? String(score.blank) : "",
+        score ? String(score.score) : "",
       ];
       return cells.map(csvCell).join(";");
     });
@@ -432,6 +673,72 @@ export default function OpticReading() {
                 </p>
               )}
             </div>
+
+            {design && (
+              <div className="space-y-3 rounded-xl border border-separator-border p-3">
+                <div>
+                  <p className="text-sm font-medium text-text-primary">Cevap anahtarı ve puanlama</p>
+                  <p className="text-xs text-text-tertiary">
+                    Seçili sınav ve optik form sürümü için saklanır. Her soru için doğru harfi sırayla girin.
+                  </p>
+                </div>
+                {!selectedExamId && (
+                  <p role="alert" className="text-xs text-text-error-primary">Önce sınav seçin.</p>
+                )}
+                {design.grids.map((grid) => {
+                  const allowed = optionLetters(grid.optionCount);
+                  const value = answerKeyDraft[grid.subject] ?? "";
+                  return (
+                    <div key={grid.id} className="space-y-1">
+                      <Label htmlFor={`answer-key-${grid.id}`}>
+                        {grid.subject} · {value.length}/{grid.questionCount} soru · {allowed.join("/")}
+                      </Label>
+                      <Input
+                        id={`answer-key-${grid.id}`}
+                        value={value}
+                        placeholder={`${grid.questionCount} cevap (örn. ${allowed.join("")}...)`}
+                        onChange={(event) => {
+                          const valid = new Set(allowed);
+                          const next = Array.from(event.target.value.toUpperCase())
+                            .filter((letter) => valid.has(letter))
+                            .slice(0, grid.questionCount)
+                            .join("");
+                          setAnswerKeyDraft((previous) => ({ ...previous, [grid.subject]: next }));
+                        }}
+                        disabled={!selectedExamId || isLoadingAnswerKey || isSavingAnswerKey}
+                      />
+                    </div>
+                  );
+                })}
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    ["correctPoints", "Doğru"],
+                    ["incorrectPoints", "Yanlış"],
+                    ["blankPoints", "Boş"],
+                  ] as const).map(([key, label]) => (
+                    <div key={key} className="space-y-1">
+                      <Label htmlFor={`score-${key}`}>{label} puanı</Label>
+                      <Input
+                        id={`score-${key}`}
+                        type="number"
+                        step="any"
+                        value={scoreRules[key]}
+                        onChange={(event) => setScoreRules((previous) => ({ ...previous, [key]: event.target.value }))}
+                        disabled={!selectedExamId || isLoadingAnswerKey || isSavingAnswerKey}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  className="w-full"
+                  variant="ghost"
+                  onClick={saveAnswerKey}
+                  disabled={!selectedExamId || isLoadingAnswerKey || isSavingAnswerKey || !answerKeyData}
+                >
+                  {isSavingAnswerKey ? "Kaydediliyor..." : "Anahtarı Kaydet"}
+                </Button>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="file-upload">Görsel Dosyaları (JPEG/PNG/PDF — birden çok)</Label>
@@ -528,6 +835,8 @@ export default function OpticReading() {
                             {g.subject}
                           </TableHead>
                         ))}
+                        <TableHead>Öğrenci</TableHead>
+                        <TableHead className="text-right">Puan</TableHead>
                         <TableHead className="text-center">Durum</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -558,6 +867,12 @@ export default function OpticReading() {
                                 </span>
                               </TableCell>
                             ))}
+                            <TableCell className="max-w-[160px] truncate text-xs">
+                              {students.find((student) => student.studentNo === studentIdentifier(r))?.fullName ?? "Eşleşmedi"}
+                            </TableCell>
+                            <TableCell className="text-right text-xs">
+                              {calculateScore(r)?.score ?? "—"}
+                            </TableCell>
                             <TableCell className="text-center">
                               {r.success ? (
                                 <Chip variant="bold" color="lime">
@@ -695,6 +1010,62 @@ export default function OpticReading() {
           </CardContent>
         </Card>
       </div>
+
+      {selectedExamId && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Seçili sınavın kayıtlı optik sonuçları</CardTitle>
+            <CardDescription>
+              Öğrenci eşleşmesi öğrenci ID/T.C. alanı veya QR içeriğiyle yapılır. Eşleşmeyen kayıtlar saklanır ve sonradan incelenebilir.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {savedScansError ? (
+              <p role="alert" className="text-sm text-text-error-primary">{savedScansError}</p>
+            ) : savedScans.length === 0 ? (
+              <p className="text-sm text-text-tertiary">Bu sınav için kayıtlı tarama yok.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tarih</TableHead>
+                      <TableHead>Dosya</TableHead>
+                      <TableHead>Öğrenci</TableHead>
+                      <TableHead className="text-right">Doğru</TableHead>
+                      <TableHead className="text-right">Yanlış</TableHead>
+                      <TableHead className="text-right">Boş</TableHead>
+                      <TableHead className="text-right">Puan</TableHead>
+                      <TableHead className="text-right">Güven</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {savedScans.map((scan) => {
+                      const matchedStudent = students.find((student) => student.id === scan.registryStudentId);
+                      return (
+                        <TableRow key={scan.id}>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {new Date(scan.createdAt).toLocaleString("tr-TR")}
+                          </TableCell>
+                          <TableCell className="max-w-[180px] truncate text-xs">{scan.fileName}</TableCell>
+                          <TableCell className="text-xs">
+                            {matchedStudent?.fullName ?? (scan.matchStatus === "matched" ? scan.tcNo : "Eşleşmedi")}
+                          </TableCell>
+                          <TableCell className="text-right">{scan.correctCount}</TableCell>
+                          <TableCell className="text-right">{scan.incorrectCount}</TableCell>
+                          <TableCell className="text-right">{scan.blankCount}</TableCell>
+                          <TableCell className="text-right">{scan.scoreTotal ?? "—"}</TableCell>
+                          <TableCell className="text-right">{Math.round(scan.confidence * 100)}%</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
