@@ -697,15 +697,15 @@ export default function OpticCreate() {
                       width: mmToPx(o.wMm),
                       height: mmToPx(o.hMm),
                       cursor: "move",
-                      border: "1.5px dashed rgba(59,130,246,0.55)",
-                      background: "rgba(59,130,246,0.05)",
+                      border: "1.5px dashed color-mix(in srgb, var(--color-accent-500) 55%, transparent)",
+                      background: "color-mix(in srgb, var(--color-accent-500) 5%, transparent)",
                       boxSizing: "border-box",
                       touchAction: "none",
                       userSelect: "none",
                       zIndex: 10,
                     }}
                   >
-                    <span className="pointer-events-none absolute right-1 top-1 text-[10px] font-semibold text-blue-500 opacity-60 group-hover:opacity-100">
+                    <span className="pointer-events-none absolute right-1 top-1 text-[10px] font-semibold text-accent-600 opacity-60 group-hover:opacity-100">
                       <Move className="h-3.5 w-3.5 inline" /> {Math.round(o.xMm)}mm,{Math.round(o.yMm)}mm
                     </span>
                   </div>

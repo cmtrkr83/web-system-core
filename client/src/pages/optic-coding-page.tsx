@@ -784,7 +784,7 @@ export default function OpticCoding() {
                               width: mmToPx(box.w),
                               height: mmToPx(box.h),
                               cursor: "move",
-                              border: isSelected ? "1.5px dashed rgb(59 130 246)" : "none",
+                              border: isSelected ? "1.5px dashed var(--color-accent-500)" : "none",
                               boxSizing: "border-box",
                               touchAction: "none",
                               userSelect: "none",

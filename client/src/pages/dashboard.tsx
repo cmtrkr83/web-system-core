@@ -123,14 +123,14 @@ export default function Dashboard() {
                 <BarChart data={chartData}>
                   <defs>
                     <linearGradient id="districtBarGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#5B8DEF" />
-                      <stop offset="100%" stopColor="#356AE6" />
+                      <stop offset="0%" stopColor="var(--color-accent-400)" />
+                      <stop offset="100%" stopColor="var(--color-accent-600)" />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="4 4" />
+                  <CartesianGrid vertical={false} stroke="var(--color-separator-border)" strokeDasharray="4 4" />
                   <XAxis 
                     dataKey="name" 
-                    stroke="hsl(var(--muted-foreground))" 
+                    stroke="var(--color-text-tertiary)" 
                     fontSize={11} 
                     tickLine={false} 
                     axisLine={false}
@@ -140,14 +140,14 @@ export default function Dashboard() {
                     tickMargin={8}
                   />
                   <YAxis 
-                    stroke="hsl(var(--muted-foreground))" 
+                    stroke="var(--color-text-tertiary)" 
                     fontSize={11} 
                     tickLine={false} 
                     axisLine={false} 
                     tickMargin={8}
                   />
                   <Tooltip
-                    cursor={{ fill: "rgba(91, 141, 239, 0.08)" }}
+                    cursor={{ fill: "color-mix(in srgb, var(--color-accent-500) 8%, transparent)" }}
                     content={({ active, payload, label }) => {
                       if (!active || !payload?.length) return null;
                       return (
