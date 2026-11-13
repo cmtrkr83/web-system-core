@@ -116,12 +116,12 @@ const TILE_TONES: Record<StatTone, string> = {
 };
 
 const PLAIN_TONES: Record<StatTone, { card: string; icon: string; iconText: string }> = {
-  blue: { card: "bg-blue-50 dark:bg-status-blue-background", icon: "bg-blue-100 dark:bg-background-primary-default", iconText: "text-blue-600 dark:text-status-blue-text" },
-  orange: { card: "bg-orange-50 dark:bg-status-orange-background", icon: "bg-orange-100 dark:bg-background-primary-default", iconText: "text-orange-600 dark:text-status-orange-text" },
-  purple: { card: "bg-purple-50 dark:bg-status-purple-background", icon: "bg-purple-100 dark:bg-background-primary-default", iconText: "text-purple-600 dark:text-status-purple-text" },
-  pink: { card: "bg-pink-50 dark:bg-status-rose-background", icon: "bg-pink-100 dark:bg-background-primary-default", iconText: "text-pink-600 dark:text-status-rose-text" },
-  sky: { card: "bg-sky-50 dark:bg-status-cyan-background", icon: "bg-sky-100 dark:bg-background-primary-default", iconText: "text-sky-600 dark:text-status-cyan-text" },
-  emerald: { card: "bg-emerald-50 dark:bg-status-lime-background", icon: "bg-emerald-100 dark:bg-background-primary-default", iconText: "text-emerald-600 dark:text-status-lime-text" },
+  blue: { card: "bg-status-blue-background", icon: "bg-background-primary-default", iconText: "text-status-blue-text" },
+  orange: { card: "bg-status-orange-background", icon: "bg-background-primary-default", iconText: "text-status-orange-text" },
+  purple: { card: "bg-status-purple-background", icon: "bg-background-primary-default", iconText: "text-status-purple-text" },
+  pink: { card: "bg-status-rose-background", icon: "bg-background-primary-default", iconText: "text-status-rose-text" },
+  sky: { card: "bg-status-cyan-background", icon: "bg-background-primary-default", iconText: "text-status-cyan-text" },
+  emerald: { card: "bg-status-lime-background", icon: "bg-background-primary-default", iconText: "text-status-lime-text" },
 };
 
 const DELTA_STYLES: Record<
