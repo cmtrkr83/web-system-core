@@ -108,6 +108,14 @@ shadcn token sınıfları → BoardUI semantic sınıfları, sayfa sayfa:
       etikete `htmlFor` üretildi (`script/migrate-boardui-label-for.cjs`; kimlik etiket metninden,
       Türkçe harfler sadeleşmiş, dosya içinde çakışma yok). `InputBase` kimliği gerçek `<input>`a
       koyduğu için ekran okuyucu artık etiketi okuyor, etikete tıklayınca alana odaklanıyor.
+- [x] **Kullanıcı commit'lerinden sonra kalan ham renkler**: KPI kartı tonları (`stat-cards`
+      `PLAIN_TONES`) `bg-blue-50 dark:bg-status-…` çiftleri yerine doğrudan `status-<ton>-*`
+      token'larını kullanıyor; dashboard grafiğindeki `hsl(var(--border))` /
+      `hsl(var(--muted-foreground))` (shadcn döneminden kalma, artık tanımsız değişkenler)
+      `var(--color-separator-border)` / `var(--color-text-tertiary)` oldu; optik
+      oluşturma/kodlamadaki sabit mavi sürükleme çerçeveleri accent token'larına geçti.
+      Baskı HTML'indeki (`reports`, `registry-split`, `room-lists`, `optic-*`) beyaz/siyah
+      değerler kâğıt çıktısı olduğu için bilinçli olarak ham bırakıldı.
 - [x] **Son yerli kontroller** (`exam-selection`, `optic-creation`): uygulama kodunda native form
       öğesi kalmadı.
   - `<textarea>` → `components/base/textarea/textarea` (`Textarea`: `label`, `rows`, `isDisabled`;
